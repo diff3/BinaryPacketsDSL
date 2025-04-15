@@ -1,0 +1,18 @@
+endian: little
+header:
+data:
+   cmd: B
+   error: B
+   size: H
+   gamename: 4s
+   version1: B
+   version2: B
+   version3: B
+   build: H
+   platform: 4s, M
+   os: 4s, M
+   country: 4s, M
+   timezone_bias: I
+   ip: 4s, W
+   I_len: B
+   I: €I_len's

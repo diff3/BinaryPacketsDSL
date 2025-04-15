@@ -1,0 +1,32 @@
+tool_name: BinaryPacketsDSL
+author: Magnus Pettersson
+version: 0.1.0
+program: mop
+version: 18414
+friendly_name: Mist of Pandaria
+
+Logging:
+  # Specify the logging levels as names (comma-separated) or use "All" for all levels.
+  # Levels:
+  #   - None
+  #   - Success
+  #   - Information
+  #   - Anticheat
+  #   - Warning
+  #   - Error
+  #   - Debug
+  #   - Script
+  #   - All
+  # Example:
+  #  logging_levels: Information, Success, Debug, Script, Error
+  #  logging_levels: All
+  logging_levels: All
+  log_file: dsl.log
+
+  # Define the date format for log timestamps.
+  # Examples of formats:
+  # - English: "[%Y-%m-%d %H:%M:%S]"
+  # - American: "[%m/%d/%Y %I:%M:%S %p]"
+  # - Russian: "[%d.%m.%Y %H:%M:%S]"
+  # - Swedish: "[%Y-%m-%d %H:%M:%S]"
+  date_format: ""

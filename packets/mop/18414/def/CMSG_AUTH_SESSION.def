@@ -1,0 +1,18 @@
+# Variable
+addon_data_start = 58
+
+endian: little
+header:
+data:
+    randseq 58 to €auth:
+        digest: 14 52 27 12 13 43 44 49 45 28 53 19 29 50 11 51 42 48 10 24
+        virtual_realm_id: 15-19
+        client_seed: 20-24
+        client_build: 46-48
+        addon_size: 54-58
+    # Copy addon data
+    addon_data_end = €addon_data_start + €addon_size
+    addon_data_raw = raw[€addon_data_start:€addon_data_end]
+    addon_data: €addon_data_raw, H
+    user_length: B, 12BI
+    user: €user_length's

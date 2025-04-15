@@ -1,0 +1,14 @@
+endian: little
+header: 
+data:
+   cmd: B
+   error: B
+   success: B
+   B: 32s, MU
+   l: B
+   g: B
+   blog: B
+   N: 32s, MU
+   s: 32s, MU
+   unk3: 16s, MU
+   securityFlags: B

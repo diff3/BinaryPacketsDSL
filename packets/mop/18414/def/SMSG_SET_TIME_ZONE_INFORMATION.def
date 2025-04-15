@@ -1,0 +1,8 @@
+# Det ska vara bits inte B
+endian: little
+header:
+data:
+    len1: B, 7BI
+    len2: B, 7BI
+    time_zone1: €len1's
+    time_zone2: €len2's
