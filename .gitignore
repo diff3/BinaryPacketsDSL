@@ -1,0 +1,6 @@
+**.pyc
+!.keep
+**.log
+**.txt
+misc
+!requirements.txt
