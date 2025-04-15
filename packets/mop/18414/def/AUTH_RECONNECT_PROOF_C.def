@@ -1,0 +1,8 @@
+endian: little
+header:
+data:
+    cmd: B
+    R1: 16s, MU
+    R2: 20s, MU
+    R3: 20s, MU
+    number_of_keys: B

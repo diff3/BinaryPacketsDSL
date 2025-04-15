@@ -1,0 +1,7 @@
+endian: little
+header:
+data:
+   uint16_0: H
+   uint32_zeros: 8I
+   uint8_value: B
+   seed: I
