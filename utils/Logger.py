@@ -32,6 +32,12 @@ class DebugLevel(IntEnum):
 
 
 class Logger:
+    """
+    Simple colored logging utility for standardized terminal output.
+
+    Provides static methods for different log levels (info, debug, warning, error),
+    with optional color formatting. Used throughout the system for consistent messaging.
+    """
     init()
 
     @staticmethod

@@ -1,6 +1,12 @@
 import argparse
 
 def parse_args():
+    """
+    Parse command-line arguments for BinaryPacketsDSL.
+
+    Returns:
+        argparse.Namespace: Parsed CLI arguments.
+    """
     parser = argparse.ArgumentParser(description="BinaryPacketsDSL CLI")
     parser.add_argument("--update", action="store_true", help="Update .json output from .bin + .def")
     parser.add_argument("--add", action="store_true", help="Create new empty packet definition set")
