@@ -12,7 +12,6 @@ class ConfigLoader:
         """
         Retrieves a value from the loaded configuration.
         """
-
         if ConfigLoader._config is None:
             raise RuntimeError("Configuration has not been loaded.")
         
@@ -23,7 +22,6 @@ class ConfigLoader:
         """
         Loads the configuration file if not already cached.
         """
-
         if ConfigLoader._config is None:
             try:
                 with open(filepath, 'r') as file:
@@ -37,5 +35,11 @@ class ConfigLoader:
 
     @staticmethod
     def reload_config(filepath: str = "etc/config.yaml"):
+        """
+        Reload the configuration from disk.
+
+        Returns:
+            dict: The reloaded configuration dictionary.
+        """
         ConfigLoader._config = None
         return ConfigLoader.load_config(filepath)
