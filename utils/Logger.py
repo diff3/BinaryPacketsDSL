@@ -7,7 +7,7 @@ from enum import Enum, IntEnum
 
 from utils.ConfigLoader import ConfigLoader
 
-config = ConfigLoader.load_config()
+config = ConfigLoader.get_config()
    
 class DebugColorLevel(Enum):
     SUCCESS = Fore.GREEN + Style.BRIGHT
@@ -42,7 +42,7 @@ class Logger:
 
     @staticmethod
     def _get_logging_mask():
-        levels = config['Logging'].get('logging_levels', 'All').split(', ')
+        levels = config.get('Logging', {}).get('logging_levels', 'All').split(', ')
         level_map = {
             'None': DebugLevel.NONE,
             'Success': DebugLevel.SUCCESS,
