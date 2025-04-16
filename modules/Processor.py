@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
+import os
 from modules.Session import PacketSession, get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
@@ -94,7 +96,45 @@ def load_all_cases(program: str, version: str) -> List[Tuple[str, List[str], byt
         if not success:
             Logger.error(f"Skipping: {case}")
             continue
-        
+
         loaded.append((case, def_lines, binary_data, expected))
 
     return loaded
+
+def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
+    """
+    Add a new packet definition set with given binary data.
+
+    Creates an empty .def and .json file, and writes the .bin file.
+
+    Parameters:
+        program (str): Program identifier (e.g. 'mop')
+        version (str): Version string (e.g. '18414')
+        case (str): Packet case name
+        bin_data (str): Binary data in Python byte string format, e.g. b'\\x01\\x02'
+
+    Returns:
+        bool: True if creation succeeded, False otherwise
+    """
+    try:
+        base_path = f"packets/{program}/{version}"
+        os.makedirs(f"{base_path}/bin", exist_ok=True)
+        os.makedirs(f"{base_path}/def", exist_ok=True)
+        os.makedirs(f"{base_path}/json", exist_ok=True)
+
+        # Skriv binärfil
+        bin_bytes = eval(bin_data)  # b'\x01\x02\x03' → bytes
+        with open(f"{base_path}/bin/{case}.bin", "wb") as bf:
+            bf.write(bin_bytes)
+
+        # Skapa tom .def och .json
+        open(f"{base_path}/def/{case}.def", "w", encoding="utf-8").close()
+        with open(f"{base_path}/json/{case}.json", "w", encoding="utf-8") as jf:
+            json.dump({}, jf, indent=2)
+
+        Logger.info(f"Created new packet files for {case}")
+        return True
+
+    except Exception as e:
+        Logger.error(f"Failed to add new packet: {e}")
+        return False

@@ -1,7 +1,24 @@
+block test10:
+   unk1: B
+   unk2: 42s, MU
+   _teet: I
+   unk4: €unk2
+   unk5 = 400
+
+
 endian: little
 header:
 data:
-   uint16_0: H
+   uint16_0: H, H
    uint32_zeros: 8I
-   uint8_value: B
-   seed: I
+   loop_num = 5
+   loop €loop_num to €realm:
+      uint8_value: B, MU
+      seed: I
+   test: €seed
+   test2 = 42
+   include test10
+   _: €test2's, MU
+   name = "magnus"
+   _ = €name[3:4], MU
+   _: I, MU

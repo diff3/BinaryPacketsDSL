@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 
 @dataclass
@@ -20,6 +20,13 @@ class BaseNode:
     raw_length: Optional[int] = None 
     raw_data: Optional[bytes] = None
     value: Optional[Any] = None
+    ignore: bool = False 
+
+
+@dataclass
+class BlockDefinition:
+    name: str
+    nodes: List[BaseNode]
 
 
 @dataclass
@@ -29,7 +36,22 @@ class LoopNode(BaseNode):
     """
     count_from: str = ""
     target: str = ""
+    loop_line_count: int = 0
     children: List[BaseNode] = field(default_factory=list)     
+
+
+@dataclass
+class VariableNode:
+    name: str
+    raw_value: str
+    value: Optional[Any] = None
+    format: Optional[str] = None
+    interpreter: Optional[str] = None
+    modifiers: List[str] = field(default_factory=list)
+    depends_on: Optional[str] = None
+    dynamic: bool = False
+    ignore: bool = False 
+    
 
 
 @dataclass
@@ -38,12 +60,13 @@ class PacketSession:
     Holds state for a single packet analysis session.
     """
     endian: str = "little"
-    variables: dict[str, Any] = field(default_factory=dict)
+    variables: dict[str, VariableNode] = field(default_factory=dict)
     fields: List[BaseNode] = field(default_factory=list)
     raw_data: Optional[bytes] = None
     version: Optional[str] = None
     program: Optional[str] = None
     offset: int = 0
+    blocks: Dict[str, BlockDefinition] = field(default_factory=dict)
 
     def reset(self) -> None:
         """
@@ -54,8 +77,7 @@ class PacketSession:
         self.raw_data = None
         self.parse_offset = 0
 
-# Singleton holder
-_session_instance: Optional[PacketSession] = None
+
 
 def get_session() -> PacketSession:
     """
@@ -74,3 +96,7 @@ def get_session() -> PacketSession:
         _session_instance = PacketSession()
     
     return _session_instance
+
+
+# Singleton holder
+_session_instance: Optional[PacketSession] = None
