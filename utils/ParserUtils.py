@@ -1,41 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re 
-
+import re
+from utils.ModifierParser import ModifierUtils
+from utils.Logger import Logger
 
 class ParserUtils:
 
-    @staticmethod   
-    def remove_comments_and_reserved(struct_definition: list) -> list:
+    @staticmethod
+    def remove_comments_and_reserved(struct_definition: list[str]) -> list[str]:
         """
         Removes comments (single and multi-line) and reserved sections ('header:', 'data:') 
         from the provided structure definition.
         """
-
-        i = 0
         new_list = []
+        i = 0
 
         while i < len(struct_definition):
             line = struct_definition[i].strip()
 
             if line.startswith('#-'):
-                while not struct_definition[i].strip().endswith("-#"):
-                    i += 1  
-                i += 1  
-                continue  
+                while i < len(struct_definition) and not struct_definition[i].strip().endswith("-#"):
+                    i += 1
+                i += 1
+                continue
             elif line.startswith('#'):
-                i += 1  
-                continue 
+                i += 1
+                continue
             elif '#' in line:
-                line = struct_definition.split('#')[0].strip()
-                if line:  
+                line = line.split('#', 1)[0].strip()
+                if line:
                     new_list.append(line)
                 i += 1
-                continue  
-            elif line.startswith("header:") or line.startswith("data:") or not line.strip():
-                i += 1  
-                continue  
+                continue
+            elif line.startswith("header:") or line.startswith("data:") or not line:
+                i += 1
+                continue
             else:
                 new_list.append(struct_definition[i])
                 i += 1
@@ -43,10 +43,46 @@ class ParserUtils:
         return new_list
 
     @staticmethod
-    def count_size_of_block_structure(lines: list, i: int) -> list:
+    def clean_lines(lines: list[str]) -> list[str]:
+        """
+        Removes comments, reserved sections, and empty lines from the structure.
+        """
+        cleaned = []
+        i = 0
+
+        while i < len(lines):
+            line = lines[i].strip()
+
+            if line.startswith('#-'):
+                while i < len(lines) and not lines[i].strip().endswith('-#'):
+                    i += 1
+                i += 1
+                continue
+
+            if line.startswith('#'):
+                i += 1
+                continue
+
+            if '#' in line:
+                line = line.split('#', 1)[0].strip()
+                if not line:
+                    i += 1
+                    continue
+
+            if line.startswith('header:') or line.startswith('data:') or line == '':
+                i += 1
+                continue
+
+            cleaned.append(line)
+            i += 1
+
+        return cleaned
+
+    @staticmethod
+    def count_size_of_block_structure(lines: list[str], i: int) -> list:
         """
         Given a list of lines and a starting index, this function returns the number of 
-        indented lines and the list of those lines within the loop.
+        indented lines and the list of those lines within the block.
         """
         block_lines = []
         leading_spaces = len(re.match(r"^\s*", lines[i])[0])
@@ -58,13 +94,10 @@ class ParserUtils:
             line = lines[i]
             line_content = line.strip()
 
-            if len(line_content) <= 0:
-             
+            if not line_content:
                 break
 
-            # Stoppa om vi backar ut på indraget
             if len(re.match(r"^\s*", line)[0]) <= leading_spaces:
-   
                 break
 
             block_lines.append(line_content)
@@ -72,3 +105,63 @@ class ParserUtils:
             i += 1
 
         return [ant, block_lines]
+
+    @staticmethod
+    def split_field_definition(line: str) -> tuple[str, str, list[str]] | None:
+        """
+        Safely splits a line into name, format, and modifiers.
+
+        Args:
+            line (str): The line to parse.
+
+        Returns:
+            tuple: (name: str, format: str, modifiers: list[str])
+            or None if parsing fails.
+        """
+        try:
+            if not isinstance(line, str):
+                raise TypeError(f"Expected str for line, got {type(line)}")
+
+            line = line.strip()
+            if not line:
+                raise ValueError("Cannot parse empty line.")
+            if ":" not in line:
+                raise ValueError(f"Missing ':' in field definition: '{line}'")
+
+            name, rest = [x.strip() for x in line.split(":", 1)]
+            if not name:
+                raise ValueError(f"Missing field name before ':' in line: '{line}'")
+            if not rest:
+                raise ValueError(f"Missing format/modifiers after ':' in line: '{line}'")
+
+            fmt, mods = ModifierUtils.parse_modifiers(rest)
+
+            return name, fmt, mods
+
+        except Exception as e:
+            Logger.warning(f"Failed to parse line: '{line}' - {str(e)}")
+            return None
+
+    @staticmethod
+    def check_ignore_and_rename(name: str, anon_counter: int) -> tuple[str, bool, int]:
+        """
+        Check if a field should be ignored (underscore _) and rename if needed.
+
+        Args:
+            name (str): The original field name.
+            anon_counter (int): The current counter for anonymous fields.
+
+        Returns:
+            tuple: (updated_name, ignore_flag, updated_anon_counter)
+        """
+        if name.strip() == "_":
+            new_name = f"__anon_{anon_counter}"
+            return new_name, True, anon_counter + 1
+        return name, False, anon_counter
+
+    @staticmethod
+    def is_ignored_field(name: str) -> bool:
+        """
+        Checks if a field should be ignored (fields starting with underscore).
+        """
+        return name.strip().startswith("_")
