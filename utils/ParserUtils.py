@@ -42,41 +42,6 @@ class ParserUtils:
 
         return new_list
 
-    @staticmethod
-    def clean_lines(lines: list[str]) -> list[str]:
-        """
-        Removes comments, reserved sections, and empty lines from the structure.
-        """
-        cleaned = []
-        i = 0
-
-        while i < len(lines):
-            line = lines[i].strip()
-
-            if line.startswith('#-'):
-                while i < len(lines) and not lines[i].strip().endswith('-#'):
-                    i += 1
-                i += 1
-                continue
-
-            if line.startswith('#'):
-                i += 1
-                continue
-
-            if '#' in line:
-                line = line.split('#', 1)[0].strip()
-                if not line:
-                    i += 1
-                    continue
-
-            if line.startswith('header:') or line.startswith('data:') or line == '':
-                i += 1
-                continue
-
-            cleaned.append(line)
-            i += 1
-
-        return cleaned
 
     @staticmethod
     def count_size_of_block_structure(lines: list[str], i: int) -> list:
@@ -107,35 +72,30 @@ class ParserUtils:
         return [ant, block_lines]
 
     @staticmethod
-    def split_field_definition(line: str) -> tuple[str, str, list[str]] | None:
+    def split_field_definition(line: str) -> tuple[str, str, list] | None:
         """
-        Safely splits a line into name, format, and modifiers.
-
-        Args:
-            line (str): The line to parse.
-
-        Returns:
-            tuple: (name: str, format: str, modifiers: list[str])
-            or None if parsing fails.
+        Smart splitting of a line into (name, format, modifiers).
+        Supports ':' for struct fields and '=' for variable definitions.
         """
         try:
             if not isinstance(line, str):
                 raise TypeError(f"Expected str for line, got {type(line)}")
 
             line = line.strip()
+
             if not line:
                 raise ValueError("Cannot parse empty line.")
-            if ":" not in line:
-                raise ValueError(f"Missing ':' in field definition: '{line}'")
 
-            name, rest = [x.strip() for x in line.split(":", 1)]
-            if not name:
-                raise ValueError(f"Missing field name before ':' in line: '{line}'")
-            if not rest:
-                raise ValueError(f"Missing format/modifiers after ':' in line: '{line}'")
+            if ":" in line:
+                # Normal struct field
+                name, rest = [x.strip() for x in line.split(":", 1)]
+            elif "=" in line:
+                # Variable
+                name, rest = [x.strip() for x in line.split("=", 1)]
+            else:
+                raise ValueError(f"Missing ':' or '=' in field definition: '{line}'")
 
             fmt, mods = ModifierUtils.parse_modifiers(rest)
-
             return name, fmt, mods
 
         except Exception as e:

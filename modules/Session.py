@@ -30,6 +30,21 @@ class BlockDefinition:
 
 
 @dataclass
+class IfNode(BaseNode):
+    """
+    Represents a conditional branch (if/elif/else).
+    """
+    condition: str = ""
+    true_branch: List[BaseNode] = field(default_factory=list)
+    false_branch: Optional[List[BaseNode]] = None
+    elif_branches: Optional[List[tuple]] = None  
+
+    def __post_init__(self):
+        self.format = ""         
+        self.interpreter = "if" 
+
+
+@dataclass
 class LoopNode(BaseNode):
     """
     Represents a repeating structure (e.g., a list of nodes based on a count).

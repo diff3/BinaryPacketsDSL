@@ -1,3 +1,10 @@
+block test10:
+   unk1: B
+   unk2: 42s, MU
+   _teet: I
+   unk4: €unk2
+   unk5 = 400
+
 endian: little
 header:
    cmd: B
@@ -14,5 +21,25 @@ data:
       characters: B
       timezone: B
       realmid: B
+      test: €seed
+      test2 = 42
+      rer: €name[3:4], MU
+     
    unk2: B
    unk3: B
+   if €unk2 == 5:
+      unk4: B
+   elif €unk2 > 4:
+      unk4: H
+   else:
+      unk4: I
+
+   len1: B, 7BI
+   len2: B, 7BI
+   time_zone1: €len1's
+   time_zone2: €len2's
+   include test10
+   _: €test2's, MU
+   name = "magnus"
+
+   _: I, MU
