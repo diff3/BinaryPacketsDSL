@@ -7,12 +7,19 @@ from modules.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.CliArgs import parse_args
 from utils.Logger import Logger
+import json
 
 # GLOBALS
 config = ConfigLoader.get_config()
 session = get_session()
 args = parse_args()
 
+def session_to_dict(session):
+    return {
+        "variables": {k: str(v) for k, v in session.variables.items()},
+        "blocks": {k: [node.__dict__ for node in v.nodes] for k, v in session.blocks.items()},
+        "fields": [field.__dict__ for field in session.fields]
+    }
 
 if __name__ == "__main__":
     Logger.reset_log()
@@ -63,8 +70,14 @@ if __name__ == "__main__":
         Logger.info(f"Processing case: {case[0]}")
         nodes = NodeTreeParser.parse(case[1])
         Logger.debug(f"Parsed {len(nodes)} nodes")
-        NodeTreeParser.pretty_print_nodes(nodes)
-        NodeTreeParser.pretty_print_variables(session.variables)
-        NodeTreeParser.pretty_print_blocks(session.blocks)
-
         NodeTreeParser.pretty_print_compact_all(session)
+        # print(nodes)
+
+
+
+
+# Använd så här:
+       # session_data = session_to_dict(session)
+       # print(json.dumps(session_data, indent=4))
+
+
