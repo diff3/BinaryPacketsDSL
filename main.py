@@ -7,6 +7,7 @@ from modules.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.CliArgs import parse_args
 from utils.Logger import Logger
+from utils.PrintUtils import SessionPrint
 import json
 
 # GLOBALS
@@ -54,8 +55,7 @@ if __name__ == "__main__":
 
    
     Logger.info(f"{tool_name} - {friendly_name}")
-    Logger.info(f"Parsing {program} v{version}")
-    print()
+    Logger.info(f"Parsing {program} v{version}\n")
 
     if args.file:
         case_data = [load_case(program, version, args.file)]
@@ -70,14 +70,6 @@ if __name__ == "__main__":
         Logger.info(f"Processing case: {case[0]}")
         nodes = NodeTreeParser.parse(case[1])
         Logger.debug(f"Parsed {len(nodes)} nodes")
-        NodeTreeParser.pretty_print_compact_all(session)
-        # print(nodes)
-
-
-
-
-# Använd så här:
-       # session_data = session_to_dict(session)
-       # print(json.dumps(session_data, indent=4))
-
-
+        SessionPrint.pretty_print_compact_all(session)
+        
+        print(nodes)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from utils.ModifierParser import ModifierUtils
+from modules.ModifierParser import ModifierUtils
 from utils.Logger import Logger
 
 class ParserUtils:
@@ -56,13 +56,15 @@ class ParserUtils:
         ant = 0
 
         while i < len(lines):
-            line = lines[i]
-            line_content = line.strip()
+            # line = lines[i]
+            # line_content = line.strip()
+            line_content = lines[i]
+
 
             if not line_content:
                 break
 
-            if len(re.match(r"^\s*", line)[0]) <= leading_spaces:
+            if len(re.match(r"^\s*", line_content)[0]) <= leading_spaces:
                 break
 
             block_lines.append(line_content)

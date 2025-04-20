@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Dict
 
 
 @dataclass
@@ -13,20 +12,20 @@ class BaseNode:
     name: str
     format: str
     interpreter: str
-    modifiers: List[str] = field(default_factory=list)
-    depends_on: Optional[str] = None
+    modifiers: list[str] = field(default_factory=list)
+    depends_on: str | None = None
     dynamic: bool = False
-    raw_offset: Optional[int] = None
-    raw_length: Optional[int] = None 
-    raw_data: Optional[bytes] = None
-    value: Optional[Any] = None
-    ignore: bool = False 
+    raw_offset: int | None = None
+    raw_length: int | None = None 
+    raw_data: bytes | None = None
+    value: object | None = None
+    ignore: bool = False
 
 
 @dataclass
 class BlockDefinition:
     name: str
-    nodes: List[BaseNode]
+    nodes: list[BaseNode]
 
 
 @dataclass
@@ -35,13 +34,13 @@ class IfNode(BaseNode):
     Represents a conditional branch (if/elif/else).
     """
     condition: str = ""
-    true_branch: List[BaseNode] = field(default_factory=list)
-    false_branch: Optional[List[BaseNode]] = None
-    elif_branches: Optional[List[tuple]] = None  
+    true_branch: list[BaseNode] = field(default_factory=list)
+    false_branch: list[BaseNode] | None = None
+    elif_branches: list[tuple[str, list[BaseNode]]] | None = None
 
     def __post_init__(self):
-        self.format = ""         
-        self.interpreter = "if" 
+        self.format = ""
+        self.interpreter = "if"
 
 
 @dataclass
@@ -52,22 +51,21 @@ class LoopNode(BaseNode):
     count_from: str = ""
     target: str = ""
     loop_line_count: int = 0
-    children: List[BaseNode] = field(default_factory=list)     
+    children: list[BaseNode] = field(default_factory=list)
 
 
 @dataclass
 class VariableNode:
     name: str
     raw_value: str
-    value: Optional[Any] = None
-    format: Optional[str] = None
-    interpreter: Optional[str] = None
-    modifiers: List[str] = field(default_factory=list)
-    depends_on: Optional[str] = None
+    value: object | None = None
+    format: str | None = None
+    interpreter: str | None = None
+    modifiers: list[str] = field(default_factory=list)
+    depends_on: str | None = None
     dynamic: bool = False
-    ignore: bool = False 
+    ignore: bool = False
     
-
 
 @dataclass
 class PacketSession:
@@ -76,12 +74,12 @@ class PacketSession:
     """
     endian: str = "little"
     variables: dict[str, VariableNode] = field(default_factory=dict)
-    fields: List[BaseNode] = field(default_factory=list)
-    raw_data: Optional[bytes] = None
-    version: Optional[str] = None
-    program: Optional[str] = None
+    fields: list[BaseNode] = field(default_factory=list)
+    raw_data: bytes | None = None
+    version: str | None = None
+    program: str | None = None
     offset: int = 0
-    blocks: Dict[str, BlockDefinition] = field(default_factory=dict)
+    blocks: dict[str, BlockDefinition] = field(default_factory=dict)
 
     def reset(self) -> None:
         """
@@ -90,7 +88,7 @@ class PacketSession:
         self.variables.clear()
         self.fields.clear()
         self.raw_data = None
-        self.parse_offset = 0
+        self.offset = 0
 
 
 
@@ -114,4 +112,4 @@ def get_session() -> PacketSession:
 
 
 # Singleton holder
-_session_instance: Optional[PacketSession] = None
+_session_instance: PacketSession | None = None

@@ -3,7 +3,6 @@
 
 import json
 import os
-from typing import List
 
 
 class FileHandler():
@@ -30,7 +29,7 @@ class FileHandler():
             return json.load(file)
 
     @staticmethod
-    def list_def_files(program: str, version: str) -> List[str]:
+    def list_def_files(program: str, version: str) -> list[str]:
         folder = f"packets/{program}/{version}/def"
         if not os.path.exists(folder):
             return []

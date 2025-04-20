@@ -7,13 +7,12 @@ from modules.Session import PacketSession, get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
 from utils.Logger import Logger
-from typing import Tuple, List, Any
 
 # GLOBALS
 config = ConfigLoader.load_config()
 
 
-def process_case(program: str, version: str, case: str) -> Tuple[bool, List[str], bytes, Any]:
+def process_case(program: str, version: str, case: str) -> tuple[bool, list[str], bytes, object]:
     """
     Load and prepare a packet case for parsing and validation.
 
@@ -49,7 +48,7 @@ def process_case(program: str, version: str, case: str) -> Tuple[bool, List[str]
         Logger.error(f"[{case}] Failed to process: {e}")
         return False, [], b"", None
 
-def load_case(program: str, version: str, case: str) -> Tuple[str, List[str], bytes, Any]:
+def load_case(program: str, version: str, case: str) -> tuple[str, list[str], bytes, object]:
     """
     Load a single packet case from .def, .bin, and .json files.
 
@@ -71,7 +70,7 @@ def load_case(program: str, version: str, case: str) -> Tuple[str, List[str], by
     
     return case, def_lines, binary_data, expected
 
-def load_all_cases(program: str, version: str) -> List[Tuple[str, List[str], bytes, Any]]:
+def load_all_cases(program: str, version: str) -> list[tuple[str, list[str], bytes, object]]:
     """
     Load all available packet cases for the given program and version.
 

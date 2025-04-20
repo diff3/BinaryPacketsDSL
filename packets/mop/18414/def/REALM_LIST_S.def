@@ -4,6 +4,12 @@ block test10:
    _teet: I
    unk4: €unk2
    unk5 = 400
+   if €unk2 == 5:
+      unk4: B
+   elif €unk2 > 4:
+      unk4: H
+   else:
+      unk4: I
 
 endian: little
 header:
@@ -24,16 +30,15 @@ data:
       test: €seed
       test2 = 42
       rer: €name[3:4], MU
-     
+      if €unk2 == 5:
+         unk4: B
+      elif €unk2 > 4:
+         unk4: H
+      else:
+         unk4: I
+      
    unk2: B
    unk3: B
-   if €unk2 == 5:
-      unk4: B
-   elif €unk2 > 4:
-      unk4: H
-   else:
-      unk4: I
-
    len1: B, 7BI
    len2: B, 7BI
    time_zone1: €len1's
@@ -41,5 +46,10 @@ data:
    include test10
    _: €test2's, MU
    name = "magnus"
-
    _: I, MU
+   if €unk2 == 5:
+         unk4: B
+   elif €unk2 > 4:
+      unk4: H
+   else:
+      unk4: I

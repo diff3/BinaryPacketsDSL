@@ -71,14 +71,22 @@ class Logger:
     def _colorize_message(label, color, msg):
         date_format = config['Logging']['date_format']
         date = datetime.now().strftime(date_format)
-        return f'{color.value}{label}{Style.RESET_ALL} {date} {msg}'
+
+        if label:
+            return f'{color.value}{label}{Style.RESET_ALL} {date} {msg}'
+        
+        return f'{msg}'
 
     @staticmethod
     def add_to_log(msg, debugLevel):
         file = config['Logging']['log_file']
         date_format = config['Logging']['date_format']
         date = datetime.now().strftime(date_format)
-        formatted_msg = f'[{debugLevel}] {date} {msg}'
+
+        if debugLevel:
+            formatted_msg = f'[{debugLevel}] {date} {msg}'
+        else:
+            formatted_msg = f'{msg}'
 
         with open(f'logs/{file}', 'a') as log_file:
             log_file.write(formatted_msg + '\n')
@@ -114,6 +122,11 @@ class Logger:
             Logger.add_to_log(msg, 'INFO')
 
     @staticmethod
+    def to_log(msg):
+        if Logger._should_log(DebugLevel.INFO):
+            print(Logger._colorize_message('', DebugColorLevel.INFO, msg))
+            Logger.add_to_log(msg, '')
+
     def success(msg):
         if Logger._should_log(DebugLevel.SUCCESS):
             print(Logger._colorize_message('[SUCCESS]', DebugColorLevel.SUCCESS, msg))
