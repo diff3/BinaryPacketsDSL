@@ -3,6 +3,7 @@
 
 import yaml
 
+# GLOBALS
 _config = None 
 
 

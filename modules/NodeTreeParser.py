@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from modules.Session import PacketSession, BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session
+from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session
 from modules.ModifierParser import ModifierUtils
 from utils.ParserUtils import ParserUtils
 from utils.Logger import Logger
@@ -43,10 +43,8 @@ class NodeTreeParser:
 
             # --- Loop ---
             if line.strip().startswith("loop"):
-                #parsed_node, consumed = NodeTreeParser.parse_loop(lines, i, anon_counter)
-                #if parsed_node:
-                #o    nodes.append(parsed_node)  # <-- APPEND parsed_node direkt här
                 parsed_node, consumed = NodeTreeParser.parse_loop(session, lines, i, anon_counter)
+
                 if parsed_node:
                     if isinstance(parsed_node, VariableNode):
                         session.variables[parsed_node.name] = parsed_node
@@ -63,8 +61,7 @@ class NodeTreeParser:
                         session.variables[parsed_node.name] = parsed_node
                     else:
                         nodes.append(parsed_node)
-                #if parsed_node:
-                 #   nodes.append(parsed_node)
+                
                 i += consumed
                 continue
 
@@ -83,10 +80,6 @@ class NodeTreeParser:
                 continue
 
             # --- Vanlig rad (BaseNode eller variabel) ---
-            # parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
-            # if parsed_node:
-            #    nodes.append(parsed_node)
-
             parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
 
             if parsed_node:
@@ -97,39 +90,10 @@ class NodeTreeParser:
 
             i += 1
 
-        # Slutgiltigt
         session.fields = nodes
-        # Logger.debug(f"Parsed {len(nodes)} nodes")
+
         return nodes
-
-
-        return parsed_node, 1
-
-    @staticmethod
-    def parse_block_old(lines: list, start_idx: int, anon_counter: int) -> tuple[BlockDefinition, int]:
-        """
-        Parses a block structure starting from a given index.
-        Returns the created BlockDefinition and number of lines consumed.
-        """
-        line = lines[start_idx]
-        match = re.match(r"block\s+(\w+):", line)
-        if not match:
-            Logger.warning(f"Malformed block: {line}")
-            return None, 1
-
-        block_name = match.group(1)
-        count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
-
-        block_nodes = []
-        for block_line in block_lines:
-            parsed_node = NodeTreeParser.parse_line_to_node(block_line, anon_counter)
-            if parsed_node:
-                if isinstance(parsed_node, VariableNode):
-                    session.variables[parsed_node.name] = parsed_node
-                else:
-                    block_nodes.append(parsed_node)
-
-        return BlockDefinition(name=block_name, nodes=block_nodes), count + 1
+        # return parsed_node, 1
 
     @staticmethod
     def parse_block(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BlockDefinition, int]:
@@ -143,41 +107,66 @@ class NodeTreeParser:
         count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
         block_nodes = []
-        i = 0
-        while i < len(block_lines):
-            parsed_node, consumed = NodeTreeParser.parse_struct_or_if(block_lines, i, anon_counter)
+        idx = 0
+        while idx < len(block_lines):
+            block_line = block_lines[idx]
+            block_line_strip = block_line.strip()
+
+            if block_line_strip.startswith("if "):
+                parsed_node, consumed = NodeTreeParser.parse_if(block_lines, idx, anon_counter)
+            else:
+                parsed_node = NodeTreeParser.parse_line_to_node(block_line_strip, anon_counter)
+                consumed = 1
+
             if parsed_node:
                 if isinstance(parsed_node, VariableNode):
                     session.variables[parsed_node.name] = parsed_node
                 else:
                     block_nodes.append(parsed_node)
-            i += consumed
+            idx += consumed
 
         return BlockDefinition(name=block_name, nodes=block_nodes), count + 1
 
-
     @staticmethod
     def parse_loop(session, lines: list, start_idx: int, anon_counter: int) -> tuple[LoopNode, int]:
+        """
+        Parses a loop structure starting from a given index.
+        Returns the created LoopNode and number of lines consumed.
+        """
         line = lines[start_idx]
         
         match = re.match(r"\s*loop\s+(.+?)\s+to\s+\€?(\w+):?", line)
         if not match:
-            Logger.warning(f"Malformed loop: {line}")
+            Logger.warning(f"Malformed loop: {line.strip()}")
             return None, 1
 
         count_from, target = match.groups()
+
+        # Viktigt: använd rätt blockuppräkning (indraget avgör)
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
+
         children = []
-        i = 0
-        while i < len(block_lines):
-            parsed_node, consumed = NodeTreeParser.parse_struct_or_if(block_lines, i, anon_counter)
+        idx = 0
+        while idx < len(block_lines):
+            block_line = block_lines[idx]
+            block_line_strip = block_line.strip()
+
+            if block_line_strip.startswith("if "):
+                # If-sats inuti loopen
+                parsed_node, consumed = NodeTreeParser.parse_if(block_lines, idx, anon_counter)
+            else:
+                # Vanlig fältstruktur
+                parsed_node = NodeTreeParser.parse_line_to_node(block_line_strip, anon_counter)
+                consumed = 1
+
             if parsed_node:
                 if isinstance(parsed_node, VariableNode):
                     session.variables[parsed_node.name] = parsed_node
                 else:
                     children.append(parsed_node)
-            i += consumed
+
+            idx += consumed
 
         loop_node = LoopNode(
             name=f"€{target}_loop",
@@ -187,6 +176,8 @@ class NodeTreeParser:
             target=target,
             children=children
         )
+
+        print(loop_node)
 
         return loop_node, block_count + 1
 
@@ -203,6 +194,32 @@ class NodeTreeParser:
 
         parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
         return parsed_node, 1 
+    
+    @staticmethod
+    def count_size_of_block_structure(lines: list, start_idx: int) -> tuple[int, list[str]]:
+        """
+        Counts how many lines belong to the current block based on indentation.
+        Returns (number of lines, list of block lines with original indentation preserved).
+        """
+        block_lines = []
+        base_indent = len(re.match(r"^\s*", lines[start_idx])[0])
+        i = start_idx + 1
+
+        while i < len(lines):
+            line = lines[i]
+            if not line.strip():
+                i += 1
+                continue
+
+            current_indent = len(re.match(r"^\s*", line)[0])
+
+            if current_indent <= base_indent:
+                break
+
+            block_lines.append(line)  # BEHÅLL original (med whitespace!)
+            i += 1
+
+        return i - start_idx - 1, block_lines
 
     @staticmethod
     def parse_if(lines: list, start_idx: int, anon_counter: int):

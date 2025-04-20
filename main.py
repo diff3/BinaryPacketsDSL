@@ -72,4 +72,4 @@ if __name__ == "__main__":
         Logger.debug(f"Parsed {len(nodes)} nodes")
         SessionPrint.pretty_print_compact_all(session)
         
-        print(nodes)
+        # print(nodes)

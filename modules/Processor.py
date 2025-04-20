@@ -3,7 +3,7 @@
 
 import json
 import os
-from modules.Session import PacketSession, get_session
+from modules.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
 from utils.Logger import Logger
