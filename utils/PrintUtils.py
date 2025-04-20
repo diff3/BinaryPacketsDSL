@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.Session import PacketSession, BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session
+from modules.Session import PacketSession, BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session, RandSeqNode
 from utils.Logger import Logger
 
 
@@ -67,6 +67,9 @@ class SessionPrint():
                 SessionPrint._print_node(child, cidx, indent + 1)
         elif isinstance(node, BlockDefinition):
             for cidx, child in enumerate(node.nodes, start=1):
+                SessionPrint._print_node(child, cidx, indent + 1)
+        elif isinstance(node, RandSeqNode):   # <-- Lägg till denna!
+            for cidx, child in enumerate(node.children, start=1):
                 SessionPrint._print_node(child, cidx, indent + 1)
 
     @staticmethod

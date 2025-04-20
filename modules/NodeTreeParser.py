@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session
+from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session
 from modules.ModifierParser import ModifierUtils
 from utils.ParserUtils import ParserUtils
 from utils.Logger import Logger
@@ -52,6 +52,14 @@ class NodeTreeParser:
                         nodes.append(parsed_node)
                     i += consumed
                     continue
+            
+            # --- Randseq ---
+            if line.strip().startswith("randseq"):
+                parsed_node, consumed = NodeTreeParser.parse_randseq(session, lines, i, anon_counter)
+                if parsed_node:
+                    nodes.append(parsed_node)
+                i += consumed
+                continue
 
             # --- If / Elif / Else ---
             if line.strip().startswith("if"):
@@ -180,6 +188,46 @@ class NodeTreeParser:
         print(loop_node)
 
         return loop_node, block_count + 1
+
+    @staticmethod
+    def parse_randseq(session, lines: list, start_idx: int, anon_counter: int) -> tuple[RandSeqNode, int]:
+        """
+        Parses a randseq structure starting from a given index.
+        Returns the created RandSeqNode and number of lines consumed.
+        """
+        line = lines[start_idx]
+
+        # Matcha: tillåt siffror eller €variabel
+        match = re.match(r"\s*randseq\s+(\d+|\€\w+)\s*:", line)
+        if not match:
+            Logger.warning(f"Malformed randseq: {line.strip()}")
+            return None, 1
+
+        raw_count_from = match.group(1)
+
+        # Konvertera till int om det går, annars sträng
+        try:
+            count_from = int(raw_count_from)
+        except ValueError:
+            count_from = raw_count_from  # Antag €variabel
+
+        block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
+
+        children = []
+        for block_line in block_lines:
+            parsed_node = NodeTreeParser.parse_line_to_node(block_line.strip(), anon_counter)
+            if parsed_node:
+                children.append(parsed_node)
+
+        randseq_node = RandSeqNode(
+            name=f"randseq {raw_count_from}",  # Obs! Använd raw här för korrekt namn
+            format="",
+            interpreter="randseq",
+            count_from=count_from,
+            children=children
+        )
+
+        return randseq_node, block_count + 1
 
     @staticmethod
     def parse_struct_or_if(lines: list, idx: int, anon_counter: int):

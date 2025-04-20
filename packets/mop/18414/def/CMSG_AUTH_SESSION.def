@@ -4,7 +4,7 @@ addon_data_start = 58
 endian: little
 header:
 data:
-    randseq 58 to €auth:
+    randseq 58:
         digest: 14 52 27 12 13 43 44 49 45 28 53 19 29 50 11 51 42 48 10 24
         virtual_realm_id: 15-19
         client_seed: 20-24

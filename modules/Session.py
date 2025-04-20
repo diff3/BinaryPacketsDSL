@@ -55,6 +55,17 @@ class LoopNode(BaseNode):
 
 
 @dataclass
+class RandSeqNode(BaseNode):
+    count_from: str = ""
+    target: str = ""
+    children: list[BaseNode] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.format = ""
+        self.interpreter = "randseq"
+
+
+@dataclass
 class VariableNode:
     name: str
     raw_value: str
