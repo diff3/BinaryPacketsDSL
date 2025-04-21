@@ -1,0 +1,69 @@
+endian: little
+
+header:
+
+data:
+    # GUID mask-delar (bits)
+    guid_part1: B (bits) [1B]
+    guid_part2: B (bits) [1B]
+    has_product: B (bits) [1B]
+    guid_part3: B (bits) [1B]
+    guid2_part1: B (bits) [1B]
+    guid2_part2: B (bits) [1B]
+    guid2_part3: B (bits) [1B]
+    revoked_flag: B (bits) [1B]
+    guid2_part4: B (bits) [1B]
+    guid2_part5: B (bits) [1B]
+
+    if €has_product == 1:
+        flag_2bit: B (bits) [2B]         # alltid 1
+        unused_20bit: B (bits) [20B]
+        has_title: B (bits) [1B]
+
+        if €has_title == 1:
+            title_pad: B (bits) [10B]
+            title_flag: B (bits) [1B]
+            title_length: B (bits) [10B]
+            title_unknown1: B (bits) [1B]
+            title_unknown2: B (bits) [1B]
+            description_length: B (bits) [13B]
+            bool11_flag: B (bits) [1B]
+
+    guid_parts_rest: B (bits) [sammanlagda resterande guid-masker]
+
+    # flushbits
+
+    if €has_product == 1:
+        unk_int32_1: I
+        unk_int64_1: Q
+        description: S
+        title: S
+        unk_int64_2: Q
+        product_type: b
+        unk_int32_2: I
+
+    product_id: I
+
+    # Sista WriteGuidBytes och integers
+    guid2_byte4: B
+    unk_int64_3: Q
+    guid2_byte1: B
+    guid2_byte5: B
+    guid_byte2: B
+    guid_byte4: B
+    guid_byte1: B
+    guid_byte0: B
+    unk_int32_3: I
+    guid_byte7: B
+    guid2_byte0: B
+    guid2_byte7: B
+    unk_int32_4: I
+    unk_int32_5: I
+    guid2_byte6: B
+    guid_byte5: B
+    guid_byte6: B
+    guid_byte3: B
+    guid2_byte3: B
+    guid2_byte2: B
+
+    status: I
