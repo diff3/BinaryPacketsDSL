@@ -73,3 +73,4 @@ if __name__ == "__main__":
         SessionPrint.pretty_print_compact_all(session)
         
         # print(nodes)
+        

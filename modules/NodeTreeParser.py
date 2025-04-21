@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import re
-from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session
+from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session, PaddingNode, BitmaskNode
+
 from modules.ModifierParser import ModifierUtils
 from utils.ParserUtils import ParserUtils
 from utils.Logger import Logger
@@ -61,6 +62,14 @@ class NodeTreeParser:
                 i += consumed
                 continue
 
+            # --- Bitmask ---
+            if line.strip().startswith("bitmask"):
+                parsed_node, consumed = NodeTreeParser.parse_bitmask(session, lines, i, anon_counter)
+                if parsed_node:
+                    nodes.append(parsed_node)
+                i += consumed
+                continue
+
             # --- If / Elif / Else ---
             if line.strip().startswith("if"):
                 parsed_node, consumed = NodeTreeParser.parse_if(lines, i, anon_counter)
@@ -75,7 +84,7 @@ class NodeTreeParser:
 
             # --- Include ---
             if line.strip().startswith("include"):
-                match = re.match(r"include\s+(\w+)", line)
+                match = re.match(r"\s*include\s+(\w+):?", line)
                 if match:
                     block_name = match.group(1)
                     if block_name in session.blocks:
@@ -102,6 +111,60 @@ class NodeTreeParser:
 
         return nodes
         # return parsed_node, 1
+
+    @staticmethod
+    def parse_padding(line: str) -> tuple[PaddingNode, int]:
+        parts = line.strip().split()
+        if len(parts) == 2 and parts[1].isdigit():
+            size = int(parts[1])
+            session = get_session()
+
+            if session.raw_data is not None:
+                if session.offset + size > len(session.raw_data):
+                    Logger.warning(f"Padding {size} bytes would go past data end (offset {session.offset}, data length {len(session.raw_data)})")
+                else:
+                    Logger.debug(f"Padding {size} bytes (offset now {session.offset + size})")
+
+            session.offset += size
+            return PaddingNode(size=size), 1
+        else:
+            Logger.warning(f"Malformed padding line: {line}")
+            return None, 1
+
+    @staticmethod
+    def parse_bitmask(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BitmaskNode, int]:
+        """
+        Parses a bitmask structure starting from a given index.
+        Returns the created BitmaskNode and number of lines consumed.
+        """
+        line = lines[start_idx].strip()
+
+        match = re.match(r"bitmask\s+(\d+)", line)
+        if not match:
+            Logger.warning(f"Malformed bitmask: {line}")
+            return None, 1
+
+        size = int(match.group(1))
+
+        # Samla blockets rader
+        block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
+
+        children = []
+        idx = 0
+        while idx < len(block_lines):
+            parsed_node = NodeTreeParser.parse_line_to_node(block_lines[idx].strip(), anon_counter)
+            if parsed_node:
+                children.append(parsed_node)
+            idx += 1
+
+        bitmask_node = BitmaskNode(
+            name="_",
+            size=size,
+            children=children,
+        )
+
+        return bitmask_node, block_count + 1
+
 
     @staticmethod
     def parse_block(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BlockDefinition, int]:
@@ -232,16 +295,22 @@ class NodeTreeParser:
     @staticmethod
     def parse_struct_or_if(lines: list, idx: int, anon_counter: int):
         """
-        Parses either a regular struct field or an if/elif/else block.
+        Parses either a struct field, an if/elif/else block, or special nodes like padding and bitmask.
         """
-        line = lines[idx]
+        line = lines[idx].strip()
+
+        if line.startswith("padding "):
+            parsed_node, consumed = NodeTreeParser.parse_padding(line)
+            return parsed_node, consumed
 
         if line.startswith("if "):
             parsed_node, consumed = NodeTreeParser.parse_if(lines, idx, anon_counter)
             return parsed_node, consumed
 
         parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
-        return parsed_node, 1 
+        return parsed_node, 1
+
+    
     
     @staticmethod
     def count_size_of_block_structure(lines: list, start_idx: int) -> tuple[int, list[str]]:
@@ -347,49 +416,57 @@ class NodeTreeParser:
         Parses a single line into a BaseNode or VariableNode.
         """
 
+        # Special: Padding
+        if line.strip().startswith("padding "):
+            parsed_node, consumed = NodeTreeParser.parse_padding(line)
+            return parsed_node, consumed
+
+        # Special: Variable assignment ("=")
         if "=" in line:
-                name, rest = [x.strip() for x in line.split("=", 1)]
-                fmt, mods = ModifierUtils.parse_modifiers(rest)
+            name, rest = [x.strip() for x in line.split("=", 1)]
+            fmt, mods = ModifierUtils.parse_modifiers(rest)
+            name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
 
-                name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
-
-                # Slice-variabel
-                if fmt.startswith("€") and "[" in fmt and ":" in fmt:
-                    depends_on = fmt.split("[")[0][1:]
+            # Slice-variabel
+            if fmt.startswith("€") and "[" in fmt and ":" in fmt:
+                depends_on = fmt.split("[")[0][1:]
+                return VariableNode(
+                    name=name,
+                    raw_value=fmt,
+                    format=fmt,
+                    interpreter="slice",
+                    modifiers=mods,
+                    depends_on=depends_on,
+                    dynamic=True,
+                )
+            else:
+                # Literal variabel
+                try:
+                    int_val = int(fmt)
+                    return VariableNode(
+                        name=name,
+                        raw_value=int_val,
+                        format=None,
+                        interpreter="literal",
+                        modifiers=mods,
+                        depends_on=None,
+                        dynamic=False,
+                    )
+                except ValueError:
                     return VariableNode(
                         name=name,
                         raw_value=fmt,
-                        format=fmt,
-                        interpreter="slice",
+                        format=None,
+                        interpreter="literal",
                         modifiers=mods,
-                        depends_on=depends_on,
-                        dynamic=True,
+                        depends_on=None,
+                        dynamic=False,
                     )
-                else:
-                    # Literal variabel
-                    try:
-                        int_val = int(fmt)
-                        return VariableNode(
-                            name=name,
-                            raw_value=int_val,
-                            format=None,
-                            interpreter="literal",
-                            modifiers=mods,
-                            depends_on=None,
-                            dynamic=False,
-                        )
-                    except ValueError:
-                        return VariableNode(
-                            name=name,
-                            raw_value=fmt,
-                            format=None,
-                            interpreter="literal",
-                            modifiers=mods,
-                            depends_on=None,
-                            dynamic=False,
-                            )
 
-        # Annars normal parsing (med split_field_definition)
+        
+
+
+        # Annars normal parsing
         result = ParserUtils.split_field_definition(line)
         if not result:
             return None
@@ -397,20 +474,33 @@ class NodeTreeParser:
         name, fmt, mods = result
         name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
 
-        # Slice-fält i strukt
+        # Special: Slice-fält i struct (ex: €name[1:4])
         if fmt.startswith("€") and "[" in fmt and ":" in fmt:
             depends_on = fmt.split("[")[0][1:]
             return BaseNode(
                 name=name,
                 format=fmt,
-                interpreter="slice"    ,
+                interpreter="slice",
                 modifiers=mods,
                 depends_on=depends_on,
                 dynamic=True,
                 ignore=ignore
             )
 
-        # Variabel-referens (t.ex. €seed)
+        # Special: Bits-slice (ex: €len1's)
+        if fmt.startswith("€") and fmt.endswith("'s"):
+            depends_on = fmt[1:-2]  # Ta bort € och 's
+            return BaseNode(
+                name=name,
+                format=fmt,
+                interpreter="bits",
+                modifiers=mods,
+                depends_on=depends_on,
+                dynamic=True,
+                ignore=ignore
+            )
+
+        # Special: Variabel-referens (ex: €seed)
         if fmt.startswith("€"):
             return BaseNode(
                 name=name,
@@ -422,8 +512,8 @@ class NodeTreeParser:
                 ignore=ignore
             )
 
-        # Bitsfält (t.ex. 7B, 3B)
-        if any(m.endswith("B") and m[:-1].isdigit() for m in mods):
+        # Bitsfält (ex: 7B, B)
+        if any(m.endswith("B") and (m[:-1].isdigit() or m[:-1] == "") for m in mods):
             return BaseNode(
                 name=name,
                 format=fmt,
@@ -434,7 +524,7 @@ class NodeTreeParser:
                 ignore=ignore
             )
 
-        # Standard strukt
+        # Standard struct
         return BaseNode(
             name=name,
             format=fmt,

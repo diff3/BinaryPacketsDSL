@@ -10,6 +10,8 @@ block test10:
       unk4: H
    else:
       unk4: I
+   unk10: "Hello"
+   unk11: "world"
 
 endian: little
 header:
@@ -17,6 +19,10 @@ header:
    size: H
    realm_list_size: IH, C
 data: 
+   padding 4
+   bitmask 10
+      flag1: B, BI
+      flag2: B, BI
    loop €realm_list_size to €realmlist:
       icon: B
       lock: B
@@ -36,6 +42,8 @@ data:
          unk4: H
       else:
          unk4: I
+
+
       
    unk2: B
    unk3: B
@@ -43,13 +51,5 @@ data:
    len2: B, 7BI
    time_zone1: €len1's
    time_zone2: €len2's
-   include test10
-   _: €test2's, MU
-   name = "magnus"
-   _: I, MU
-   if €unk2 == 5:
-         unk4: B
-   elif €unk2 > 4:
-      unk4: H
-   else:
-      unk4: I
+   
+   include test10:

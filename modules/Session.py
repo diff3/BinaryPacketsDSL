@@ -23,6 +23,19 @@ class BaseNode:
 
 
 @dataclass
+class BitmaskNode(BaseNode):
+    size: int = 0
+    children: list[BaseNode] = field(default_factory=list)
+    format: str = field(init=False, default="")
+    interpreter: str = field(init=False, default="bitmask")
+
+    def __post_init__(self):
+        self.format = ""
+        self.interpreter = "bitmask"
+
+
+
+@dataclass
 class BlockDefinition:
     name: str
     nodes: list[BaseNode]
@@ -52,6 +65,22 @@ class LoopNode(BaseNode):
     target: str = ""
     loop_line_count: int = 0
     children: list[BaseNode] = field(default_factory=list)
+
+
+@dataclass
+class PaddingNode:
+    size: int
+    name: str = field(init=False)
+    format: str = field(init=False, default="")
+    interpreter: str = field(init=False, default="padding")
+    ignore: bool = field(init=False, default=True)
+    raw_offset: int | None = None
+    raw_length: int | None = None
+    raw_data: bytes | None = None
+    value: bytes | None = None
+
+    def __post_init__(self):
+        self.name = f"padding ({self.size} bytes)"
 
 
 @dataclass

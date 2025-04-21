@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.Session import PacketSession, BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session, RandSeqNode
+from modules.Session import PacketSession, BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, get_session, RandSeqNode, BitmaskNode
 from utils.Logger import Logger
 
 
@@ -52,14 +52,33 @@ class SessionPrint():
     @staticmethod
     def _print_node(node, idx, indent=0):
         prefix = "    " * indent
-        name = node.name if not getattr(node, "ignore", False) else "_"
-        mod_str = f" [{', '.join(node.modifiers)}]" if hasattr(node, "modifiers") and node.modifiers else ""
-        fmt = getattr(node, "format", "unknown")
-        interpreter = getattr(node, "interpreter", "unknown")
 
+        # Skydda mot None
+        if node is None:
+            Logger.to_log(f"{prefix}[{idx}] [None node]")
+            return
+
+        # Skydda mot tuple
+        if isinstance(node, tuple):
+            node = node[0]
+
+        # Padding specialhantering
+        if hasattr(node, "interpreter") and node.interpreter == "padding":
+            name = "_"
+            fmt = f"padding ({node.size} bytes)"
+            interpreter = "padding"
+            mod_str = ""
+        else:
+            # Normal node
+            name = getattr(node, "name", "_") if not getattr(node, "ignore", False) else "_"
+            fmt = getattr(node, "format", "unknown")
+            interpreter = getattr(node, "interpreter", "unknown")
+            mod_str = f" [{', '.join(node.modifiers)}]" if hasattr(node, "modifiers") and node.modifiers else ""
+
+        # Printa
         Logger.to_log(f"{prefix}[{idx}] {name} : {fmt} ({interpreter}){mod_str}")
 
-        # Hantera speciella noder
+        # Rekursivt hantera speciella noder
         if isinstance(node, IfNode):
             SessionPrint._print_ifnode(node, indent + 1)
         elif isinstance(node, LoopNode):
@@ -68,9 +87,15 @@ class SessionPrint():
         elif isinstance(node, BlockDefinition):
             for cidx, child in enumerate(node.nodes, start=1):
                 SessionPrint._print_node(child, cidx, indent + 1)
-        elif isinstance(node, RandSeqNode):   # <-- Lägg till denna!
+        elif isinstance(node, RandSeqNode):
             for cidx, child in enumerate(node.children, start=1):
                 SessionPrint._print_node(child, cidx, indent + 1)
+        elif isinstance(node, BitmaskNode):
+            Logger.to_log(f"{prefix}[{idx}] Bitmask: {node.size} bits (bitmask)")
+            for cidx, child in enumerate(node.children, start=1):
+                SessionPrint._print_node(child, cidx, indent + 1)
+            return
+
 
     @staticmethod
     def _print_ifnode(ifnode: IfNode, indent=0):
@@ -90,3 +115,5 @@ class SessionPrint():
             Logger.to_log(f"{prefix}[False branch]")
             for cidx, child in enumerate(ifnode.false_branch, start=1):
                 SessionPrint._print_node(child, cidx, indent + 1)
+
+
