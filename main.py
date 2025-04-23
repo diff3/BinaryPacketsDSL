@@ -71,7 +71,6 @@ if __name__ == "__main__":
     for case in case_data:
         Logger.info(f"Processing case: {case[0]}")
         nodes = NodeTreeParser.parse(case[1])
-        Logger.debug(f"Parsed {len(nodes)} nodes")
         SessionPrint.pretty_print_compact_all(session)
         print()
         DecoderHandler.decode()

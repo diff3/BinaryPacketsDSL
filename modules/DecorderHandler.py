@@ -37,7 +37,6 @@ class DecoderHandler():
 
             debug_msg.append(field)
             # print(field)
-            print(field)
 
             if field.ignore == True:
                 i += 1
@@ -58,7 +57,6 @@ class DecoderHandler():
                 
                 # else:
                 value = DecoderHandler.resolve_variable(field.format, result)
-                print(value)
 
                 if isinstance(value, str):
                     # Om värdet är en variabel som själv refererar till raw-slice
@@ -70,24 +68,18 @@ class DecoderHandler():
                     if value.startswith("raw["):
                         Logger.debug(f"[var→slice] Evaluating raw slice: {value}")
                         value, size = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
-                        print("hex")
                         value = value.hex()
 
                         offset += size 
-                        print(raw_data[offset:])
 
                     # Om det är ett matematiskt slice-uttryck (typ €a:€b+€c)
                     elif re.match(r"^€\w+:\€\w+[\+\-]€\w+$", value):
                         Logger.debug(f"[var→mathslice] Evaluating math slice: {value}")
                         value, size = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
-                        print( isinstance(value, bytes))
-                        print("HEX")
                         if isinstance(value, bytes):
                             value = value.hex()
-                            print("HEXHEX")
                         offset += size 
                         # field.interpreter = 'struct'
-                        print(ra)
 
 
                 field.value = value
@@ -153,7 +145,7 @@ class DecoderHandler():
                        
 
                     # child.value = value
-                    print(f"{child.name} = {child.value}")
+                    # print(f"{child.name} = {child.value}")
                     result[child.name] = child.value
 
                 offset += randseq_size
@@ -169,10 +161,11 @@ class DecoderHandler():
                 loop_offset = offset  
 
                 for n in range(loop_count):
-
+                    t = 0
                     tmp_dict = {}
-                    for child in field.children:
-                        if field.format == 'S':
+                    while t < len(field.children):
+                        child = field.children[t]
+                        if child.format == 'S':
                             child = DecoderHandler.resolve_string_format(child, raw_data, loop_offset)
 
                         child, value, size = DecoderHandler.decode_struct(child, raw_data, loop_offset, endian)
@@ -180,10 +173,11 @@ class DecoderHandler():
 
                         child.value = DecoderHandler.apply_modifiers(child)
                         tmp_dict[child.name] = child.value
+                        field.children[t] = child
+                        t += 1
                     result[name].append(tmp_dict)
 
                 offset = loop_offset  
-                fields[i] = field
                 i += 1
                 continue
 
@@ -221,13 +215,19 @@ class DecoderHandler():
 
     @staticmethod
     def apply_modifiers(field):
+        if not field.modifiers:
+            return field.value
+
         value = field.raw_data
+
         for mod in field.modifiers:
-            func = modifiers_operation_mapping.get(mod)
-            print(func)
+            func = modifiers_operation_mapping.get(mod) 
+
             if func:
                 value = func(value)
+        
         return value
+
     
     @staticmethod
     def resolve_string_format(field, raw_data, offset):
@@ -241,7 +241,7 @@ class DecoderHandler():
     def decode_struct(field, raw_data, offset, endian):
         fmt = field.format
         value = None
-    
+
         try:
             size = struct.calcsize(f'{endian}{fmt}')
             
@@ -252,7 +252,7 @@ class DecoderHandler():
         except struct.error as e:
             Logger.warning(e)
             Logger.debug(f'fmt: {fmt}')
-     
+
         if 's' in fmt:
             try:
                 value = value.decode("utf-8").strip("\x00")
@@ -274,9 +274,6 @@ class DecoderHandler():
         """
         global session
 
-        print(key)
-        print(result)
-        
         if not isinstance(key, str) or not isinstance(result, dict):
             print(f"Invalid key or result: {key}, {type(result)}")
             return None
@@ -287,9 +284,7 @@ class DecoderHandler():
         if key.endswith("'s"):
             key = key[:-2]
 
-        print(key)
         key = key[1:]
-        print(key)
 
         if key in session.variables:
             return session.variables[key].raw_value
@@ -309,7 +304,6 @@ class DecoderHandler():
         Returns raw_data[start:end]
         """
 
-        print("HEEJ")
         match = re.match(r"^raw\[(€\w+):(\€\w+)\]$", expr.strip())
         if not match:
             raise ValueError(f"Invalid slice expression: {expr}")
@@ -319,8 +313,6 @@ class DecoderHandler():
         start = DecoderHandler.resolve_variable(f"{start_var}", result)
         ends = DecoderHandler.resolve_variable(f"{end_var}", result)
 
-        print(f'start: {start}')
-        print(f'ends: {ends}')
         # offset = DecoderHandler.resolve_variable(f"€{offset_var}", parsed_data)
 
         match = re.fullmatch(r"€(\w+)\s*([+\-*/])\s*€(\w+)", ends.strip())
@@ -335,7 +327,6 @@ class DecoderHandler():
             else:
                 Logger.warning(f"Non-integer values in expression: {expr}")
 
-            print(value)
             # return value
             return raw_data[start:value], right
 

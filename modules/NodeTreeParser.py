@@ -248,8 +248,6 @@ class NodeTreeParser:
             children=children
         )
 
-        print(loop_node)
-
         return loop_node, block_count + 1
 
     @staticmethod
