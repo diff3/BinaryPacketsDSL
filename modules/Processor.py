@@ -100,7 +100,7 @@ def load_all_cases(program: str, version: str) -> list[tuple[str, list[str], byt
 
     return loaded
 
-def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
+def handle_add_old(program: str, version: str, case: str, bin_data: str) -> bool:
     """
     Add a new packet definition set with given binary data.
 
@@ -137,3 +137,56 @@ def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
     except Exception as e:
         Logger.error(f"Failed to add new packet: {e}")
         return False
+
+
+import os
+import json
+import ast
+from utils.Logger import Logger
+
+def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
+    """
+    Add a new packet definition set with given binary data.
+
+    Parameters:
+        program (str): Program identifier (e.g. 'mop')
+        version (str): Version string (e.g. '18414')
+        case (str): Packet case name
+        bin_data (str): Binary data, either as b'...' string or path to file
+
+    Returns:
+        bool: True if creation succeeded, False otherwise
+    """
+    try:
+        base_path = f"packets/{program}/{version}"
+        os.makedirs(f"{base_path}/bin", exist_ok=True)
+        os.makedirs(f"{base_path}/def", exist_ok=True)
+        os.makedirs(f"{base_path}/json", exist_ok=True)
+
+        # Försök tolka bin_data som bytes literal eller filepath
+        bin_data = bin_data.strip()
+        if bin_data.startswith("b'") or bin_data.startswith('b"'):
+            bin_bytes = ast.literal_eval(bin_data)
+        elif os.path.exists(bin_data):
+            with open(bin_data, "rb") as f:
+                bin_bytes = f.read()
+        else:
+            raise ValueError("Invalid --bin input: must be bytes literal or valid file path.")
+
+        # Skriv binärfil
+        with open(f"{base_path}/bin/{case}.bin", "wb") as bf:
+            bf.write(bin_bytes)
+
+        # Skapa tom .def och .json
+        open(f"{base_path}/def/{case}.def", "w", encoding="utf-8").close()
+        with open(f"{base_path}/json/{case}.json", "w", encoding="utf-8") as jf:
+            json.dump({}, jf, indent=2)
+
+        Logger.info(f"Created new packet files for {case}")
+        return True
+
+    except Exception as e:
+        Logger.error(f"Failed to add new packet: {e}")
+        return False
+
+    

@@ -493,7 +493,7 @@ class NodeTreeParser:
             return BaseNode(
                 name=name,
                 format=fmt,
-                interpreter="bits",
+                interpreter="dynamic",
                 modifiers=mods,
                 depends_on=depends_on,
                 dynamic=True,

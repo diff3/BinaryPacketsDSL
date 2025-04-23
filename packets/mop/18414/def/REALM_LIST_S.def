@@ -1,28 +1,9 @@
-block test10:
-   unk1: B
-   unk2: 42s, MU
-   _teet: I
-   unk4: €unk2
-   unk5 = 400
-   if €unk2 == 5:
-      unk4: B
-   elif €unk2 > 4:
-      unk4: H
-   else:
-      unk4: I
-   unk10: "Hello"
-   unk11: "world"
-
 endian: little
 header:
    cmd: B
    size: H
    realm_list_size: IH, C
 data: 
-   padding 4
-   bitmask 10
-      flag1: B, BI
-      flag2: B, BI
    loop €realm_list_size to €realmlist:
       icon: B
       lock: B
@@ -33,23 +14,5 @@ data:
       characters: B
       timezone: B
       realmid: B
-      test: €seed
-      test2 = 42
-      rer: €name[3:4], MU
-      if €unk2 == 5:
-         unk4: B
-      elif €unk2 > 4:
-         unk4: H
-      else:
-         unk4: I
-
-
-      
    unk2: B
    unk3: B
-   len1: B, 7BI
-   len2: B, 7BI
-   time_zone1: €len1's
-   time_zone2: €len2's
-   
-   include test10:

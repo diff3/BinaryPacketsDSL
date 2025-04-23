@@ -33,7 +33,7 @@ class ParserUtils:
                     new_list.append(line)
                 i += 1
                 continue
-            elif line.startswith("header:") or line.startswith("data:") or not line:
+            elif line.startswith("header:") or line.startswith("data:") or line.startswith("variables:") or not line:
                 i += 1
                 continue
             else:

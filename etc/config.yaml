@@ -20,13 +20,16 @@ Logging:
   # Example:
   #  logging_levels: Information, Success, Debug, Script, Error
   #  logging_levels: All
-  logging_levels: All
+  logging_levels:  All
   log_file: dsl.log
 
   # Define the date format for log timestamps.
   # Examples of formats:
-  # - English: "[%Y-%m-%d %H:%M:%S]"
-  # - American: "[%m/%d/%Y %I:%M:%S %p]"
-  # - Russian: "[%d.%m.%Y %H:%M:%S]"
-  # - Swedish: "[%Y-%m-%d %H:%M:%S]"
-  date_format: ""
+  # usage: date_format: *se
+  enGB: &enGB " [%Y-%m-%d %H:%M:%S]"
+  en: &en " [%m/%d/%Y %I:%M:%S %p]"
+  ru: &ru " [%d.%m.%Y %H:%M:%S]"
+  se: &se " [%Y-%m-%d %H:%M:%S]"
+  none: &none ""
+
+  date_format: *none

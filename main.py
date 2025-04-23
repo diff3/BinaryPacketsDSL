@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from modules.DecorderHandler import DecoderHandler
 from modules.NodeTreeParser import NodeTreeParser
 from modules.Processor import load_case, load_all_cases, handle_add
 from modules.Session import get_session
@@ -8,7 +9,6 @@ from utils.ConfigLoader import ConfigLoader
 from utils.CliArgs import parse_args
 from utils.Logger import Logger
 from utils.PrintUtils import SessionPrint
-import json
 
 # GLOBALS
 config = ConfigLoader.get_config()
@@ -53,6 +53,8 @@ if __name__ == "__main__":
             Logger.error(f"Failed to add packet: {args.file}")
             exit(1)
 
+    
+
    
     Logger.info(f"{tool_name} - {friendly_name}")
     Logger.info(f"Parsing {program} v{version}\n")
@@ -71,6 +73,8 @@ if __name__ == "__main__":
         nodes = NodeTreeParser.parse(case[1])
         Logger.debug(f"Parsed {len(nodes)} nodes")
         SessionPrint.pretty_print_compact_all(session)
+        print()
+        DecoderHandler.decode()
         
         # print(nodes)
         

@@ -4,14 +4,14 @@ data:
    cmd: B
    error: B
    size: H
-   gamename: 4s
+   gamename: 4s, s
    version1: B
    version2: B
    version3: B
    build: H
-   platform: 4s, M
-   os: 4s, M
-   country: 4s, M
+   platform: 4s, sM
+   os: 4s, sM
+   country: 4s, sM
    timezone_bias: I
    ip: 4s, W
    I_len: B

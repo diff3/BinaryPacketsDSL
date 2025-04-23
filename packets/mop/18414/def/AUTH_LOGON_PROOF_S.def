@@ -3,7 +3,7 @@ header:
 data:
     cmd: B
     error: B
-    M2: 20s, MU
+    M2: 20s, sMU
     unk1: I
     unk2: I
     unk3: H

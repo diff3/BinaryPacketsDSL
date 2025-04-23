@@ -1,8 +1,7 @@
 endian: little
 header:
 data:
-   uint16_0: H, H
+   uint16_0: H
    uint32_zeros: 8I
-   loop_num = 5
-   uint8_value: B, MU
+   uint8_value: B
    seed: I

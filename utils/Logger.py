@@ -71,9 +71,9 @@ class Logger:
     def _colorize_message(label, color, msg):
         date_format = config['Logging']['date_format']
         date = datetime.now().strftime(date_format)
-
+        
         if label:
-            return f'{color.value}{label}{Style.RESET_ALL} {date} {msg}'
+            return f'{color.value}{label}{Style.RESET_ALL}{date} {msg}'
         
         return f'{msg}'
 

@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from modules.bitsHandler import BitInterPreter
+from modules.Session import get_session
+
+session = get_session()
+
 
 class ModifierInterPreter:
     @staticmethod
@@ -18,9 +22,13 @@ class ModifierInterPreter:
         return value
 
     @staticmethod
-    def to_int(field_value):
+    def to_int(field_value, byteorder='little'):
+
         if isinstance(field_value, list):
+            # Antas vara en lista av 0/1 som strängar eller int
             return int(''.join(str(v) for v in field_value), 2)
+        elif isinstance(field_value, bytes):
+            return int.from_bytes(field_value, byteorder=byteorder)
         return field_value
 
     @staticmethod

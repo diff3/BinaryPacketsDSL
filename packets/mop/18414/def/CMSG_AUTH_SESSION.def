@@ -13,6 +13,6 @@ data:
     # Copy addon data
     addon_data_end = €addon_data_start + €addon_size
     addon_data_raw = raw[€addon_data_start:€addon_data_end]
-    addon_data: €addon_data_raw, H
+    addon_data: €addon_data_raw
     user_length: B, 12BI
     user: €user_length's
