@@ -9,7 +9,7 @@ When executed, the system parses the binary data according to the structure defi
 
 **Intended Use**
 
-BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and developers working with undocumented binary formats. Its DSL syntax prioritizes clarity, precision, and testability over abstraction – making it ideal for debugging live traffic or decoding archival packet captures.
+BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and developers working with undocumented binary formats. Its DSL syntax prioritizes clarity, precision, and testability over abstraction – making it ideal for debugging live traffic or decoding archival packet captures. 
 
 **Personal Motivation**
 
