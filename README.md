@@ -12,6 +12,9 @@ When executed, the system parses the binary data according to the structure defi
 
 BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and developers working with undocumented binary formats. Its DSL syntax prioritizes clarity, precision, and testability over abstraction – making it ideal for debugging live traffic or decoding archival packet captures.
 
+**Personal Motivation**
+
+This project began as a way to better understand network traffic analysis and deepen my Python skills. What started with curiosity around WoW protocols has evolved into a structured, testable system for binary decoding – built with learning and exploration in mind.
 
 
 ## Features
