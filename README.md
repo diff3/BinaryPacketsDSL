@@ -1,11 +1,10 @@
 # BinaryPacketsDSL
 
-**BinaryPacketsDSL** is a modular parser and DSL (Domain-Specific Language) for analyzing and interpreting binary protocol packets. Originally designed for dissecting World of Warcraft’s networking format, the system is now fully generalized to support arbitrary binary formats.
+**BinaryPacketsDSL** is a modular parser and DSL (Domain-Specific Language) for analyzing and interpreting binary protocol packets. While initially inspired by real-world game network formats, it is now fully generalized to support any binary data structure — making it suitable for reverse engineering, protocol research, and learning projects.
 
 Each packet is defined through a .def file, describing its binary layout using a readable syntax. The parser reads accompanying .bin files (containing raw binary data) and .json files (containing the expected parsed output). These three files together define a **test case**.
 
 When executed, the system parses the binary data according to the structure defined in the .def file and compares the result with the expected .json data. This allows for automated validation of protocol definitions and regression testing across protocol versions.
-
 
 
 **Intended Use**
