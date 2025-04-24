@@ -5,6 +5,14 @@ program: mop
 version: 18414
 friendly_name: Mist of Pandaria
 
+IgnoredCases:
+  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
+  - CMSG_PLAYER_LOGIN
+  - SMSG_ENUM_CHARACTERS_RESULT
+  - SMSG_AUTH_RESPONSE
+  - test
+  - SMSG_ADDON_INFO
+
 Logging:
   # Specify the logging levels as names (comma-separated) or use "All" for all levels.
   # Levels:
@@ -21,7 +29,9 @@ Logging:
   #  logging_levels: Information, Success, Debug, Script, Error
   #  logging_levels: All
   logging_levels:  All
+  logging_file_leves: All
   log_file: dsl.log
+  log_file_unit_test: unit_test.log
 
   # Define the date format for log timestamps.
   # Examples of formats:

@@ -41,8 +41,7 @@ class Logger:
     init()
 
     @staticmethod
-    def _get_logging_mask():
-        levels = config.get('Logging', {}).get('logging_levels', 'All').split(', ')
+    def _get_logging_mask(levels):
         level_map = {
             'None': DebugLevel.NONE,
             'Success': DebugLevel.SUCCESS,
@@ -64,7 +63,14 @@ class Logger:
 
     @staticmethod
     def _should_log(log_type: DebugLevel):
-        logging_mask = Logger._get_logging_mask()
+        levels = config.get('Logging', {}).get('logging_levels', 'All').split(', ')
+        logging_mask = Logger._get_logging_mask(levels)
+        return logging_mask & log_type
+
+    @staticmethod
+    def _should_log_file(log_type: DebugLevel):
+        levels = config.get('Logging', {}).get('logging_file_leves', 'All').split(', ')
+        logging_mask = Logger._get_logging_mask(levels)
         return logging_mask & log_type
 
     @staticmethod
@@ -101,48 +107,65 @@ class Logger:
     def debug(msg):
         if Logger._should_log(DebugLevel.DEBUG):
             print(Logger._colorize_message('[DEBUG]', DebugColorLevel.DEBUG, msg))
+        
+        if Logger._should_log_file(DebugLevel.DEBUG):
             Logger.add_to_log(msg, 'DEBUG')
 
     @staticmethod
     def warning(msg):
         if Logger._should_log(DebugLevel.WARNING):
             print(Logger._colorize_message('[WARNING]', DebugColorLevel.WARNING, msg))
+
+        if Logger._should_log_file(DebugLevel.WARNING):
             Logger.add_to_log(msg, 'WARNING')
 
     @staticmethod
     def error(msg):
         if Logger._should_log(DebugLevel.ERROR):
             print(Logger._colorize_message('[ERROR]', DebugColorLevel.ERROR, msg))
+
+        if Logger._should_log_file(DebugLevel.ERROR):
             Logger.add_to_log(msg, 'ERROR')
 
     @staticmethod
     def info(msg, end='\n'):
         if Logger._should_log(DebugLevel.INFO):
             print(Logger._colorize_message('[INFO]', DebugColorLevel.INFO, msg), end=end)
+            
+        if Logger._should_log_file(DebugLevel.INFO):
             Logger.add_to_log(msg, 'INFO')
 
     @staticmethod
     def to_log(msg):
         if Logger._should_log(DebugLevel.INFO):
             print(Logger._colorize_message('', DebugColorLevel.INFO, msg))
+        
+        if Logger._should_log_file(DebugLevel.INFO):
             Logger.add_to_log(msg, '')
 
     def success(msg):
         if Logger._should_log(DebugLevel.SUCCESS):
             print(Logger._colorize_message('[SUCCESS]', DebugColorLevel.SUCCESS, msg))
+
+        if Logger._should_log_file(DebugLevel.SUCCESS):
             Logger.add_to_log(msg, 'SUCCESS')
 
     @staticmethod
     def anticheat(msg):
         if Logger._should_log(DebugLevel.ANTICHEAT):
             print(Logger._colorize_message('[ANTICHEAT]', DebugColorLevel.ANTICHEAT, msg))
+
+        if Logger._should_log_file(DebugLevel.ANTICHEAT):
             Logger.add_to_log(msg, 'ANTICHEAT')
 
     @staticmethod
     def script(msg):
         if Logger._should_log(DebugLevel.SCRIPT):
             print(Logger._colorize_message('[SCRIPT]', DebugColorLevel.SCRIPT, msg))
+    
+        if Logger._should_log_file(DebugLevel.SCRIPT):
             Logger.add_to_log(msg, 'SCRIPT')
+
 
     @staticmethod
     def progress(msg, current, total, divisions=20):

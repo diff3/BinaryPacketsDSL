@@ -15,9 +15,11 @@ session = get_session()
 class DecoderHandler(): 
 
     @staticmethod
-    def decode():
+    def decode(case):
         fields = session.fields
-        raw_data = session.raw_data
+        # raw_data = session.raw_data
+
+        raw_data = case[2]
 
         i = 0
         offset = 0
@@ -26,22 +28,22 @@ class DecoderHandler():
         debug_msg = []
         bit_pos = 0
 
-
-        print()
-
-
         while len(fields) > i:
             field = fields[i]
             size = 0
-
-
+            
             debug_msg.append(field)
-            # print(field)
+            Logger.info(field.name.upper())
+            Logger.info(field)
+            Logger.info(raw_data[offset:])
 
             if field.ignore == True:
                 i += 1
                 ignore_size = struct.calcsize(f'{endian}{field.format}')
                 offset += ignore_size
+                
+                # Logger.debug(field)
+                Logger.to_log('')
                 continue 
                 
             if field.name == 'endian':
@@ -51,6 +53,8 @@ class DecoderHandler():
                     endian = '>'
                 
                 i += 1
+                # Logger.debug(field)
+                Logger.to_log('')
                 continue
 
             if field.interpreter == 'var':
@@ -61,27 +65,17 @@ class DecoderHandler():
                 if isinstance(value, str):
                     # Om värdet är en variabel som själv refererar till raw-slice
                     if value.endswith("raw"):
-                        Logger.debug(f"[var→indirect] Resolving value: {value}")
+                        # Logger.debug(f"[var→indirect] Resolving value: {value}")
                         value = DecoderHandler.resolve_variable(value, result)
 
                     # Om värdet är ett raw-slice-uttryck
                     if value.startswith("raw["):
-                        Logger.debug(f"[var→slice] Evaluating raw slice: {value}")
+                        # Logger.debug(f"[var→slice] Evaluating raw slice: {value}")
                         value, size = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
                         value = value.hex()
 
                         offset += size 
-
-                    # Om det är ett matematiskt slice-uttryck (typ €a:€b+€c)
-                    elif re.match(r"^€\w+:\€\w+[\+\-]€\w+$", value):
-                        Logger.debug(f"[var→mathslice] Evaluating math slice: {value}")
-                        value, size = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
-                        if isinstance(value, bytes):
-                            value = value.hex()
-                        offset += size 
-                        # field.interpreter = 'struct'
-
-
+                
                 field.value = value
 
 
@@ -121,8 +115,10 @@ class DecoderHandler():
                 i += 1
 
                 if not fields[i].interpreter == 'bits':
-                    offset += byte_pos + 1
+                    offset = byte_pos + 1
 
+                Logger.debug(field)
+                Logger.to_log('')
                 continue
             else:
                 bit_pos = 0
@@ -142,15 +138,14 @@ class DecoderHandler():
                     else:
                         positions = list(map(int, fmt.split()))
                         child.value = "".join(f"{raw_data[pos]:02X}" for pos in positions)
-                       
-
-                    # child.value = value
-                    # print(f"{child.name} = {child.value}")
+                 
                     result[child.name] = child.value
 
                 offset += randseq_size
                 i += 1
-                print(f'RESULTAT: \n{result}')
+                
+                Logger.debug(field)
+                Logger.to_log('')
                 continue
 
 
@@ -179,6 +174,9 @@ class DecoderHandler():
 
                 offset = loop_offset  
                 i += 1
+                
+                Logger.debug(field)
+                Logger.to_log('')
                 continue
 
             if field.interpreter == 'struct':
@@ -193,25 +191,30 @@ class DecoderHandler():
             result[field.name] = field.value
 
             fields[i] = field
+            Logger.debug(field)
+            Logger.to_log('')
 
             i += 1
         
         try:
             json_output = json.dumps(result, indent=4)
             Logger.success("RESULT")
-            print(json_output)
+            Logger.to_log(json_output)
         except TypeError as e:
             Logger.error("FAILED RESULT")
             Logger.error(e)
-            print()
-            print(result)
-            print()
+            Logger.to_log('')
+            Logger.to_log(result)
+            Logger.to_log('')
+
             for key, value in result.items():
                 if isinstance(value, bytes):
                     Logger.warning(f"Name: '{key}' values is of type bytes: {value} → not JSON serializable. Add 's' as the first modifier in def file.")
-            print()
+            Logger.to_log('')
             for msg in debug_msg:
-                print(msg)
+                 Logger.to_log(msg)
+
+        return result
 
     @staticmethod
     def apply_modifiers(field):
@@ -250,14 +253,18 @@ class DecoderHandler():
             else:
                 value = struct.unpack_from(f'{endian}{fmt}', raw_data, offset)[0]
         except struct.error as e:
-            Logger.warning(e)
-            Logger.debug(f'fmt: {fmt}')
+            Logger.warning('Struct unpack error')
+            Logger.debug(f'fmt: {fmt} | {e}')
+            Logger.info(f'raw_data: {raw_data[offset:]}')
 
         if 's' in fmt:
             try:
                 value = value.decode("utf-8").strip("\x00")
             except UnicodeDecodeError:
                 value = value.hex()
+            except AttributeError as e:
+                Logger.warning("Struct decode error")
+                Logger.debug(f'fmt: {e}')
 
         field.raw_data = raw_data[offset:offset + size]
         field.raw_offset = offset
@@ -275,7 +282,8 @@ class DecoderHandler():
         global session
 
         if not isinstance(key, str) or not isinstance(result, dict):
-            print(f"Invalid key or result: {key}, {type(result)}")
+            Logger.warning("Resolve variable failed")
+            Logger.debug(f"Invalid key or result: {key}, {type(result)}")
             return None
 
         if not key.startswith('€'):
@@ -291,7 +299,8 @@ class DecoderHandler():
         elif key in result:
             return result[key]
         else:
-            print(f"Warning: Unknown reference '{key}'")
+            Logger.warning("Resolve variable failed")
+            Logger.debug(f"Unknown reference '{key}'")
             return None
 
     @staticmethod   

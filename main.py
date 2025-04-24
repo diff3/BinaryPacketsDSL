@@ -15,15 +15,10 @@ config = ConfigLoader.get_config()
 session = get_session()
 args = parse_args()
 
-def session_to_dict(session):
-    return {
-        "variables": {k: str(v) for k, v in session.variables.items()},
-        "blocks": {k: [node.__dict__ for node in v.nodes] for k, v in session.blocks.items()},
-        "fields": [field.__dict__ for field in session.fields]
-    }
 
 if __name__ == "__main__":
     Logger.reset_log()
+    session.reset()
 
     tool_name = config['tool_name']
     program = config['program']
@@ -53,8 +48,8 @@ if __name__ == "__main__":
             Logger.error(f"Failed to add packet: {args.file}")
             exit(1)
 
-    
-
+    if args.silent:
+        config["Logging"]["logging_levels"] = "None"    
    
     Logger.info(f"{tool_name} - {friendly_name}")
     Logger.info(f"Parsing {program} v{version}\n")
@@ -69,11 +64,12 @@ if __name__ == "__main__":
         exit(1)
 
     for case in case_data:
+  
+        
         Logger.info(f"Processing case: {case[0]}")
-        nodes = NodeTreeParser.parse(case[1])
+        NodeTreeParser.parse(case[1])
+
         SessionPrint.pretty_print_compact_all(session)
-        print()
-        DecoderHandler.decode()
-        
-        # print(nodes)
-        
+        Logger.to_log('')
+
+        DecoderHandler.decode(case)

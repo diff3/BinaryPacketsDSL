@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import ast
 import json
 import os
 from modules.Session import get_session
@@ -10,6 +11,8 @@ from utils.Logger import Logger
 
 # GLOBALS
 config = ConfigLoader.load_config()
+ignored = config.get("IgnoredCases", [])
+
 
 
 def process_case(program: str, version: str, case: str) -> tuple[bool, list[str], bytes, object]:
@@ -40,7 +43,7 @@ def process_case(program: str, version: str, case: str) -> tuple[bool, list[str]
         binary_data = FileHandler.load_bin_file(bin_path)
         expected = FileHandler.load_json_file(json_path)
 
-        session.raw_data = binary_data
+        # session.raw_data = binary_data
         session.version = version
         session.program = program
         return True, definition, binary_data, expected
@@ -96,53 +99,15 @@ def load_all_cases(program: str, version: str) -> list[tuple[str, list[str], byt
             Logger.error(f"Skipping: {case}")
             continue
 
+        if case in ignored:
+            Logger.warning(f"[{case.upper()}] Skipped (ignored in config)")
+            continue
+
         loaded.append((case, def_lines, binary_data, expected))
+    
+    Logger.to_log('')
 
     return loaded
-
-def handle_add_old(program: str, version: str, case: str, bin_data: str) -> bool:
-    """
-    Add a new packet definition set with given binary data.
-
-    Creates an empty .def and .json file, and writes the .bin file.
-
-    Parameters:
-        program (str): Program identifier (e.g. 'mop')
-        version (str): Version string (e.g. '18414')
-        case (str): Packet case name
-        bin_data (str): Binary data in Python byte string format, e.g. b'\\x01\\x02'
-
-    Returns:
-        bool: True if creation succeeded, False otherwise
-    """
-    try:
-        base_path = f"packets/{program}/{version}"
-        os.makedirs(f"{base_path}/bin", exist_ok=True)
-        os.makedirs(f"{base_path}/def", exist_ok=True)
-        os.makedirs(f"{base_path}/json", exist_ok=True)
-
-        # Skriv binärfil
-        bin_bytes = eval(bin_data)  # b'\x01\x02\x03' → bytes
-        with open(f"{base_path}/bin/{case}.bin", "wb") as bf:
-            bf.write(bin_bytes)
-
-        # Skapa tom .def och .json
-        open(f"{base_path}/def/{case}.def", "w", encoding="utf-8").close()
-        with open(f"{base_path}/json/{case}.json", "w", encoding="utf-8") as jf:
-            json.dump({}, jf, indent=2)
-
-        Logger.info(f"Created new packet files for {case}")
-        return True
-
-    except Exception as e:
-        Logger.error(f"Failed to add new packet: {e}")
-        return False
-
-
-import os
-import json
-import ast
-from utils.Logger import Logger
 
 def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
     """
