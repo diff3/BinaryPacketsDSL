@@ -130,24 +130,8 @@ This describes a packet where:
 ### Examples
 
 ```Bash
-python3 main.py -f AUTH_LOGON_CHALLENGE_C
-{
-    "cmd": 8,
-    "error": 0,
-    "size": 52,
-    "gamename": "WoW",
-    "version1": 5,
-    "version2": 4,
-    "version3": 8,
-    "build": 18414,
-    "platform": "x86",
-    "os": "Win",
-    "country": "enGB",
-    "timezone_bias": 60,
-    "ip": "192.168.1.2",
-    "I_len": 4,
-    "I": "ADMIN"
-}
+python3 main.py -f AUTH_LOGON_PROOF_S
+AUTH_LOGON_PROOF_S
 ```
 
 
@@ -166,7 +150,14 @@ python3 -m unittest tests/<tests>.py
 
 ```bash
 python -m unittest tests/test_all_cases.py
-[SUCCESS] AUTH_LOGON_CHALLENGE_C
+ {
+    "cmd": 0,
+    "error": 231,
+    "M2": "30627B30E8577802107EB2C4C13551B454C238F0",
+    "unk1": 3348831891,
+    "unk2": 2030930855,
+    "unk3": 62857
+}
 
 Run 1 tests
 Success 1 tests
