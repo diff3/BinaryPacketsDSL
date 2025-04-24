@@ -64,10 +64,8 @@ if __name__ == "__main__":
         exit(1)
 
     for case in case_data:
-  
-        
         Logger.info(f"Processing case: {case[0]}")
-        NodeTreeParser.parse(case[1])
+        NodeTreeParser.parse(case)
 
         SessionPrint.pretty_print_compact_all(session)
         Logger.to_log('')

@@ -70,17 +70,16 @@ class LoopNode(BaseNode):
 @dataclass
 class PaddingNode:
     size: int
-    name: str = field(init=False)
-    format: str = field(init=False, default="")
+    name: str = field(init=False, default="padding")
+    value: object | None = None
+    format: str = field(init=False)
     interpreter: str = field(init=False, default="padding")
-    ignore: bool = field(init=False, default=True)
-    raw_offset: int | None = None
-    raw_length: int | None = None
-    raw_data: bytes | None = None
-    value: bytes | None = None
+    modifiers: list[str] = field(default_factory=list)
+    ignore: bool = field(init=False, default=False)     
 
     def __post_init__(self):
-        self.name = f"padding ({self.size} bytes)"
+        self.format = ""
+        self.interpreter = "padding"   
 
 
 @dataclass
@@ -92,6 +91,20 @@ class RandSeqNode(BaseNode):
     def __post_init__(self):
         self.format = ""
         self.interpreter = "randseq"
+
+@dataclass
+class SeekNode:
+    offset: int
+    name: str = field(init=False, default="seek")
+    value: object | None = None
+    format: str = field(init=False)
+    interpreter: str = field(init=False, default="seek")
+    modifiers: list[str] = field(default_factory=list)
+    ignore: bool = field(init=False, default=False)
+
+    def __post_init__(self):
+        self.format = ""
+        self.interpreter = "seek"
 
 
 @dataclass

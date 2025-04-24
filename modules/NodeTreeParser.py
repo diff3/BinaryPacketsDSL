@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session, PaddingNode, BitmaskNode
+from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session, PaddingNode, SeekNode, BitmaskNode
 
 from modules.ModifierParser import ModifierUtils
 from utils.ParserUtils import ParserUtils
@@ -14,10 +14,13 @@ parse_warnings = []
 
 class NodeTreeParser:
     @staticmethod
-    def parse(lines: list) -> list:
+    def parse(case: tuple) -> list:
         """
         Parses a list of lines into a list of BaseNode/LoopNode/etc.
         """
+
+        lines = case[1]
+
         nodes = []
         session.fields = []
         session.blocks = {}
@@ -110,26 +113,26 @@ class NodeTreeParser:
         session.fields = nodes
 
         return nodes
-        # return parsed_node, 1
 
     @staticmethod
     def parse_padding(line: str) -> tuple[PaddingNode, int]:
         parts = line.strip().split()
         if len(parts) == 2 and parts[1].isdigit():
             size = int(parts[1])
-            session = get_session()
-
-            if session.raw_data is not None:
-                if session.offset + size > len(session.raw_data):
-                    Logger.warning(f"Padding {size} bytes would go past data end (offset {session.offset}, data length {len(session.raw_data)})")
-                else:
-                    Logger.debug(f"Padding {size} bytes (offset now {session.offset + size})")
-
-            session.offset += size
-            return PaddingNode(size=size), 1
+            return PaddingNode(size=size, value=size)
         else:
             Logger.warning(f"Malformed padding line: {line}")
-            return None, 1
+            return None
+
+    @staticmethod
+    def parse_seek(line: str) -> tuple[SeekNode, int]:
+        parts = line.strip().split()
+        if len(parts) == 2 and parts[1].isdigit():
+            size = int(parts[1])
+            return SeekNode(offset=size, value=size)
+        else:
+            Logger.warning(f"Malformed seek line: {line}")
+            return None
 
     @staticmethod
     def parse_bitmask(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BitmaskNode, int]:
@@ -296,10 +299,13 @@ class NodeTreeParser:
         Parses either a struct field, an if/elif/else block, or special nodes like padding and bitmask.
         """
         line = lines[idx].strip()
+        if line.strip().startswith("padding "):
+            parsed_node = NodeTreeParser.parse_padding(line)
+            return parsed_node
 
-        if line.startswith("padding "):
-            parsed_node, consumed = NodeTreeParser.parse_padding(line)
-            return parsed_node, consumed
+        if line.strip().startswith("seek "):
+            parsed_node = NodeTreeParser.parse_seek(line)
+            return parsed_node
 
         if line.startswith("if "):
             parsed_node, consumed = NodeTreeParser.parse_if(lines, idx, anon_counter)
@@ -416,8 +422,12 @@ class NodeTreeParser:
 
         # Special: Padding
         if line.strip().startswith("padding "):
-            parsed_node, consumed = NodeTreeParser.parse_padding(line)
-            return parsed_node, consumed
+            parsed_node = NodeTreeParser.parse_padding(line)
+            return parsed_node
+
+        if line.strip().startswith("seek "):
+            parsed_node = NodeTreeParser.parse_seek(line)
+            return parsed_node
 
         # Special: Variable assignment ("=")
         if "=" in line:

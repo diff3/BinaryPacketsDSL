@@ -17,7 +17,6 @@ class DecoderHandler():
     @staticmethod
     def decode(case):
         fields = session.fields
-        # raw_data = session.raw_data
 
         raw_data = case[2]
 
@@ -33,7 +32,11 @@ class DecoderHandler():
             size = 0
             
             debug_msg.append(field)
-            Logger.info(field.name.upper())
+            
+            if hasattr(field, "name"):
+                Logger.info(field.name.upper())
+            else:
+                Logger.info(f"Unnamed field: {field}")
             Logger.info(field)
             Logger.info(raw_data[offset:])
 
@@ -45,6 +48,18 @@ class DecoderHandler():
                 # Logger.debug(field)
                 Logger.to_log('')
                 continue 
+
+            if field.name == 'padding':
+                offset += field.value
+                i += 1
+                Logger.to_log('')
+                continue
+
+            if field.name == 'seek':
+                offset = field.value
+                i += 1
+                Logger.to_log('')
+                continue
                 
             if field.name == 'endian':
                 if field.format == 'little':

@@ -68,6 +68,11 @@ class SessionPrint():
             fmt = f"padding ({node.size} bytes)"
             interpreter = "padding"
             mod_str = ""
+        elif hasattr(node, "interpreter") and node.interpreter == "seek":
+            name = "_"
+            fmt = f"seek to bytes pos ({node.offset})"
+            interpreter = "seek"
+            mod_str = ""
         else:
             # Normal node
             name = getattr(node, "name", "_") if not getattr(node, "ignore", False) else "_"
