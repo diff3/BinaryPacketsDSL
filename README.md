@@ -131,7 +131,14 @@ This describes a packet where:
 
 ```Bash
 python3 main.py -f AUTH_LOGON_PROOF_S
-AUTH_LOGON_PROOF_S
+ {
+    "cmd": 0,
+    "error": 231,
+    "M2": "30627B30E8577802107EB2C4C13551B454C238F0",
+    "unk1": 3348831891,
+    "unk2": 2030930855,
+    "unk3": 62857
+}
 ```
 
 
@@ -150,14 +157,7 @@ python3 -m unittest tests/<tests>.py
 
 ```bash
 python -m unittest tests/test_all_cases.py
- {
-    "cmd": 0,
-    "error": 231,
-    "M2": "30627B30E8577802107EB2C4C13551B454C238F0",
-    "unk1": 3348831891,
-    "unk2": 2030930855,
-    "unk3": 62857
-}
+[SUCCESS] AUTH_LOGON_PROOF_S
 
 Run 1 tests
 Success 1 tests
