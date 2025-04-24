@@ -1,6 +1,16 @@
 # BinaryPacketsDSL
 
-**BinaryPacketsDSL** is a modular tool and DSL for parsing and interpreting binary protocol packets. Originally inspired by World of Warcraft network protocol analysis, it is now fully generalized for any binary data format.
+**BinaryPacketsDSL** is a modular parser and DSL (Domain-Specific Language) for analyzing and interpreting binary protocol packets. Originally designed for dissecting World of Warcraft’s networking format, the system is now fully generalized to support arbitrary binary formats.
+
+Each packet is defined through a .def file, describing its binary layout using a readable syntax. The parser reads accompanying .bin files (containing raw binary data) and .json files (containing the expected parsed output). These three files together define a **test case**.
+
+When executed, the system parses the binary data according to the structure defined in the .def file and compares the result with the expected .json data. This allows for automated validation of protocol definitions and regression testing across protocol versions.
+
+
+
+**Intended Use**
+
+BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and developers working with undocumented binary formats. Its DSL syntax prioritizes clarity, precision, and testability over abstraction – making it ideal for debugging live traffic or decoding archival packet captures.
 
 
 
@@ -15,6 +25,155 @@
 
 
 
+## Getting Started
+
+3. Install and configure a virtual environment:
+- Install `virtualenvwrapper`:
+  ```bash
+  pip install virtualenvwrapper
+  ```
+- Add the following to your `.bashrc` or `.zshrc`:
+  ```bash
+  export WORKON_HOME=$HOME/.virtualenvs
+  source $(which virtualenvwrapper.sh)
+  ```
+- Reload your shell:
+  ```bash
+  source ~/.bashrc  # or ~/.zshrc
+  ```
+
+- Create and activate the environment:
+  ```bash
+  mkvirtualenv bpdsl
+  workon bpdsl
+  ```
+
+- Install dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+- (Optional) Add symlinks to scripts you want to use globally:
+  ```bash
+  ln -s <path-to-project>/<file>.py ~/.virtualenvs/bpdsl/bin/<file>.py
+  ```
+
+- (Optional) Enable autocomplete for CLI tools (like `main.py`):
+  Add this line to your `postactivate` script:
+  ```bash
+  eval "$(register-python-argcomplete main.py)"
+  ```
+
+4. Run:
+```bash
+python3 main.py
+python3 main.py -f AUTH_LOGON_CHALLENGE_C
+main.py -f <CASE>
+```
+
+
+
+### args
+
+| Argument      | Description                                                  |
+| ------------- | :----------------------------------------------------------- |
+| -f, --file    | Specify a single .def packet file (without extension) to parse |
+| -p, --program | Set the program name (e.g., mop)                             |
+| -V, --version | Set the program version (e.g., 18414)                        |
+| -s, --silent  | Suppress all console output, still logs to file              |
+| -a, --add     | Create a new, empty packet definition set (requires --program, --version, --file, --bin) |
+
+
+
+### **.def File Format**
+
+Each .def file consists of declarative sections:
+
+- variables: – optional definitions like AUTH_OK = 12
+- endian: – specifies byte order, e.g. little or big
+- header: / data: – the actual packet structure
+- Support for loop, block, if, and randseq control structures
+- Optional modifiers like s, M, W, C, B to transform or interpret values
+
+
+
+Example:
+```dsl
+endian: little
+header:
+  cmd: B
+  size: H
+data:
+  username_len: B, BI
+  username: €username_len's
+```
+
+
+
+This describes a packet where:
+
+- cmd is a single byte,
+- size is a 2-byte little-endian unsigned integer,
+- username_len is read as bits, converted to int (modifier BI),
+- username is a UTF-8 string of that length.
+
+### **Resources**
+
+- [Python struct format documentation](https://docs.python.org/3/library/struct.html)
+
+- [YAML syntax guide](https://yaml.org/spec/)
+
+  
+
+### Examples
+
+```Bash
+python3 main.py -f AUTH_LOGON_CHALLENGE_C
+{
+    "cmd": 8,
+    "error": 0,
+    "size": 52,
+    "gamename": "WoW",
+    "version1": 5,
+    "version2": 4,
+    "version3": 8,
+    "build": 18414,
+    "platform": "x86",
+    "os": "Win",
+    "country": "enGB",
+    "timezone_bias": 60,
+    "ip": "192.168.1.2",
+    "I_len": 4,
+    "I": "ADMIN"
+}
+```
+
+
+
+## Unit-tests
+
+Run unit tests against all packet files using:
+
+```bash
+python3 -m unittest tests/<tests>.py
+```
+
+
+
+### Examples
+
+```bash
+python -m unittest tests/test_all_cases.py
+[SUCCESS] AUTH_LOGON_CHALLENGE_C
+
+Run 1 tests
+Success 1 tests
+Failed 0 tests
+```
+
+
+
+
 ## Project Structure
 
 ```
@@ -23,33 +182,11 @@ BinaryPacketsDSL/
 ├── logs/           # Output logs (debug, parse failures, etc.)
 ├── misc/           # Scratchpad, experiments
 ├── modules/        # Core logic (parser, nodes, extractor)
-├── pakets/         # Packet definitions and examples (def/bin/json)
-├── unittest/       # Unit tests, auto validation
+├── packets/        # Packet definitions and examples (def/bin/js
+├── tests/       		# Unit tests, auto validation
 ├── utils/          # Common helpers (logger, config loader, etc.)
 ├── doc/            # Documentation and specs
 └── main.py         # Entry point
-```
-
-
-
-## Getting Started
-
-1. Set up your `config.yaml` in `etc/`
-2. Place `.def`, `.bin`, and `.json` in `pakets/<program>/<version>/`
-3. Run:
-
-```bash
-python3 main.py
-```
-
-
-
-## Testing
-
-Run unit tests against all packet files using:
-
-```bash
-python3 -m unittest discover unittest/
 ```
 
 
