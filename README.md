@@ -176,7 +176,7 @@ BinaryPacketsDSL/
 ├── misc/           # Scratchpad, experiments
 ├── modules/        # Core logic (parser, nodes, extractor)
 ├── packets/        # Packet definitions and examples (def/bin/js
-├── tests/       		# Unit tests, auto validation
+├── tests/       	# Unit tests, auto validation
 ├── utils/          # Common helpers (logger, config loader, etc.)
 ├── doc/            # Documentation and specs
 └── main.py         # Entry point
