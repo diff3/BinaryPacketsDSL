@@ -63,10 +63,6 @@ class TestAllCases(unittest.TestCase):
                     Logger.debug(f"Got:      {python_json_result}")
                     Logger.to_log('')
 
-     
-
-            
-
         print()
         print(f'Run {num} tests')
         print(f'Success {success} tests')
