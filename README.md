@@ -29,7 +29,6 @@ This project began as a way to better understand network traffic analysis and de
 
 ## Getting Started
 
-3. Install and configure a virtual environment:
 - Install `virtualenvwrapper`:
   ```bash
   pip install virtualenvwrapper
