@@ -41,6 +41,9 @@ echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
 echo 'export VIRTUALENVWRAPPER_PYTHON=$(which python3)' >> ~/.bashrc
 echo 'source /usr/share/virtualenvwrapper/virtualenvwrapper.sh' >> ~/.bashrc
 
+# If 'virtualenvwrapper' is not found, you can locate it by running 'which virtualenvwrapper.sh'.
+# It might be located at '/usr/bin/virtualenvwrapper.sh'.
+
 # Reload shell config to activate virtualenvwrapper
 source ~/.bashrc
 
