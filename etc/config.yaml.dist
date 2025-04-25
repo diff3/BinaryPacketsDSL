@@ -1,17 +1,11 @@
 tool_name: BinaryPacketsDSL
 author: Magnus Pettersson
-version: 0.1.0
-program: mop
-version: 18414
-friendly_name: Mist of Pandaria
+version: 0.2.0
+program: custom
+version: 10000
+friendly_name: Custom,
 
 IgnoredCases:
-  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
-  - CMSG_PLAYER_LOGIN
-  - SMSG_ENUM_CHARACTERS_RESULT
-  - SMSG_AUTH_RESPONSE
-  - test
-  - SMSG_ADDON_INFO
 
 Logging:
   # Specify the logging levels as names (comma-separated) or use "All" for all levels.

@@ -2,6 +2,8 @@
 
 **BinaryPacketsDSL** is a modular parser and DSL (Domain-Specific Language) for analyzing and interpreting binary protocol packets. While initially inspired by real-world game network formats, it is now fully generalized to support any binary data structure — making it suitable for reverse engineering, protocol research, and learning projects.
 
+This project follows a clear separation of concerns and aims for high transparency, traceability, and testability – inspired by NASA engineering practices. See doc/* for more information.
+
 Each packet is defined through a .def file, describing its binary layout using a readable syntax. The parser reads accompanying .bin files (containing raw binary data) and .json files (containing the expected parsed output). These three files together define a **test case**.
 
 When executed, the system parses the binary data according to the structure defined in the .def file and compares the result with the expected .json data. This allows for automated validation of protocol definitions and regression testing across protocol versions.
@@ -13,7 +15,7 @@ BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and devel
 
 **Personal Motivation**
 
-This project began as a way to better understand network traffic analysis and deepen my Python skills. What started with curiosity around WoW protocols has evolved into a structured, testable system for binary decoding – built with learning and exploration in mind.
+This project began as a way to better understand network traffic analysis and deepen my Python skills. What started with curiosity around real-world network protocols has evolved into a structured, testable system for binary decoding – built with learning and exploration in mind.
 
 
 ## Features
@@ -29,49 +31,55 @@ This project began as a way to better understand network traffic analysis and de
 
 ## Getting Started
 
-- Install `virtualenvwrapper`:
-  ```bash
-  pip install virtualenvwrapper
-  ```
-- Add the following to your `.bashrc` or `.zshrc`:
-  ```bash
-  export WORKON_HOME=$HOME/.virtualenvs
-  source $(which virtualenvwrapper.sh)
-  ```
-- Reload your shell:
-  ```bash
-  source ~/.bashrc  # or ~/.zshrc
-  ```
-
-- Create and activate the environment:
-  ```bash
-  mkvirtualenv bpdsl
-  workon bpdsl
-  ```
-
-- Install dependencies:
-  ```bash
-  pip install -r requirements.txt
-  ```
-
-- (Optional) Add symlinks to scripts you want to use globally:
-  ```bash
-  ln -s <path-to-project>/<file>.py ~/.virtualenvs/bpdsl/bin/<file>.py
-  ```
-
-- (Optional) Enable autocomplete for CLI tools (like `main.py`):
-  Add this line to your `postactivate` script:
-  ```bash
-  eval "$(register-python-argcomplete main.py)"
-  ```
-
-4. Run:
 ```bash
-python3 main.py
-python3 main.py -f AUTH_LOGON_CHALLENGE_C
-main.py -f <CASE>
-```
+# Installation guide on a Debian system using system-wide virtualenvwrapper
+sudo apt update
+sudo apt install python3-venv python3-pip virtualenvwrapper -y
 
+# Add virtualenvwrapper setup to .bashrc
+echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
+echo 'export VIRTUALENVWRAPPER_PYTHON=$(which python3)' >> ~/.bashrc
+echo 'source /usr/share/virtualenvwrapper/virtualenvwrapper.sh' >> ~/.bashrc
+
+# Reload shell config to activate virtualenvwrapper
+source ~/.bashrc
+
+# OPTIONAL: Use a specific Python version (make sure it's installed first)
+# mkvirtualenv -p /usr/bin/python3.11 bpdsl
+
+# Create and activate the virtualenv
+mkvirtualenv bpdsl
+
+# If the virtualenv already exists, just activate it instead:
+# workon bpdsl
+
+# Create project directory and clone the repo
+mkdir -p ~/projects
+cd ~/projects
+git clone https://github.com/diff3/BinaryPacketsDSL
+cd BinaryPacketsDSL
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Make main.py executable
+chmod +x main.py
+
+# Symlink main.py into the virtualenv's bin directory
+ln -s "$PWD/main.py" "$VIRTUAL_ENV/bin/main.py"
+
+# Enable tab-completion for main.py
+echo 'eval "$(register-python-argcomplete main.py 2>/dev/null)"' >> "$VIRTUAL_ENV/bin/postactivate"
+
+# Ensure the postactivate script is executable
+chmod +x "$VIRTUAL_ENV/bin/postactivate"
+
+# Reload the environment to apply changes (re-runs postactivate)
+workon bpdsl
+
+# Now tab-completion should work for:
+# main.py -f <tab>
+```
 
 
 ### args
@@ -182,13 +190,17 @@ BinaryPacketsDSL/
 ```
 
 
+## Generate test data
 
-## Author
+```bash
+# Generate test data from file
+python tools/generate_test_data.py
+python main.py --add --file test1 --program custom -V 10000 -b test.bin
+rm test.bin
 
-Magnus Pettersson
+# Or provide bytes directly
+python main.py --add --file test2 --program custom -V 10000 -b "b'\x01\x02\x03\x04\x05'"
+```
 
-
-
----
-
-This project follows a clear separation of concerns and aims for high transparency, traceability, and testability – inspired by NASA engineering practices. See doc/* for more information. 
+--
+Created by Magnus Pettersson

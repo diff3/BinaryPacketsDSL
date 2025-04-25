@@ -1,6 +1,19 @@
-**.pyc
+# Python cache
+*.pyc
+__pycache__/
+
+# Logs and temp files
+*.log
+*.txt
+
+# Binary test files and YAML
+**.bin
+*.yaml
+!config.yaml.dist
+
+# Keep marker files for empty directories
 !.keep
-**.log
-**.txt
-misc
 !requirements.txt
+
+# Ignore misc folder
+misc/
