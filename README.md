@@ -204,3 +204,5 @@ python main.py --add --file test2 --program custom -V 10000 -b "b'\x01\x02\x03\x
 
 --
 Created by Magnus Pettersson
+
+This project contains no proprietary data or assets and is intended for educational and research use only.
