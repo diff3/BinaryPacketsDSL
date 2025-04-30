@@ -1,0 +1,84 @@
+{
+    "scopeName": "source.bpdlang",
+    "patterns": [
+      {
+        "match": "^\\s*_\\s*:.*$",
+        "name": "comment.line.placeholder.bpdlang"
+      },
+      {
+        "begin": "^\\s*#-",
+        "end": "-#\\s*$",
+        "name": "comment.block.number-sign.bpdlang",
+        "patterns": []
+      },
+      {
+        "match": "^\\s*#.*$",
+        "name": "comment.line.number-sign.bpdlang"
+      },
+      {
+        "match": "\\b(endian|header|data)\\b(?=\\:)",
+        "name": "keyword.control.bpdlang"
+      },
+      {
+        "match": "\\bloop\\b",
+        "name": "keyword.control.loop.bpdlang"
+      },
+      {
+        "match": "\\bto\\b",
+        "name": "keyword.operator.to.bpdlang"
+      },
+      {
+        "match": ":\\s*([a-zA-Z0-9]+)(?=\\s*,)",
+        "name": "storage.type.primitive.bpdlang"
+      },
+      {
+        "match": ":\\s*([a-zA-Z0-9]+)$",
+        "name": "storage.type.primitive.bpdlang"
+      },
+      {
+        "match": ",\\s*[a-zA-Z0-9]+",
+        "name": "modifier.bpdlang"
+      },
+      {
+        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+        "name": "variable.other.definition.bpdlang"
+      },
+      {
+        "match": "€[a-zA-Z_][a-zA-Z0-9_]*'s",
+        "name": "variable.other.calculated.bpdlang"
+      },
+      {
+        "match": "€[a-zA-Z_][a-zA-Z0-9_]*",
+        "name": "variable.other.reference.bpdlang"
+      },
+      {
+        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*[0-9]+",
+        "name": "variable.other.assignment.bpdlang"
+      },
+      {
+        "match": "\\b[0-9]+\\b",
+        "name": "constant.numeric.bpdlang"
+      },
+      {
+        "match": "\\b[0-9]+-[0-9]+\\b",
+        "name": "constant.numeric.range.bpdlang"
+      },
+      {
+        "match": "\\+",
+        "name": "keyword.operator.arithmetic.bpdlang"
+      },
+      {
+        "match": "\\[.*?:.*?\\]",
+        "name": "meta.brackets.slice.bpdlang"
+      },
+      {
+        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+[0-9]+\\s*:",
+        "name": "entity.name.section.bpdlang"
+      },
+      {
+        "match": "\".*?\"",
+        "name": "string.quoted.double.bpdlang"
+      }
+    ]
+  }
+  
