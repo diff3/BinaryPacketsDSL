@@ -20,5 +20,5 @@ misc/
 
 # Ingore syntax highlither build files
 node_modules/
-package.json-lock
+package-lock.json
 .qodo/
