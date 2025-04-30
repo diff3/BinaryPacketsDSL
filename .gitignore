@@ -17,3 +17,8 @@ __pycache__/
 
 # Ignore misc folder
 misc/
+
+# Ingore syntax highlither build files
+node_modules/
+package.json-lock
+.qodo/

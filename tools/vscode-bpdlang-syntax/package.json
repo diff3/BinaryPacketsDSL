@@ -1,0 +1,42 @@
+{
+    "name": "bpdlang-syntax",
+    "displayName": "BPDLang Syntax Highlighting",
+    "publisher": "local",
+    "version": "0.0.22",
+    "engines": {
+        "vscode": "^1.50.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "main": "./extension.js",
+    "activationEvents": ["*"],
+    "contributes": {
+        "languages": [
+            {
+                "id": "bpdlang",
+                "aliases": ["BPDLang", "bpd"],
+                "extensions": [".bpd"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "bpdlang",
+                "scopeName": "source.bpdlang",
+                "path": "./syntaxes/bpdlang.tmLanguage.json"
+            }
+        ],
+        "themes": [
+            {
+                "label": "BPDLang Theme",
+                "uiTheme": "vs",
+                "path": "./themes/bpdlang-color-theme.json"
+            }
+        ]
+    },
+    "dependencies": {
+        "@vscode/vsce": "^3.3.2"
+    }
+}
