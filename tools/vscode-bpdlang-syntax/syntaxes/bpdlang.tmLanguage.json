@@ -1,84 +1,94 @@
 {
-    "scopeName": "source.bpdlang",
-    "patterns": [
-      {
-        "match": "^\\s*_\\s*:.*$",
-        "name": "comment.line.placeholder.bpdlang"
-      },
-      {
-        "begin": "^\\s*#-",
-        "end": "-#\\s*$",
-        "name": "comment.block.number-sign.bpdlang",
-        "patterns": []
-      },
-      {
-        "match": "^\\s*#.*$",
-        "name": "comment.line.number-sign.bpdlang"
-      },
-      {
-        "match": "\\b(endian|header|data)\\b(?=\\:)",
-        "name": "keyword.control.bpdlang"
-      },
-      {
-        "match": "\\bloop\\b",
-        "name": "keyword.control.loop.bpdlang"
-      },
-      {
-        "match": "\\bto\\b",
-        "name": "keyword.operator.to.bpdlang"
-      },
-      {
-        "match": ":\\s*([a-zA-Z0-9]+)(?=\\s*,)",
-        "name": "storage.type.primitive.bpdlang"
-      },
-      {
-        "match": ":\\s*([a-zA-Z0-9]+)$",
-        "name": "storage.type.primitive.bpdlang"
-      },
-      {
-        "match": ",\\s*[a-zA-Z0-9]+",
-        "name": "modifier.bpdlang"
-      },
-      {
-        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
-        "name": "variable.other.definition.bpdlang"
-      },
-      {
-        "match": "€[a-zA-Z_][a-zA-Z0-9_]*'s",
-        "name": "variable.other.calculated.bpdlang"
-      },
-      {
-        "match": "€[a-zA-Z_][a-zA-Z0-9_]*",
-        "name": "variable.other.reference.bpdlang"
-      },
-      {
-        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*[0-9]+",
-        "name": "variable.other.assignment.bpdlang"
-      },
-      {
-        "match": "\\b[0-9]+\\b",
-        "name": "constant.numeric.bpdlang"
-      },
-      {
-        "match": "\\b[0-9]+-[0-9]+\\b",
-        "name": "constant.numeric.range.bpdlang"
-      },
-      {
-        "match": "\\+",
-        "name": "keyword.operator.arithmetic.bpdlang"
-      },
-      {
-        "match": "\\[.*?:.*?\\]",
-        "name": "meta.brackets.slice.bpdlang"
-      },
-      {
-        "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+[0-9]+\\s*:",
-        "name": "entity.name.section.bpdlang"
-      },
-      {
-        "match": "\".*?\"",
-        "name": "string.quoted.double.bpdlang"
+  "scopeName": "source.bpdlang",
+  "patterns": [
+    {
+      "match": "\\b(endian|header|data)\\b(?=\\:)",
+      "name": "keyword.control // only some"
+    },
+    {
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+      "captures": {
+        "1": {
+          "name": "variable.other // <variabelname>:"
+        }
       }
-    ]
-  }
-  
+    },
+    {
+      "begin": "^\\s*#-",
+      "end": "-#\\s*$",
+      "name": "comment.block"
+    },
+    {
+      "match": "^\\s*#.*$",
+      "name": "comment.line.number-sign"
+    },
+
+    {
+      "match": "\\bloop\\b",
+      "name": "keyword.control.loop"
+    },
+    {
+      "match": "\\bto\\b",
+      "name": "keyword.operator"
+    },
+    {
+      "match": ":\\s*([a-zA-Z0-9]+)(?=\\s*,)",
+      "name": "storage.type"
+    },
+    {
+      "match": ":\\s*([a-zA-Z0-9]+)$",
+      "name": "storage.type"
+    },
+    {
+      "match": ",\\s*([a-zA-Z0-9_]+)",
+      "captures": {
+        "1": {
+          "name": "keyword.control // Modifiers"
+        }
+      }
+    },
+    {
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+      "name": "variable.other"
+    },
+    {
+      "match": "(€[a-zA-Z_][a-zA-Z0-9_]*)('s)",
+      "captures": {
+        "1": { "name": "variable.parameter" }, 
+        "2": { "name": "storage.type" }           
+      }
+    },
+    {
+      "match": "€[a-zA-Z_][a-zA-Z0-9_]*",
+      "name": "variable.parameter"
+    },
+    {
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*[0-9]+",
+      "name": "variable.other"
+    },
+    {
+      "match": "\\b[0-9]+\\b",
+      "name": "constant.numeric"
+    },
+    {
+      "match": "\\b[0-9]+-[0-9]+\\b",
+      "name": "constant.numeric"
+    },
+    {
+      "match": "\\+",
+      "name": "keyword.operator"
+    },
+    {
+      "match": "\\[.*?:.*?\\]",
+      "name": "meta.brackets"
+    },
+    {
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+[0-9]+\\s*:",
+      "name": "entity.name.section"
+    },
+    {
+      "match": "\".*?\"",
+      "name": "string.quoted.double"
+    }
+  ]
+}

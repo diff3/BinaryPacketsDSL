@@ -1,0 +1,12 @@
+# Ignorera utvecklingsmappar
+.vscode/
+test/
+scripts/
+
+# Ignorera byggrester
+node_modules/
+*.vsix
+
+# Ignorera loggar/temp
+*.log
+*.tmp
