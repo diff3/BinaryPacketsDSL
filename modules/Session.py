@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass, field
+from copy import deepcopy
 
 
 @dataclass
@@ -20,6 +21,9 @@ class BaseNode:
     raw_data: bytes | None = None
     value: object | None = None
     ignore: bool = False
+
+    def copy(self):
+        return deepcopy(self)
 
 
 @dataclass
@@ -80,6 +84,9 @@ class PaddingNode:
     def __post_init__(self):
         self.format = ""
         self.interpreter = "padding"   
+    
+    def copy(self):
+        return PaddingNode(size=self.size)
 
 
 @dataclass
@@ -106,6 +113,9 @@ class SeekNode:
         self.format = ""
         self.interpreter = "seek"
 
+    def copy(self):
+        return SeekNode(offset=self.offset)
+
 
 @dataclass
 class VariableNode:
@@ -118,6 +128,9 @@ class VariableNode:
     depends_on: str | None = None
     dynamic: bool = False
     ignore: bool = False
+
+    def copy(self):
+        return deepcopy(self)
     
 
 @dataclass

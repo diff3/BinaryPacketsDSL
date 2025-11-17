@@ -1,0 +1,10 @@
+# SMSG_ENUM_CHARACTERS_RESULT
+
+endian: little
+header:
+data:
+    seek 4
+    character_count: H
+    # €character_count to characters:
+    guid: Q
+    name: S

@@ -1,63 +1,39 @@
 endian: little
-
-variables:
-    AUTH_OK = 12
-    # PLAYABLE_RACES_COUNT = 15
-    # PLAYABLE_CLASSES_COUNT = 11
-
 header:
+  auth_ok: B, 1BI
+  realm_count: B, 21BI
 
-data:
-   code: B, 1B
+  loop €realm_count to realmlist:
+    realm_name_length: bits, 8BI
+    normalized_name_length: bits, 8BI
+    is_home_realm: bits, 1BI
+    playable_classes_count: bits, 23BI
+    reserved_bit: B, 21BI
+    _placeholder_bit_1: bits, 1BI
+    _placeholder_bit_2: bits, 1BI
+    _placeholder_bit_3: bits, 1BI
+    _placeholder_bit_4: bits, 1BI
+    playable_races_count: bits, 23BI
+    _: B, 1B
+    queued: bits, 1BI
 
-   if €code == €AUTH_OK:
-      realm_count: B, 21BI
-      
-      loop €realm_count to €realms_data:
-         realm_name_len: B, 8BI
-         realm_name_norm_len: B, 8BI
-         home_realm: B, 1B
+  loop €realm_count to realmdata:
+    padding 1
+    realm_id: I
+    realm_name: €realmlist[0].realm_name_length's
+    normalized_name: €realmlist[0].normalized_name_length's
 
-      class_count: B, 23BI
-      zero_21bits: B, 21BI
-      padbit1: B, 1B
-      padbit2: B, 1B
-      padbit3: B, 1B
-      padbit4: B, 1B
-      race_count: B, 23BI
-      padbit5: B, 1B
+    loop €realmlist[0].playable_races_count to races:
+      expansion: B
+      race_id: B
 
-   queued: B, 1B
+    loop €realmlist[0].playable_classes_count to classes:
+      expansion: B
+      class_id: B
 
-   if €queued == 1:
-      has_queuepos: B, 1B
-
-   # flushbits
-
-   if €queued == 1:
-      queue_pos: I
-
-   if €code == €AUTH_OK:
-      loop €realm_count to €realm_info:
-         realm_id: I
-         realm_name: S
-         realm_name_normalized: S
-
-      loop €race_count to €races:
-         race_exp1: B
-         race_exp2: B
-
-      loop €class_count to €classes:
-         class_exp1: B
-         class_exp2: B
-
-      zero_field1: I
-      active_expansion: B
-      zero_field2: I
-      zero_field3: I
-      server_expansion: B
-      store_currency: I
-      zero_field4: I
-      zero_field5: I
-
-   auth_code: B
+    padding 1
+    _placeholders += I
+    server_expansion1: B
+    _placeholders += 2I
+    server_expansion2: B
+    _placeholders += 3I

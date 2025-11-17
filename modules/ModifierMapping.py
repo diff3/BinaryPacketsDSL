@@ -86,6 +86,7 @@ class ModifierInterPreter:
 
 modifiers_operation_mapping = {
     "B": BitInterPreter.from_bits,
+    "b": BitInterPreter.from_bits_le,
     "C": ModifierInterPreter.combine_data,
     "H": ModifierInterPreter.to_hex,
     "I": ModifierInterPreter.to_int,

@@ -1,0 +1,4 @@
+endian: little
+data:
+    mapId: I, 31bI
+    showing: I, 1bI

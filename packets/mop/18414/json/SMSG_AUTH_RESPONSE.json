@@ -1,1 +1,140 @@
-{}
+{
+    "auth_ok": 1,
+    "realm_count": 1,
+    "realmlist": [
+        {
+            "realm_name_length": 6,
+            "normalized_name_length": 6,
+            "is_home_realm": 1,
+            "playable_classes_count": 11,
+            "reserved_bit": 0,
+            "playable_races_count": 15,
+            "queued": 0
+        }
+    ],
+    "realmdata": [
+        {
+            "realm_id": 1,
+            "realm_name": "Azarim",
+            "normalized_name": "Azarim",
+            "races": [
+                {
+                    "expansion": 0,
+                    "race_id": 6
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 5
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 2
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 7
+                },
+                {
+                    "expansion": 3,
+                    "race_id": 9
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 1
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 8
+                },
+                {
+                    "expansion": 4,
+                    "race_id": 24
+                },
+                {
+                    "expansion": 1,
+                    "race_id": 11
+                },
+                {
+                    "expansion": 3,
+                    "race_id": 22
+                },
+                {
+                    "expansion": 1,
+                    "race_id": 10
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 4
+                },
+                {
+                    "expansion": 0,
+                    "race_id": 3
+                },
+                {
+                    "expansion": 4,
+                    "race_id": 25
+                },
+                {
+                    "expansion": 4,
+                    "race_id": 26
+                }
+            ],
+            "classes": [
+                {
+                    "expansion": 4,
+                    "class_id": 10
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 1
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 2
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 3
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 4
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 5
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 7
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 8
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 9
+                },
+                {
+                    "expansion": 0,
+                    "class_id": 11
+                },
+                {
+                    "expansion": 2,
+                    "class_id": 6
+                }
+            ],
+            "_placeholders": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            "server_expansion1": 4,
+            "server_expansion2": 4
+        }
+    ]
+}

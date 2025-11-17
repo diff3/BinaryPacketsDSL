@@ -68,6 +68,7 @@ class NodeTreeParser:
             # --- Bitmask ---
             if line.strip().startswith("bitmask"):
                 parsed_node, consumed = NodeTreeParser.parse_bitmask(session, lines, i, anon_counter)
+                
                 if parsed_node:
                     nodes.append(parsed_node)
                 i += consumed
@@ -168,7 +169,6 @@ class NodeTreeParser:
 
         return bitmask_node, block_count + 1
 
-
     @staticmethod
     def parse_block(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BlockDefinition, int]:
         line = lines[start_idx]
@@ -208,30 +208,29 @@ class NodeTreeParser:
         Returns the created LoopNode and number of lines consumed.
         """
         line = lines[start_idx]
-        
+
         match = re.match(r"\s*loop\s+(.+?)\s+to\s+\€?(\w+):?", line)
         if not match:
             Logger.warning(f"Malformed loop: {line.strip()}")
             return None, 1
 
         count_from, target = match.groups()
-
-        # Viktigt: använd rätt blockuppräkning (indraget avgör)
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
-
 
         children = []
         idx = 0
         while idx < len(block_lines):
-            block_line = block_lines[idx]
-            block_line_strip = block_line.strip()
+            block_line = block_lines[idx].strip()
 
-            if block_line_strip.startswith("if "):
+            if block_line.startswith("if "):
                 # If-sats inuti loopen
                 parsed_node, consumed = NodeTreeParser.parse_if(block_lines, idx, anon_counter)
+            elif block_line.startswith("loop "):
+                # Nästlad loop
+                parsed_node, consumed = NodeTreeParser.parse_loop(session, block_lines, idx, anon_counter)
             else:
-                # Vanlig fältstruktur
-                parsed_node = NodeTreeParser.parse_line_to_node(block_line_strip, anon_counter)
+                # Vanlig nod
+                parsed_node = NodeTreeParser.parse_line_to_node(block_line, anon_counter)
                 consumed = 1
 
             if parsed_node:
@@ -243,11 +242,12 @@ class NodeTreeParser:
             idx += consumed
 
         loop_node = LoopNode(
-            name=f"€{target}_loop",
+            name=target,  # 👈 direkt namn (inte €target_loop)
             format="",
             interpreter="loop",
             count_from=count_from,
             target=target,
+            dynamic="€" in count_from,  # 👈 markera om loopen är dynamisk
             children=children
         )
 
@@ -429,6 +429,21 @@ class NodeTreeParser:
             parsed_node = NodeTreeParser.parse_seek(line)
             return parsed_node
 
+        if "+=" in line:
+            name, rest = [x.strip() for x in line.split("+=", 1)]
+            fmt, mods = ModifierUtils.parse_modifiers(rest)
+            name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
+
+            return BaseNode(
+                name=name,
+                format=fmt,
+                interpreter="append",
+                modifiers=mods,
+                depends_on=None,
+                dynamic=False,
+                ignore=ignore,
+            )
+
         # Special: Variable assignment ("=")
         if "=" in line:
             name, rest = [x.strip() for x in line.split("=", 1)]
@@ -522,6 +537,18 @@ class NodeTreeParser:
 
         # Bitsfält (ex: 7B, B)
         if any(m.endswith("B") and (m[:-1].isdigit() or m[:-1] == "") for m in mods):
+            return BaseNode(
+                name=name,
+                format=fmt,
+                interpreter="bits",
+                modifiers=mods,
+                depends_on=None,
+                dynamic=False,
+                ignore=ignore
+            )
+
+        # Bitsfält (ex: 7b, b)
+        if any(m.endswith("b") and (m[:-1].isdigit() or m[:-1] == "") for m in mods):
             return BaseNode(
                 name=name,
                 format=fmt,
