@@ -84,9 +84,11 @@ class PaddingNode:
     def __post_init__(self):
         self.format = ""
         self.interpreter = "padding"   
+        if self.value is None:
+            self.value = self.size
     
     def copy(self):
-        return PaddingNode(size=self.size)
+        return PaddingNode(size=self.size, value=self.value)
 
 
 @dataclass

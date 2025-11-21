@@ -88,7 +88,17 @@ class ParserUtils:
             if not line:
                 raise ValueError("Cannot parse empty line.")
 
-            if ":" in line:
+            if "bits" in line:
+                # special bits field
+                name, rest = [x.strip() for x in line.split(":", 1)]
+                # plocka ut typen "bits"
+                _, rest2 = rest.split("bits", 1)  # tar bort 'bits'
+                rest2 = rest2.lstrip(" ,")        # tar bort komma/space
+
+                fmt = "bits"
+                mods = [m.strip() for m in rest2.split(",") if m.strip()]
+                return name, fmt, mods
+            elif ":" in line:
                 # Normal struct field
                 name, rest = [x.strip() for x in line.split(":", 1)]
             elif "=" in line:
@@ -107,7 +117,7 @@ class ParserUtils:
     @staticmethod
     def check_ignore_and_rename(name: str, anon_counter: int) -> tuple[str, bool, int]:
         """
-        Check if a field should be ignored (underscore _) and rename if needed.
+        Check if a field should be ignored (name begins with underscore) and rename if needed.
 
         Args:
             name (str): The original field name.
@@ -116,7 +126,8 @@ class ParserUtils:
         Returns:
             tuple: (updated_name, ignore_flag, updated_anon_counter)
         """
-        if name.strip() == "_":
+        cleaned = name.strip()
+        if cleaned == "_" or re.match(r"^_t\d*$", cleaned, re.IGNORECASE):
             new_name = f"__anon_{anon_counter}"
             return new_name, True, anon_counter + 1
         return name, False, anon_counter

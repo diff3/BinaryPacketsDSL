@@ -1,3 +1,9 @@
+# Ger olika resultat beroende på om jag använder _t1 eller bara _
+
+# med bara _ (B och 16s) ger "reconnectProof": "7DFEA5652A5C86F4C6E2AEE9BE752F00"
+# medan _t1 och _t2 (B och 16s ger  "reconnectProof": "F07DFEA5652A5C86F4C6E2AEE9BE752F",
+# det borde inte vara någon skillnad mellan _ och _t1
+
 endian: little
 header:
 data:

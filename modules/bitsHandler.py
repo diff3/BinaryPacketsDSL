@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from utils.Logger import Logger
+
 
 class BitInterPreter:
     """
@@ -106,4 +108,4 @@ class BitState:
         self.bit_pos = new_bit_pos
 
     def debug(self, label=""):
-        print(f"[BitState] {label} → offset={self.offset}, bit_pos={self.bit_pos}")
+        Logger.debug(f"[BitState] {label} → offset={self.offset}, bit_pos={self.bit_pos}")

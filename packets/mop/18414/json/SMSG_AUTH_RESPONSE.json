@@ -125,16 +125,9 @@
                     "class_id": 6
                 }
             ],
-            "_placeholders": [
-                0,
-                0,
-                0,
-                0,
-                0,
-                0
-            ],
-            "server_expansion1": 4,
-            "server_expansion2": 4
+            "server_expansion_id": 4,
+            "_reserved": 0,
+            "flags": 1024
         }
     ]
 }

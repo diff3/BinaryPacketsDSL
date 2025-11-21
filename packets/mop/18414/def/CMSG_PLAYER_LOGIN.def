@@ -6,14 +6,14 @@ data:
    unk_float: f
 
    bitmask 8
-      guid_bit1: B, BI
-      guid_bit2: B, BI
-      guid_bit3: B, BI
-      guid_bit4: B, BI
-      guid_bit5: B, BI
-      guid_bit6: B, BI
-      guid_bit7: B, BI
-      guid_bit8: B, BI
+      guid_bit1: bits, BI
+      guid_bit2: bits, BI
+      guid_bit3: bits, BI
+      guid_bit4: bits, BI
+      guid_bit5: bits, BI
+      guid_bit6: bits, BI
+      guid_bit7: bits, BI
+      guid_bit8: bits, BI
 
    guid_byte5: B
    guid_byte1: B

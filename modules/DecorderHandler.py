@@ -20,15 +20,13 @@ class DecoderHandler():
         bitstate = BitState()
         raw_data = case[2]
       
-
         i = 0
-        offset = 0
+        offset = 0  # används bara för randseq/ev. äldre logik
         result = {}
         endian = '<'
         debug_msg = []
         bit_pos = 0
         target_dict = dict()
-
 
         while len(fields) > i:
             field = fields[i]
@@ -41,25 +39,17 @@ class DecoderHandler():
             else:
                 Logger.info(f"Unnamed field: {field}")
             Logger.info(field)
-            Logger.info(raw_data[offset:])
+            # använd faktiska läspositionen
+            Logger.info(raw_data[bitstate.offset:])
 
-            if field.ignore == True:
-                i += 1
-                ignore_size = struct.calcsize(f'{endian}{field.format}')
-                offset += ignore_size
-                
-                # Logger.debug(field)
-                Logger.to_log('')
-                continue 
+            if bitstate.offset >= len(raw_data):
+                Logger.warning(f"Ran out of raw data before processing field '{field.name}'. Stopping decode early.")
+                break
 
             if field.interpreter == 'padding':
                 bitstate.align_to_byte()
                 Logger.debug(f"[Padding] Advancing offset by {field.value}")
-                
-                if field.value > 0:
-                    field.value -= 1
-
-                bitstate.offset += field.value 
+                bitstate.offset += field.value
                 i += 1
                 Logger.to_log('')
                 continue
@@ -71,13 +61,13 @@ class DecoderHandler():
                 if field.name not in target_dict or not isinstance(target_dict[field.name], list):
                     target_dict[field.name] = []
 
-                # ✅ Lägg till alla element individuellt om det är en tuple
+                # Lägg till alla element individuellt om det är en tuple
                 if isinstance(value, tuple):
                     target_dict[field.name].extend(value)
                 else:
                     target_dict[field.name].append(value)
 
-                if not field.name.startswith("_"):
+                if not field.ignore:
                     result[field.name] = target_dict[field.name]
 
                 i += 1
@@ -98,34 +88,33 @@ class DecoderHandler():
                     endian = '>'
                 
                 i += 1
-                # Logger.debug(field)
                 Logger.to_log('')
                 continue
 
             if field.name == "bit_offset":
-                global_bit_pos = field.value
+                global_bit_pos = field.value  # används ev. senare
 
             if field.interpreter == 'var':
-                
-                # else:
                 value = DecoderHandler.resolve_variable(field.format, result)
 
                 if isinstance(value, str):
-                    # Om värdet är en variabel som själv refererar till raw-slice
+                    # värdet är en variabel som själv refererar till raw-slice
                     if value.endswith("raw"):
-                        # Logger.debug(f"[var→indirect] Resolving value: {value}")
                         value = DecoderHandler.resolve_variable(value, result)
 
-                    # Om värdet är ett raw-slice-uttryck
+                    # raw-slice-uttryck
                     if value.startswith("raw["):
-                        # Logger.debug(f"[var→slice] Evaluating raw slice: {value}")
-                        value, size = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
-                        value = value.hex()
+                        slice_bytes, start, end = DecoderHandler.evaluate_slice_expression(value, result, raw_data)
+                        value = slice_bytes.hex()
 
-                        offset += size 
+                        field.raw_offset = start
+                        field.raw_length = end - start
+                        field.raw_data = slice_bytes
+
+                        bitstate.advance_to(end, 0)
+                        offset = end  # mest legacy/logg, bitstate styr verklig position
                 
                 field.value = value
-
 
             if field.interpreter == 'dynamic':
                 length = DecoderHandler.resolve_variable(field.format, result)
@@ -138,51 +127,22 @@ class DecoderHandler():
                     
 
             if field.format == 'S':
-                field = DecoderHandler.resolve_string_format(field, raw_data, offset)
+                # använd bitstate.offset som start
+                field = DecoderHandler.resolve_string_format(field, raw_data, bitstate.offset)
 
             if field.interpreter == 'bits':
-                fmt = field.format
+                field = DecoderHandler.decode_bits_field(field, raw_data, bitstate)
 
-                for mod in field.modifiers:
-                    match = re.fullmatch(r"(\d+)([Bb])", mod)
-                    if match:
-                        # 📌 Spara offset före läsning
-                        current_offset = bitstate.offset
-                        current_bit_pos = bitstate.bit_pos
-
-                        func = modifiers_operation_mapping[match.group(2)]
-                        bits, new_offset, new_bit_pos = func(
-                            raw_data,
-                            current_offset,
-                            current_bit_pos,
-                            int(match.group(1))
-                        )
-
-                        consumed_bytes = (new_offset - current_offset) + (1 if new_bit_pos > 0 else 0)
-
-                        field.raw_data = raw_data[current_offset : current_offset + consumed_bytes]
-                        field.raw_offset = current_offset
-                        field.raw_length = consumed_bytes
-                        field.value = bits
-
-                        # 🟢 Uppdatera bitstate
-                        bitstate.advance_to(new_offset, new_bit_pos)
-
-                    else:
-                        func = modifiers_operation_mapping[mod]
-                        field.value = func(field.value)
-
-                # 🚫 Hoppa över fält som börjar med "_" eller ignore=True
-                if not field.name.startswith("_") and not getattr(field, "ignore", False):
+                if not getattr(field, "ignore", False):
                     fields[i] = field
                     result[field.name] = field.value
 
                 i += 1
-
                 Logger.debug(field)
                 bitstate.debug(f"after {field.name}")
                 Logger.to_log('')
                 continue
+
             if field.interpreter == 'randseq':
                 randseq_size = field.count_from
 
@@ -201,7 +161,7 @@ class DecoderHandler():
                  
                     result[child.name] = child.value
 
-                offset += randseq_size
+                offset += randseq_size  # påverkar bara denna lokala offset, inte bitstate
                 i += 1
                 
                 Logger.debug(field)
@@ -218,14 +178,13 @@ class DecoderHandler():
             if field.interpreter == 'struct':
                 field, value, size = DecoderHandler.decode_struct(field, raw_data, bitstate, endian)
 
-                # offset hanteras internt i bitstate – inget offset += size behövs
-
-            # using raw data to modify
-            if field.modifiers:
+            # using raw data to modify (bits already handled in decode_bits_field)
+            if field.modifiers and field.interpreter != 'bits':
                 value = DecoderHandler.apply_modifiers(field)
        
             field.value = value
-            result[field.name] = field.value
+            if not field.ignore:
+                result[field.name] = field.value
 
             fields[i] = field
             Logger.debug(field)
@@ -235,7 +194,7 @@ class DecoderHandler():
         
         try:
             json_output = json.dumps(result, indent=4)
-            Logger.success("RESULT")
+            Logger.success(f"{case[0]}")
             Logger.to_log(json_output)
         except TypeError as e:
             Logger.error("FAILED RESULT")
@@ -246,7 +205,10 @@ class DecoderHandler():
 
             for key, value in result.items():
                 if isinstance(value, bytes):
-                    Logger.warning(f"Name: '{key}' values is of type bytes: {value} → not JSON serializable. Add 's' as the first modifier in def file.")
+                    Logger.warning(
+                        f"Name: '{key}' values is of type bytes: {value} → not JSON serializable. "
+                        "Add 's' as the first modifier in def file."
+                    )
             Logger.to_log('')
             for msg in debug_msg:
                  Logger.to_log(msg)
@@ -270,8 +232,6 @@ class DecoderHandler():
 
         return value
 
-
-    
     @staticmethod
     def resolve_string_format(field, raw_data, offset):
         string_data = raw_data[offset:].split(b'\x00')[0]
@@ -282,12 +242,15 @@ class DecoderHandler():
 
     @staticmethod
     def decode_struct(field, raw_data, bitstate, endian):
+        # Ensure we start on a byte boundary before using struct
+        bitstate.align_to_byte()
+
         fmt = field.format
         value = None
 
         try:
             size = struct.calcsize(f'{endian}{fmt}')
-            current_offset = bitstate.offset  # 🟢 Spara innan vi flyttar på det
+            current_offset = bitstate.offset  # spara innan vi flyttar på det
 
             if len(fmt) > 1 and 's' not in fmt:
                 value = struct.unpack_from(f'{endian}{fmt}', raw_data, current_offset)
@@ -308,18 +271,16 @@ class DecoderHandler():
                 Logger.warning("Struct decode error")
                 Logger.debug(f'fmt: {e}')
 
-        # 🟢 Uppdatera field metadata
+        # Uppdatera field metadata
         field.value = value
         field.raw_offset = current_offset
         field.raw_length = size
         field.raw_data = raw_data[current_offset:current_offset + size]
 
-        # 🟢 Flytta bitstate efter läsning
+        # Flytta bitstate efter läsning
         bitstate.advance_to(current_offset + size, 0)
 
         return field, value, size
-
-
 
     @staticmethod
     def resolve_variable(key: str, result: dict) -> str | int | float | dict | list | None:
@@ -349,7 +310,8 @@ class DecoderHandler():
                 base, index, subkey = match.groups()
 
                 if base in session.variables:
-                    val = session.variables[base].value
+                    var_node = session.variables[base]
+                    val = var_node.value if var_node.value is not None else var_node.raw_value
                 elif base in result:
                     val = result[base]
                 else:
@@ -382,7 +344,7 @@ class DecoderHandler():
             Logger.debug(f"Unknown reference '{key}'")
             return None
 
-        # 💡 Nytt: stöd för literals som "1" eller "3.14"
+        # stöd för literals som "1" eller "3.14"
         try:
             return int(key)
         except ValueError:
@@ -392,56 +354,73 @@ class DecoderHandler():
                 return None
 
     @staticmethod   
-    def evaluate_slice_expression(expr: str, result: dict, raw_data: bytes) -> bytes:
+    def evaluate_slice_expression(expr: str, result: dict, raw_data: bytes) -> tuple[bytes, int, int]:
         """
         Evaluates slicing expressions in the form:
         €start:€base+€offset
         €start:€base-€offset
 
-        Returns raw_data[start:end]
+        Returns (raw_data[start:end], start, end)
         """
 
-        match = re.match(r"^raw\[(€\w+):(\€\w+)\]$", expr.strip())
+        match = re.match(r"^raw\[(€\w+):(€\w+)\]$", expr.strip())
         if not match:
             raise ValueError(f"Invalid slice expression: {expr}")
 
         start_var, end_var = match.groups()
 
-        start = DecoderHandler.resolve_variable(f"{start_var}", result)
-        ends = DecoderHandler.resolve_variable(f"{end_var}", result)
+        start = DecoderHandler.resolve_variable(start_var, result)
+        end_expr = DecoderHandler.resolve_variable(end_var, result)
 
-        # offset = DecoderHandler.resolve_variable(f"€{offset_var}", parsed_data)
+        if start is None or end_expr is None:
+            raise ValueError(f"Slice variables unresolved in expression: {expr}")
 
-        match = re.fullmatch(r"€(\w+)\s*([+\-*/])\s*€(\w+)", ends.strip())
+        if isinstance(end_expr, str):
+            match = re.fullmatch(r"€(\w+)\s*([+\-*/])\s*€(\w+)", end_expr.strip())
+            if match:
+                left = DecoderHandler.resolve_variable(f"€{match.group(1)}", result)
+                right = DecoderHandler.resolve_variable(f"€{match.group(3)}", result)
+                if not all(isinstance(v, int) for v in (left, right)):
+                    raise TypeError(f"Slice operands must be integers in expression: {end_expr}")
 
-        if match:
-            var1, op, var2 = match.groups()
-            left = DecoderHandler.resolve_variable(f"€{var1}", result)
-            right = DecoderHandler.resolve_variable(f"€{var2}", result)
+                op = match.group(2)
+                if op == "+":
+                    end = left + right
+                elif op == "-":
+                    end = left - right
+                else:
+                    raise ValueError(f"Unsupported operator '{op}' in slice expression: {end_expr}")
 
-            if all(isinstance(v, int) for v in [left, right]):
-                value = eval(f"{left}{op}{right}")
-            else:
-                Logger.warning(f"Non-integer values in expression: {expr}")
+                return raw_data[start:end], start, end
 
-            # return value
-            return raw_data[start:value], right
+            try:
+                end = int(end_expr)
+            except ValueError as exc:
+                raise ValueError(f"Unable to evaluate slice end: {end_expr}") from exc
+        else:
+            end = end_expr
 
-        """if not all(isinstance(x, int) for x in (start, base, offset)):
+        if not all(isinstance(v, int) for v in (start, end)):
             raise TypeError("Slice operands must resolve to integers")
 
-        end = base + offset if operator == "+" else base - offset"""
-        return None
+        return raw_data[start:end], start, end
 
     
     @staticmethod
     def decode_bits_field(field, raw_data, bitstate):
-        fmt = field.format
+        if not field.modifiers:
+            return field
+
+        raw_start = None
+        raw_end = None
 
         for mod in field.modifiers:
             match = re.fullmatch(r"(\d+)([Bb])", mod)
             if match:
                 func = modifiers_operation_mapping[match.group(2)]
+                if raw_start is None:
+                    raw_start = bitstate.offset
+
                 bits, new_offset, new_bit_pos = func(
                     raw_data,
                     bitstate.offset,
@@ -449,18 +428,20 @@ class DecoderHandler():
                     int(match.group(1))
                 )
 
-                consumed_bytes = (new_offset - bitstate.offset) + (1 if new_bit_pos > 0 else 0)
-
-                field.raw_data = raw_data[bitstate.offset : bitstate.offset + consumed_bytes]
-                field.raw_offset = bitstate.offset
-                field.raw_length = consumed_bytes
+                raw_end = new_offset + (1 if new_bit_pos > 0 else 0)
                 field.value = bits
 
                 bitstate.advance_to(new_offset, new_bit_pos)
+                continue
 
-            else:
-                func = modifiers_operation_mapping[mod]
+            func = modifiers_operation_mapping.get(mod)
+            if func and field.value is not None:
                 field.value = func(field.value)
+
+        if raw_start is not None and raw_end is not None:
+            field.raw_offset = raw_start
+            field.raw_length = raw_end - raw_start
+            field.raw_data = raw_data[raw_start:raw_end]
 
         Logger.debug(field)
         bitstate.debug(f"after {field.name}")
@@ -478,6 +459,10 @@ class DecoderHandler():
         field.raw_offset = bitstate.offset
 
         for n in range(loop_count):
+            if bitstate.offset >= len(raw_data):
+                Logger.warning(f"[Loop] '{name}' ran out of raw data at iteration {n}. Stopping loop early.")
+                break
+
             tmp_dict = {}
             Logger.debug(f"[BitState] LOOP {n} START → offset={bitstate.offset}, bit_pos={bitstate.bit_pos}")
 
@@ -485,10 +470,6 @@ class DecoderHandler():
 
                 # Skapa en ren kopia av noden
                 child = child_template.copy()
-
-                # ✅ Ny kod som efterliknar decode()
-                if child.ignore:
-                    continue
 
                 if child.interpreter == 'padding':
                     bitstate.align_to_byte()
@@ -502,14 +483,14 @@ class DecoderHandler():
                     child, _, _ = DecoderHandler.decode_struct(child, raw_data, bitstate, endian)
                     value = DecoderHandler.apply_modifiers(child)
 
-                    if child.name not in tmp_dict or not isinstance(tmp_dict[child.name], list):
-                        tmp_dict[child.name] = []
+                    if not child.ignore:
+                        if child.name not in tmp_dict or not isinstance(tmp_dict[child.name], list):
+                            tmp_dict[child.name] = []
 
-                    if isinstance(value, tuple):
-                        tmp_dict[child.name].extend(value)
-                    else:
-                        tmp_dict[child.name].append(value)
-
+                        if isinstance(value, tuple):
+                            tmp_dict[child.name].extend(value)
+                        else:
+                            tmp_dict[child.name].append(value)
                     continue
 
                 if child.interpreter == 'dynamic':
@@ -535,11 +516,11 @@ class DecoderHandler():
                     child.value = tmp_dict.get(child.target)
                     continue
 
-                # using raw data to modify
-                if child.modifiers:
+                # using raw data to modify (skip; bits are already converted inside decode_bits_field)
+                if child.modifiers and child.interpreter != 'bits':
                     child.value = DecoderHandler.apply_modifiers(child)
 
-                if not child.name.startswith("_"):
+                if not child.ignore:
                     tmp_dict[child.name] = child.value
 
                 Logger.debug(child)

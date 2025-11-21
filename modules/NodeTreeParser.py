@@ -419,7 +419,7 @@ class NodeTreeParser:
         """
         Parses a single line into a BaseNode or VariableNode.
         """
-
+        
         # Special: Padding
         if line.strip().startswith("padding "):
             parsed_node = NodeTreeParser.parse_padding(line)
@@ -486,15 +486,13 @@ class NodeTreeParser:
                         dynamic=False,
                     )
 
-        
-
-
         # Annars normal parsing
         result = ParserUtils.split_field_definition(line)
         if not result:
             return None
 
         name, fmt, mods = result
+        mods = NodeTreeParser.expand_combined_bit_modifiers(mods)
         name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
 
         # Special: Slice-fält i struct (ex: €name[1:4])
@@ -559,6 +557,18 @@ class NodeTreeParser:
                 ignore=ignore
             )
 
+        # Hantera 'bits' som format
+        if fmt == "bits":
+            return BaseNode(
+                name=name,
+                format=fmt,
+                interpreter="bits",
+                modifiers=mods, 
+                depends_on=None,
+                dynamic=False,
+                ignore=ignore
+            )
+
         # Standard struct
         return BaseNode(
             name=name,
@@ -567,3 +577,29 @@ class NodeTreeParser:
             modifiers=mods,
             ignore=ignore
         )
+
+    @staticmethod
+    def expand_combined_bit_modifiers(modifiers: list[str]) -> list[str]:
+        """
+        Split tokens such as '7BI' into ['7B', 'I'] so bit-length and
+        post-modifiers can be processed separately downstream.
+        """
+        if not modifiers:
+            return []
+
+        expanded = []
+        for mod in modifiers:
+            if not isinstance(mod, str):
+                expanded.append(mod)
+                continue
+
+            match = re.match(r"^(\d+)([Bb])(.*)$", mod)
+            if match:
+                expanded.append(f"{match.group(1)}{match.group(2)}")
+                trailing = match.group(3)
+                if trailing:
+                    expanded.extend(list(trailing))
+            else:
+                expanded.append(mod)
+
+        return expanded

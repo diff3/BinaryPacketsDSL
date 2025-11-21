@@ -1,24 +1,20 @@
 endian: little
 header:
-  auth_ok: B, 1BI
-  realm_count: B, 21BI
+  auth_ok: bits, 1BI
+  realm_count: bits, 21BI
 
   loop €realm_count to realmlist:
     realm_name_length: bits, 8BI
     normalized_name_length: bits, 8BI
     is_home_realm: bits, 1BI
     playable_classes_count: bits, 23BI
-    reserved_bit: B, 21BI
-    _placeholder_bit_1: bits, 1BI
-    _placeholder_bit_2: bits, 1BI
-    _placeholder_bit_3: bits, 1BI
-    _placeholder_bit_4: bits, 1BI
+    reserved_bit: bits, 21BI
+    _ : bits, 4B
     playable_races_count: bits, 23BI
-    _: B, 1B
+    _ : bits, 1B
     queued: bits, 1BI
 
   loop €realm_count to realmdata:
-    padding 1
     realm_id: I
     realm_name: €realmlist[0].realm_name_length's
     normalized_name: €realmlist[0].normalized_name_length's
@@ -31,9 +27,7 @@ header:
       expansion: B
       class_id: B
 
-    padding 1
-    _placeholders += I
-    server_expansion1: B
-    _placeholders += 2I
-    server_expansion2: B
-    _placeholders += 3I
+    _ : I
+    server_expansion_id: I
+    _reserved: I
+    flags: I

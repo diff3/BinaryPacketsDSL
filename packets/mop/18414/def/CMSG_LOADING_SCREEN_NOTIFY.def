@@ -1,4 +1,4 @@
 endian: little
 data:
-    mapId: I, 31bI
-    showing: I, 1bI
+    mapId: bits, 31bI
+    showing: bits, 1bI

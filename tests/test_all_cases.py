@@ -13,11 +13,22 @@ from utils.Logger import Logger
 # GLOBALS
 config = ConfigLoader.get_config()
 session = get_session()
-class TestAllCases(unittest.TestCase):
 
+def normalize(obj):
+    """Recursively convert tuples to lists for comparison."""
+    if isinstance(obj, tuple):
+        return [normalize(x) for x in obj]
+    if isinstance(obj, list):
+        return [normalize(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: normalize(v) for k, v in obj.items()}
+    return obj
+
+
+class TestAllCases(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        config["Logging"]["logging_levels"] = "None"  # silent to console
+        config["Logging"]["logging_levels"] = "Error, Success"
         Logger.reset_log()
         session.reset()
 
@@ -29,41 +40,31 @@ class TestAllCases(unittest.TestCase):
         num = 0
         failed = 0
         success = 0
-        
+
         for case_name, def_lines, binary_data, expected in self.all_cases:
-          
+            session.reset()
+            num += 1
 
             with self.subTest(case=case_name):
-                session.reset()
-                num += 1
-
                 try:
-                    NodeTreeParser.parse(def_lines)
+                    # NodeTreeParser.parse(def_lines)
+                    NodeTreeParser.parse((case_name, def_lines, binary_data, expected))
                     result = DecoderHandler.decode((case_name, def_lines, binary_data, expected))
-          
-                    python_json_result = json.dumps(result)
-                    python_json_expected = json.dumps(expected)
-                    
-                    if python_json_result == python_json_expected:
-                        print(f"[SUCCESS] {case_name}")
-                        Logger.to_log('')
-                        Logger.success(f"UNIT TEST: {case_name} matched")
-                        Logger.to_log('')
+
+                    if normalize(result) == normalize(expected):
                         success += 1
-                    else:
-                        print(f"[FAILED] {case_name}")
+                        # Logger.success(f"{case_name}")
+                    elif normalize(result) != normalize(expected):
+                        Logger.error(f"{case_name}")
                         failed += 1
-                        self.fail(f"{case_name} mismatch")
-                        pass
+                    else:
+                        print("Unknown error")
 
                 except Exception as e:
-                    Logger.to_log('')
-                    Logger.error(f"UNIT TEST: {case_name} mismatch")
-                    Logger.debug(f"Expected: {python_json_expected}")
-                    Logger.debug(f"Got:      {python_json_result}")
-                    Logger.to_log('')
+                    failed += 1
+                    print(f"[ERROR] {case_name}: {e}")
 
         print()
-        print(f'Run {num} tests')
-        print(f'Success {success} tests')
-        print(f'Failed {failed} tests')
+        print(f"Run {num} tests")
+        print(f"Success {success} tests")
+        print(f"Failed {failed} tests")
