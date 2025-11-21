@@ -1,25 +1,3 @@
 endian: little
-
 header:
-
-data:
-   unk_float: f
-
-   bitmask 8
-      guid_bit1: bits, BI
-      guid_bit2: bits, BI
-      guid_bit3: bits, BI
-      guid_bit4: bits, BI
-      guid_bit5: bits, BI
-      guid_bit6: bits, BI
-      guid_bit7: bits, BI
-      guid_bit8: bits, BI
-
-   guid_byte5: B
-   guid_byte1: B
-   guid_byte0: B
-   guid_byte6: B
-   guid_byte2: B
-   guid_byte4: B
-   guid_byte7: B
-   guid_byte3: B
+  guid: 6B, G

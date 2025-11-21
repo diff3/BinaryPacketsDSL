@@ -52,6 +52,14 @@ class ModifierInterPreter:
         return field_value
 
     @staticmethod
+    def to_guid(value):
+        if isinstance(value, list):
+            return int.from_bytes(bytes(value), "little")
+        if isinstance(value, bytes):
+            return int.from_bytes(value, "little")
+        return value
+
+    @staticmethod
     def to_upper(field_value):
         if isinstance(field_value, str): 
             return field_value.upper()
@@ -88,6 +96,7 @@ modifiers_operation_mapping = {
     "B": BitInterPreter.from_bits,
     "b": BitInterPreter.from_bits_le,
     "C": ModifierInterPreter.combine_data,
+    "G": ModifierInterPreter.to_guid,
     "H": ModifierInterPreter.to_hex,
     "I": ModifierInterPreter.to_int,
     "M": ModifierInterPreter.to_mirror,
