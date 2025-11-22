@@ -94,7 +94,7 @@ class Logger:
         else:
             formatted_msg = f'{msg}'
 
-        with open(f'logs/{file}', 'a') as log_file:
+        with open(f'logs/{file}', 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(formatted_msg + '\n')
 
     @staticmethod

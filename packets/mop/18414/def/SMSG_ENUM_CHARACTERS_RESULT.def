@@ -1,80 +1,14 @@
-# SMSG_ENUM_CHARACTERS_RESULT
-
 endian: little
 header:
-data:
-    bit_padding: bits, 21BI                      # faction change restriction mask (unused)
-    character_count: bits, 16BI
 
-    loop €character_count to character_bitsets:
-        guild_guid_mask_4: bits, 1BI
-        guid_mask_0: bits, 1BI
-        guild_guid_mask_3: bits, 1BI
-        guid_mask_3: bits, 1BI
-        guid_mask_7: bits, 1BI
-        boost_available: bits, 1BI
-        first_login_flag: bits, 1BI
-        guid_mask_6: bits, 1BI
-        guild_guid_mask_6: bits, 1BI
-        name_length: bits, 6BI
-        guid_mask_1: bits, 1BI
-        guild_guid_mask_1: bits, 1BI
-        guild_guid_mask_0: bits, 1BI
-        guid_mask_4: bits, 1BI
-        guild_guid_mask_7: bits, 1BI
-        guid_mask_2: bits, 1BI
-        guid_mask_5: bits, 1BI
-        guild_guid_mask_2: bits, 1BI
-        guild_guid_mask_5: bits, 1BI
+    faction_mask_bits: B
+    char_count_bits: I
+    test: B
 
-    enum_success: bits, 1BI
-
-    # flushbits
-
-    loop €character_count to characters:
-        unk_padding_02: I
-        guid_byte_1: B
-        slot: B
-        hair_style: B
-        guild_guid_byte_2: B
-        guild_guid_byte_0: B
-        guild_guid_byte_6: B
-        name: €character_bitsets[@index].name_length's
-        guild_guid_byte_3: B
-        position_x: f
-        unk_boost_field: I
-        face: B
-        class_id: B
-        guild_guid_byte_5: B
-
-        loop 23 to equipment:
-            enchant_aura_id: I
-            inventory_type: B
-            display_id: I
-
-        customization_flags: I
-        guid_byte_3: B
-        guid_byte_5: B
-        pet_family: I
-        guild_guid_byte_4: B
-        map_id: I
-        race_id: B
-        skin: B
-        guild_guid_byte_1: B
-        level: B
-        guid_byte_0: B
-        guid_byte_2: B
-        hair_color: B
-        gender: B
-        facial_hair: B
-        pet_level: I
-        guid_byte_4: B
-        guid_byte_7: B
-        position_y: f
-        pet_display_id: I
-        unk_padding_03: I
-        guid_byte_6: B
-        character_flags: I
-        zone_id: I
-        guild_guid_byte_7: B
-        position_z: f
+    loop 1 to characters:
+        randseq 19:
+            guildGuid: 13 12 18 3 1 19 9
+            guid: 2 11 16 4 14 17 8 5 
+            boosted: 6
+            name_len: 10
+            first_login: 7
