@@ -1,0 +1,11 @@
+# packets/AuthOpcodes.py
+
+AUTH_OPCODES = {
+    0x00: "AUTH_LOGON_CHALLENGE_C",
+    0x01: "AUTH_LOGON_PROOF_C",
+    0x02: "AUTH_RECONNECT_CHALLENGE_C",
+    0x03: "AUTH_RECONNECT_PROOF_C",
+    0x10: "REALM_LIST_C",
+}
+
+NAME_TO_OPCODE = {v: k for k, v in AUTH_OPCODES.items()}
