@@ -58,12 +58,6 @@ class AuthServer(BaseServer):
                 # --- Bygg fullständigt paket ---
                 full_packet = opcode_raw + hdr + payload
 
-                # Debug log
-                print(
-                    "RAW AUTH DATA:",
-                    full_packet.hex(" ")
-                )
-
                 # Hitta namn för opcode
                 opcode_name = AUTH_OPCODES.get(opcode)
                 if opcode_name is None:

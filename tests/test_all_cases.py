@@ -3,7 +3,7 @@
 
 import unittest
 import json
-from modules.DecorderHandler import DecoderHandler
+from modules.DecoderHandler import DecoderHandler
 from modules.NodeTreeParser import NodeTreeParser
 from modules.Processor import load_all_cases
 from modules.Session import get_session

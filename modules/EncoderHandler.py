@@ -1,142 +1,317 @@
-# modules/EncoderHandler.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
+import struct
 from utils.Logger import Logger
-from modules.Session import get_session
+from modules.Session import BaseNode, LoopNode, IfNode, RandSeqNode, PaddingNode, SeekNode, BitmaskNode
 
+
+# =====================================================================
+#   BitWriter – korrekt bit-buffer som matchar bit-handlingen i decode
+# =====================================================================
+
+class BitWriter:
+    def __init__(self):
+        self.buffer = bytearray()
+        self.bit_pos = 0   # next bit index in current byte (0..7)
+
+    def align_byte(self):
+        """Move to next byte boundary WITHOUT inserting bytes."""
+        if self.bit_pos != 0:
+            self.bit_pos = 0
+
+    def write_bit(self, bit: int):
+        """LSB-first bit packing – matches decoder behavior."""
+        bit = 1 if bit else 0
+
+        if self.bit_pos == 0:
+            self.buffer.append(0)
+
+        idx = len(self.buffer) - 1
+        self.buffer[idx] |= (bit << self.bit_pos)
+
+        self.bit_pos += 1
+        if self.bit_pos >= 8:
+            self.bit_pos = 0
+
+    def write_bits(self, bits):
+        for b in bits:
+            self.write_bit(int(b))
+
+
+# =====================================================================
+#                              EncoderHandler
+# =====================================================================
 
 class EncoderHandler:
+    """
+    Full DSL encoder, parallel med DecoderHandler men i motsatt riktning.
+    Session kommer från dsl_encode(), och innehåller:
+      session["definition"]["data"]  → DSL-noder
+      session["values"]              → payload dict
+    """
 
     @staticmethod
-    def encode_payload(case_name: str, data: dict) -> bytes:
-        """
-        Encode a packet using the parsed DSL definition.
-        Mirrors DecoderHandler.decode_payload, but in reverse.
-        """
+    def encode_payload(case_name: str, values: dict, session=None) -> bytes:
+        if session is None:
+            raise RuntimeError("Encode called without an encode-session")
 
-        session = get_session()
+        definition = session.get("definition")
+        if not definition:
+            raise RuntimeError("Encode session missing 'definition'")
 
-        if "definition" not in session or not session["definition"]:
-            raise RuntimeError("No parsed DSL definition available for encode")
+        nodes = definition.get("data")
+        if not nodes:
+            raise RuntimeError("Encode definition missing node list")
 
-        # Spara indata i session.values
-        session["values"] = dict(data)
-
-        output = bytearray()
+        bw = BitWriter()
 
         try:
-            EncoderHandler._encode_nodes(
-                session["definition"]["data"], session, output
-            )
+            EncoderHandler._encode_nodes(nodes, values, bw, endian="<")
         except Exception as e:
-            Logger.error(f"Failed to encode {case_name}: {e}")
+            Logger.error(f"Encode error for {case_name}: {e}")
             raise
 
-        return bytes(output)
+        # avsluta byte-align
+        bw.align_byte()
+        return bytes(bw.buffer)
 
-    # ------------------------------------------------------------------
+    # =================================================================
+    #                         Node dispatch
+    # =================================================================
 
     @staticmethod
-    def _encode_nodes(nodes, session, output: bytearray):
-        """
-        Rekursivt encode av alla nodtyper:
-           field / loop / group / skip
-        """
-
+    def _encode_nodes(nodes, payload, bw: BitWriter, endian):
         for node in nodes:
-            ntype = node["type"]
-
-            if ntype == "field":
-                EncoderHandler._encode_field(node, session, output)
-
-            elif ntype == "loop":
-                count_expr = node["count"]         # t.ex. "€num_items"
-                count = EncoderHandler._resolve_value(session, count_expr)
-                for _ in range(count):
-                    EncoderHandler._encode_nodes(node["children"], session, output)
-
-            elif ntype == "group":
-                EncoderHandler._encode_nodes(node["children"], session, output)
-
-            elif ntype == "skip":
-                output.extend(b"\x00" * node["amount"])
-
-            else:
-                Logger.warning(f"Unknown node type during encode: {ntype}")
-
-    # ------------------------------------------------------------------
+            EncoderHandler._encode_node(node, payload, bw, endian)
 
     @staticmethod
-    def _encode_field(node, session, output: bytearray):
-        """
-        Encode av ett enskilt fält.
-        Format:
-            B     byte
-            H     uint16
-            I     uint32
-            Ns    fixed N string/byte array
-            sM    nullterminerad string
-            sMU   exakt byte-array
-        """
+    def _encode_node(node, payload, bw: BitWriter, endian):
+        it = getattr(node, "interpreter", "struct")
 
-        fmt = node["fmt"]
-        name = node["name"]
+        if node.name == "endian":
+        # Update endian mode but DO NOT write anything
+            if node.format == "little":
+                endian = "<"
+            else:
+                endian = ">"
+            return
 
-        value = EncoderHandler._resolve_value(session, name)
 
-        # ---- Integers ----
+        # --- padding ---
+        if it == "padding":
+            EncoderHandler._encode_padding(node, bw)
+            return
+
+        # --- seek ---
+        if it == "seek":
+            EncoderHandler._encode_seek(node, bw)
+            return
+
+        # --- bits ---
+        if it == "bits":
+            EncoderHandler._encode_bits(node, payload, bw)
+            return
+
+        # --- bitmask ---
+        if it == "bitmask":
+            EncoderHandler._encode_bitmask(node, payload, bw)
+            return
+
+        # --- loop ---
+        if it == "loop":
+            EncoderHandler._encode_loop(node, payload, bw, endian)
+            return
+
+        # --- randseq ---
+        if it == "randseq":
+            EncoderHandler._encode_randseq(node, payload, bw, endian)
+            return
+
+        # --- if/elif/else ---
+        if isinstance(node, IfNode):
+            EncoderHandler._encode_if(node, payload, bw, endian)
+            return
+
+        # --- dynamic/var/slice ---
+        if it in ("var", "dynamic", "slice"):
+            val = EncoderHandler._resolve_value(node, payload)
+            EncoderHandler._encode_struct_value(node, val, bw, endian)
+            return
+
+        # --- append (treat like struct) ---
+        if it == "append":
+            val = EncoderHandler._resolve_value(node, payload)
+            EncoderHandler._encode_struct_value(node, val, bw, endian)
+            return
+
+        # --- struct (default) ---
+        if it == "struct":
+            val = EncoderHandler._resolve_value(node, payload)
+            EncoderHandler._encode_struct_value(node, val, bw, endian)
+            return
+
+        raise RuntimeError(f"Unsupported interpreter '{it}' in encode")
+
+    # =================================================================
+    #                           Field encoders
+    # =================================================================
+
+    @staticmethod
+    def _encode_padding(node, bw: BitWriter):
+        size = int(node.value)
+        bw.align_byte()
+        for _ in range(size):
+            bw.buffer.append(0)
+
+    @staticmethod
+    def _encode_seek(node, bw: BitWriter):
+        target = node.offset
+        bw.align_byte()
+        while len(bw.buffer) < target:
+            bw.buffer.append(0)
+
+    @staticmethod
+    def _encode_bits(node, payload, bw: BitWriter):
+        bits = EncoderHandler._resolve_value(node, payload)
+        if not isinstance(bits, (list, tuple)):
+            raise RuntimeError(f"Bits-field {node.name} must be list/tuple")
+        for b in bits:
+            bw.write_bit(int(b))
+
+    @staticmethod
+    def _encode_bitmask(node, payload, bw: BitWriter):
+        bw.align_byte()
+        for child in node.children:
+            bits = EncoderHandler._resolve_value(child, payload)
+            if not isinstance(bits, (list, tuple)):
+                raise RuntimeError(f"Bitmask child {child.name} must be list of bits")
+            for b in bits:
+                bw.write_bit(int(b))
+
+    @staticmethod
+    def _encode_loop(node: LoopNode, payload, bw: BitWriter, endian):
+        count = EncoderHandler._resolve_value_raw(node.count_from, payload)
+        if count is None:
+            raise RuntimeError(f"Loop count unresolved for {node.name}")
+
+        for _ in range(count):
+            for child in node.children:
+                EncoderHandler._encode_node(child, payload, bw, endian)
+
+    @staticmethod
+    def _encode_randseq(node: RandSeqNode, payload, bw: BitWriter, endian):
+        for child in node.children:
+            EncoderHandler._encode_node(child, payload, bw, endian)
+
+    @staticmethod
+    def _encode_if(node: IfNode, payload, bw: BitWriter, endian):
+        if EncoderHandler._eval_condition(node.condition, payload):
+            for n in node.true_branch:
+                EncoderHandler._encode_node(n, payload, bw, endian)
+        else:
+            handled = False
+
+            if node.elif_branches:
+                for cond, branch in node.elif_branches:
+                    if EncoderHandler._eval_condition(cond, payload):
+                        for n in branch:
+                            EncoderHandler._encode_node(n, payload, bw, endian)
+                        handled = True
+                        break
+
+            if not handled and node.false_branch:
+                for n in node.false_branch:
+                    EncoderHandler._encode_node(n, payload, bw, endian)
+
+    # =================================================================
+    #                        Struct encoding
+    # =================================================================
+
+    @staticmethod
+    def _encode_struct_value(node, value, bw: BitWriter, endian):
+        bw.align_byte()
+        fmt = node.format
+
+        if fmt is None or fmt == "":
+            raise RuntimeError(f"Node {node.name} missing format in encode")
+
+        # fixed-size "32s"
+        if fmt.endswith("s") and fmt[:-1].isdigit():
+            size = int(fmt[:-1])
+            raw = value if isinstance(value, (bytes, bytearray)) else str(value).encode()
+            raw = raw[:size].ljust(size, b"\x00")
+            bw.buffer.extend(raw)
+            return
+
         if fmt == "B":
-            output.append(value & 0xFF)
+            bw.buffer.append(int(value) & 0xFF)
             return
 
         if fmt == "H":
-            output.extend(value.to_bytes(2, "little"))
+            bw.buffer.extend(int(value).to_bytes(2, "little"))
             return
 
         if fmt == "I":
-            output.extend(value.to_bytes(4, "little"))
+            bw.buffer.extend(int(value).to_bytes(4, "little"))
             return
 
-        # ---- Fixed-size byte/string: "32s" ----
-        if fmt.endswith("s") and fmt[:-1].isdigit():
-            size = int(fmt[:-1])
-            raw = value if isinstance(value, (bytes, bytearray)) else value.encode()
-            raw = raw[:size].ljust(size, b"\x00")
-            output.extend(raw)
-            return
-
-        # ---- sM: nullterminerad ----
         if fmt == "sM":
             raw = value.encode() if isinstance(value, str) else value
-            output.extend(raw)
-            output.append(0)
+            bw.buffer.extend(raw)
+            bw.buffer.append(0)
             return
 
-        # ---- sMU: raw bytes exakt ----
         if fmt == "sMU":
             raw = value if isinstance(value, (bytes, bytearray)) else value.encode()
-            output.extend(raw)
+            bw.buffer.extend(raw)
             return
 
-        raise RuntimeError(f"Unsupported encode format: {fmt}")
+        # fall-back to struct.pack
+        try:
+            packed = struct.pack("<" + fmt, value)
+            bw.buffer.extend(packed)
+        except Exception as e:
+            raise RuntimeError(f"Struct encode failed for {node.name} (fmt={fmt}): {e}")
 
-    # ------------------------------------------------------------------
+    # =================================================================
+    #                     Value resolution helper
+    # =================================================================
 
     @staticmethod
-    def _resolve_value(session, name):
-        """
-        Hämtar DSL-värde.
-        - Direkta namn → session['values'][name]
-        - Expressions som €field → session['values'][field]
-        """
+    def _resolve_value(node, payload):
+        if node.name in payload:
+            return payload[node.name]
 
-        if isinstance(name, int):
-            return name
+        # fallback: variable expression (€var)
+        return EncoderHandler._resolve_value_raw(node.format, payload)
 
-        if isinstance(name, str):
-            if name.startswith("€"):
-                ref = name[1:]
-                return session["values"].get(ref)
+    @staticmethod
+    def _resolve_value_raw(expr, payload):
+        if isinstance(expr, int):
+            return expr
 
-            return session["values"].get(name)
+        if isinstance(expr, str):
+            if expr.startswith("€"):
+                key = expr[1:]
+                return payload.get(key)
+            if expr.isdigit():
+                return int(expr)
 
-        raise RuntimeError(f"Cannot resolve DSL value: {name}")
+        return None
+
+    # =================================================================
+    #                       IF condition evaluator
+    # =================================================================
+
+    @staticmethod
+    def _eval_condition(cond: str, payload):
+        cond = cond.strip()
+
+        # Format: €name == value
+        if cond.startswith("€") and "==" in cond:
+            left, right = [x.strip() for x in cond.split("==")]
+            left = left[1:]
+            return str(payload.get(left)) == right
+
+        return False
