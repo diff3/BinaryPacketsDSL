@@ -1,0 +1,13 @@
+{
+  "name": "REALM_LIST_C",
+  "hex_spaced": "10 00 00 00 00",
+  "hex_compact": "1000000000",
+  "hex_offsets": [
+    "0000: 10 00 00 00 00                                   ....."
+  ],
+  "ascii": ".....",
+  "bits": "00010000 00000000 00000000 00000000 00000000",
+  "size_bytes": 5,
+  "program": "mop",
+  "version": "18414"
+}

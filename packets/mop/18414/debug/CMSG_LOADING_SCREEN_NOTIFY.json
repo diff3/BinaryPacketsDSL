@@ -1,0 +1,13 @@
+{
+  "name": "CMSG_LOADING_SCREEN_NOTIFY",
+  "hex_spaced": "03 00 00 80",
+  "hex_compact": "03000080",
+  "hex_offsets": [
+    "0000: 03 00 00 80                                      ...."
+  ],
+  "ascii": "....",
+  "bits": "00000011 00000000 00000000 10000000",
+  "size_bytes": 4,
+  "program": "mop",
+  "version": "18414"
+}

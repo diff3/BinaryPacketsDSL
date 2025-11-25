@@ -1,0 +1,13 @@
+{
+  "name": "CMSG_PLAYER_LOGIN",
+  "hex_spaced": "00 00 7A 44 01 05",
+  "hex_compact": "00007A440105",
+  "hex_offsets": [
+    "0000: 00 00 7A 44 01 05                                ..zD.."
+  ],
+  "ascii": "..zD..",
+  "bits": "00000000 00000000 01111010 01000100 00000001 00000101",
+  "size_bytes": 6,
+  "program": "mop",
+  "version": "18414"
+}

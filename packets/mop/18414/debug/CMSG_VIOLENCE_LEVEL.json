@@ -1,0 +1,13 @@
+{
+  "name": "CMSG_VIOLENCE_LEVEL",
+  "hex_spaced": "02",
+  "hex_compact": "02",
+  "hex_offsets": [
+    "0000: 02                                               ."
+  ],
+  "ascii": ".",
+  "bits": "00000010",
+  "size_bytes": 1,
+  "program": "mop",
+  "version": "18414"
+}
