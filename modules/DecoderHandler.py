@@ -15,7 +15,7 @@ session = get_session()
 
 class DecoderHandler(): 
     @staticmethod
-    def decode(case):
+    def decode(case, silent=False):
         fields = session.fields
         bitstate = BitState()
         raw_data = case[2]
@@ -35,12 +35,12 @@ class DecoderHandler():
             debug_msg.append(field)
             
             if hasattr(field, "name"):
-                Logger.info(field.name.upper())
+                Logger.debug(field.name.upper())
             else:
-                Logger.info(f"Unnamed field: {field}")
-            Logger.info(field)
+                Logger.debug(f"Unnamed field: {field}")
+            Logger.debug(field)
             # använd faktiska läspositionen
-            Logger.info(raw_data[bitstate.offset:])
+            Logger.debug(raw_data[bitstate.offset:])
 
             if bitstate.offset >= len(raw_data):
                 Logger.warning(f"Ran out of raw data before processing field '{field.name}'. Stopping decode early.")
@@ -194,8 +194,9 @@ class DecoderHandler():
         
         try:
             json_output = json.dumps(result, indent=4)
-            Logger.success(f"{case[0]}")
-            Logger.to_log(json_output)
+            if not silent:
+                Logger.success(f"{case[0]}\n{json_output}")
+                Logger.to_log(json_output)
         except TypeError as e:
             Logger.error("FAILED RESULT")
             Logger.error(e)
@@ -209,7 +210,7 @@ class DecoderHandler():
                         f"Name: '{key}' values is of type bytes: {value} → not JSON serializable. "
                         "Add 's' as the first modifier in def file."
                     )
-            Logger.to_log('')
+           # Logger.to_log('')
             for msg in debug_msg:
                  Logger.to_log(msg)
 
@@ -260,7 +261,7 @@ class DecoderHandler():
         except struct.error as e:
             Logger.warning('Struct unpack error')
             Logger.debug(f'fmt: {fmt} | {e}')
-            Logger.info(f'raw_data: {raw_data[bitstate.offset:]}')
+            Logger.debug(f'raw_data: {raw_data[bitstate.offset:]}')
 
         if 's' in fmt:
             try:

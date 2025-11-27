@@ -45,6 +45,7 @@ class ModifierInterPreter:
             return field_value[::-1]
         return field_value
 
+
     @staticmethod
     def to_lower(field_value):
         if isinstance(field_value, str): 

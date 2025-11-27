@@ -2,7 +2,7 @@ endian: little
 header:
 data:
     cmd: B
-    R1: 16s, sMU
-    R2: 20s, sMU
-    R3: 20s, sMU
+    R1: 16s
+    R2: 20s
+    R3: 20s
     number_of_keys: B

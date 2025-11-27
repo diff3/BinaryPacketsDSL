@@ -1,8 +1,8 @@
 endian: little
 header:
-data:
    cmd: B
    error: B
+data:
    size: H
    gamename: 4s, sM
    version1: B

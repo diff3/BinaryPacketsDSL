@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.DecorderHandler import DecoderHandler
+from modules.DecoderHandler import DecoderHandler
 from modules.NodeTreeParser import NodeTreeParser
 from modules.Processor import load_case, load_all_cases, handle_add
 from modules.Session import get_session

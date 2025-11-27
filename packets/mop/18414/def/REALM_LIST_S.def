@@ -2,9 +2,10 @@ endian: little
 header:
    cmd: B
    size: H
-   realm_list_size: IH, C
 data: 
-   loop €realm_list_size to €realmlist:
+   realm_count: H
+
+   loop €realm_count to €realmlist:
       icon: B
       lock: B
       flag: B  
@@ -14,5 +15,6 @@ data:
       characters: B
       timezone: B
       realmid: B
+
    unk2: B
    unk3: B

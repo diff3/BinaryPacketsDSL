@@ -7,21 +7,21 @@ from modules.Session import BaseNode, LoopNode, IfNode, RandSeqNode, PaddingNode
 
 
 # =====================================================================
-#   BitWriter – korrekt bit-buffer som matchar bit-handlingen i decode
+#   BitWriter – korrekt bit-buffer som matchar decode
 # =====================================================================
 
 class BitWriter:
     def __init__(self):
         self.buffer = bytearray()
-        self.bit_pos = 0   # next bit index in current byte (0..7)
+        self.bit_pos = 0   # next bit pos 0..7
 
     def align_byte(self):
-        """Move to next byte boundary WITHOUT inserting bytes."""
+        """Align to next byte: if mid-byte → append padding byte."""
         if self.bit_pos != 0:
+            self.buffer.append(0)
             self.bit_pos = 0
 
     def write_bit(self, bit: int):
-        """LSB-first bit packing – matches decoder behavior."""
         bit = 1 if bit else 0
 
         if self.bit_pos == 0:
@@ -40,17 +40,17 @@ class BitWriter:
 
 
 # =====================================================================
-#                              EncoderHandler
+#                          EncoderHandler
 # =====================================================================
 
 class EncoderHandler:
     """
-    Full DSL encoder, parallel med DecoderHandler men i motsatt riktning.
-    Session kommer från dsl_encode(), och innehåller:
-      session["definition"]["data"]  → DSL-noder
-      session["values"]              → payload dict
+    Full DSL encoder, speglar DecoderHandler.
     """
 
+    # -------------------------------------------------------------
+    #       PUBLIC ENTRY (used by dsl_encode)
+    # -------------------------------------------------------------
     @staticmethod
     def encode_payload(case_name: str, values: dict, session=None) -> bytes:
         if session is None:
@@ -65,14 +65,33 @@ class EncoderHandler:
             raise RuntimeError("Encode definition missing node list")
 
         bw = BitWriter()
+        endian = "<"
 
         try:
-            EncoderHandler._encode_nodes(nodes, values, bw, endian="<")
+            new_endian = EncoderHandler._encode_nodes(nodes, values, bw, endian)
+            if new_endian is not None:
+                endian = new_endian
         except Exception as e:
             Logger.error(f"Encode error for {case_name}: {e}")
             raise
 
-        # avsluta byte-align
+        bw.align_byte()
+        return bytes(bw.buffer)
+
+    # -------------------------------------------------------------
+    #   OPTIONAL PUBLIC CALL (parallell med gamla API)
+    # -------------------------------------------------------------
+    @staticmethod
+    def encode_from_session(case_name: str, payload_dict: dict, session):
+        bw = BitWriter()
+        endian = "<"
+
+        nodes = session.fields
+        for node in nodes:
+            res = EncoderHandler._encode_node(node, payload_dict, bw, endian)
+            if res is not None:
+                endian = res
+
         bw.align_byte()
         return bytes(bw.buffer)
 
@@ -82,74 +101,62 @@ class EncoderHandler:
 
     @staticmethod
     def _encode_nodes(nodes, payload, bw: BitWriter, endian):
+        """
+        Iterate node list and allow endian to propagate.
+        """
         for node in nodes:
-            EncoderHandler._encode_node(node, payload, bw, endian)
+            new_endian = EncoderHandler._encode_node(node, payload, bw, endian)
+            if new_endian is not None:
+                endian = new_endian
+        return endian
 
     @staticmethod
     def _encode_node(node, payload, bw: BitWriter, endian):
         it = getattr(node, "interpreter", "struct")
 
+        # --------------------------------------
+        # endian-node (only updates state)
+        # --------------------------------------
         if node.name == "endian":
-        # Update endian mode but DO NOT write anything
-            if node.format == "little":
-                endian = "<"
+            fmt = node.format
+            if fmt == "little":
+                return "<"
             else:
-                endian = ">"
-            return
+                return ">"
 
-
-        # --- padding ---
+        # --------------------------------------
         if it == "padding":
             EncoderHandler._encode_padding(node, bw)
-            return
+            return None
 
-        # --- seek ---
         if it == "seek":
             EncoderHandler._encode_seek(node, bw)
-            return
+            return None
 
-        # --- bits ---
         if it == "bits":
             EncoderHandler._encode_bits(node, payload, bw)
-            return
+            return None
 
-        # --- bitmask ---
         if it == "bitmask":
             EncoderHandler._encode_bitmask(node, payload, bw)
-            return
+            return None
 
-        # --- loop ---
         if it == "loop":
             EncoderHandler._encode_loop(node, payload, bw, endian)
-            return
+            return None
 
-        # --- randseq ---
         if it == "randseq":
             EncoderHandler._encode_randseq(node, payload, bw, endian)
-            return
+            return None
 
-        # --- if/elif/else ---
         if isinstance(node, IfNode):
             EncoderHandler._encode_if(node, payload, bw, endian)
-            return
+            return None
 
-        # --- dynamic/var/slice ---
-        if it in ("var", "dynamic", "slice"):
+        if it in ("var", "dynamic", "slice", "append", "struct"):
             val = EncoderHandler._resolve_value(node, payload)
             EncoderHandler._encode_struct_value(node, val, bw, endian)
-            return
-
-        # --- append (treat like struct) ---
-        if it == "append":
-            val = EncoderHandler._resolve_value(node, payload)
-            EncoderHandler._encode_struct_value(node, val, bw, endian)
-            return
-
-        # --- struct (default) ---
-        if it == "struct":
-            val = EncoderHandler._resolve_value(node, payload)
-            EncoderHandler._encode_struct_value(node, val, bw, endian)
-            return
+            return None
 
         raise RuntimeError(f"Unsupported interpreter '{it}' in encode")
 
@@ -159,8 +166,8 @@ class EncoderHandler:
 
     @staticmethod
     def _encode_padding(node, bw: BitWriter):
-        size = int(node.value)
         bw.align_byte()
+        size = int(node.value)
         for _ in range(size):
             bw.buffer.append(0)
 
@@ -185,7 +192,7 @@ class EncoderHandler:
         for child in node.children:
             bits = EncoderHandler._resolve_value(child, payload)
             if not isinstance(bits, (list, tuple)):
-                raise RuntimeError(f"Bitmask child {child.name} must be list of bits")
+                raise RuntimeError(f"Bitmask child {child.name} must be bit-list")
             for b in bits:
                 bw.write_bit(int(b))
 
@@ -233,10 +240,10 @@ class EncoderHandler:
         bw.align_byte()
         fmt = node.format
 
-        if fmt is None or fmt == "":
-            raise RuntimeError(f"Node {node.name} missing format in encode")
+        if not fmt:
+            raise RuntimeError(f"Node '{node.name}' missing format for encode")
 
-        # fixed-size "32s"
+        # fixed-size: 32s
         if fmt.endswith("s") and fmt[:-1].isdigit():
             size = int(fmt[:-1])
             raw = value if isinstance(value, (bytes, bytearray)) else str(value).encode()
@@ -249,11 +256,11 @@ class EncoderHandler:
             return
 
         if fmt == "H":
-            bw.buffer.extend(int(value).to_bytes(2, "little"))
+            bw.buffer.extend(int(value).to_bytes(2, byteorder="little" if endian == "<" else "big"))
             return
 
         if fmt == "I":
-            bw.buffer.extend(int(value).to_bytes(4, "little"))
+            bw.buffer.extend(int(value).to_bytes(4, byteorder="little" if endian == "<" else "big"))
             return
 
         if fmt == "sM":
@@ -267,51 +274,43 @@ class EncoderHandler:
             bw.buffer.extend(raw)
             return
 
-        # fall-back to struct.pack
+        # fallback to struct.pack
         try:
-            packed = struct.pack("<" + fmt, value)
+            packfmt = endian + fmt
+            packed = struct.pack(packfmt, value)
             bw.buffer.extend(packed)
         except Exception as e:
             raise RuntimeError(f"Struct encode failed for {node.name} (fmt={fmt}): {e}")
 
     # =================================================================
-    #                     Value resolution helper
+    #                     Value resolution helpers
     # =================================================================
 
     @staticmethod
     def _resolve_value(node, payload):
         if node.name in payload:
             return payload[node.name]
-
-        # fallback: variable expression (€var)
         return EncoderHandler._resolve_value_raw(node.format, payload)
 
     @staticmethod
     def _resolve_value_raw(expr, payload):
         if isinstance(expr, int):
             return expr
-
         if isinstance(expr, str):
             if expr.startswith("€"):
-                key = expr[1:]
-                return payload.get(key)
+                return payload.get(expr[1:])
             if expr.isdigit():
                 return int(expr)
-
         return None
 
     # =================================================================
-    #                       IF condition evaluator
+    #                       Condition evaluator
     # =================================================================
 
     @staticmethod
     def _eval_condition(cond: str, payload):
         cond = cond.strip()
-
-        # Format: €name == value
         if cond.startswith("€") and "==" in cond:
             left, right = [x.strip() for x in cond.split("==")]
-            left = left[1:]
-            return str(payload.get(left)) == right
-
+            return str(payload.get(left[1:], None)) == right
         return False

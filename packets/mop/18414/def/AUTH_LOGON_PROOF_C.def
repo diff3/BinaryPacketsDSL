@@ -1,9 +1,9 @@
 endian: little
 header:
-data:
     cmd: B
-    A: 32s, sMU
-    M1: 20s, sMU
-    crc_hash: 20s, sMU
+data:
+    A: 32s
+    M1: 20s
+    crc_hash: 20s
     number_of_keys: B
     security_flags: B 

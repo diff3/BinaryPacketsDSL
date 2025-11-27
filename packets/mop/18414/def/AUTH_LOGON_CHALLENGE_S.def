@@ -1,14 +1,14 @@
 endian: little
 header: 
+    cmd: B
+    error: B
 data:
-   cmd: B
-   error: B
-   success: B
-   B: 32s, sMU
-   l: B
-   g: B
-   blog: B
-   N: 32s, sMU
-   s: 32s, sMU
-   unk3: 16s, sMU
-   securityFlags: B
+    success: B
+    B: 32s
+    l: B
+    g: B
+    blob: B
+    N: 32s
+    s: 32s
+    unk3: 16s
+    securityFlags: B

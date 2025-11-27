@@ -1,8 +1,8 @@
 {
-    "cmd": 1,
-    "A": "B252AFD0A8820D12A5F36DA9F64ABDE3CE91D27110A0E64B1FBB45748C7EBF9B",
-    "M1": "10109C42337EFDC372624A0C031ABC02FA0CA412",
-    "crc_hash": "B99E14537983275DDB6CA6516A9E7CFCF9832958",
-    "number_of_keys": 0,
-    "security_flags": 0
+  "cmd": 1,
+  "A": "5011878ea22f6ad88f7e8b431c1f2e121c046bab4ddb14dd49ea72ddf0a9b446",
+  "M1": "73e8a1401b9bc69cfa0ef12268c01d22b31662b8",
+  "crc_hash": "50546aff2a8af209592b8695b783a1e46a2e8ae6",
+  "number_of_keys": 0,
+  "security_flags": 0
 }

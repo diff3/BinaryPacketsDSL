@@ -1,9 +1,9 @@
 endian: little
 header:
-data:
     cmd: B
+data:
     error: B
-    M2: 20s, sMU
+    M2: 20s
     unk1: I
     unk2: I
     unk3: H
