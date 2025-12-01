@@ -22,3 +22,4 @@ misc/
 node_modules/
 package-lock.json
 .qodo/
+captures

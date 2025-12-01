@@ -34,7 +34,7 @@ def process_case(program: str, version: str, case: str) -> tuple[bool, list[str]
     try:
         session = get_session()
 
-        base_path = f"packets/{program}/{version}"
+        base_path = f"protocols/{program}/{version}"
         def_path = f"{base_path}/def/{case}.def"
         bin_path = f"{base_path}/bin/{case}.bin"
         json_path = f"{base_path}/json/{case}.json"
@@ -123,7 +123,7 @@ def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
         bool: True if creation succeeded, False otherwise
     """
     try:
-        base_path = f"packets/{program}/{version}"
+        base_path = f"protocols/{program}/{version}"
         os.makedirs(f"{base_path}/bin", exist_ok=True)
         os.makedirs(f"{base_path}/def", exist_ok=True)
         os.makedirs(f"{base_path}/json", exist_ok=True)

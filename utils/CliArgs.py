@@ -13,7 +13,7 @@ class DefFileNameCompleter:
     def __call__(self, prefix, parsed_args, **kwargs):
         program = parsed_args.program or config.get("program")
         version = parsed_args.version or config.get("version")
-        base_path = Path(f"packets/{program}/{version}/def")
+        base_path = Path(f"protocols/{program}/{version}/def")
         if not base_path.is_dir():
             return []
         return [

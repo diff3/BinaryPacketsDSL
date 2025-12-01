@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import struct
 from modules.bitsHandler import BitInterPreter
 from modules.Session import get_session
 
@@ -93,6 +94,14 @@ class ModifierInterPreter:
                 return field_value.hex()
         return field_value
 
+    @staticmethod
+    def to_big_endian(value, fmt):
+        print(f"value: {value}")
+        print(f"fmt: {fmt}")
+
+        # fmt är t.ex. "I", "H", "f", "B"
+        return struct.pack(">" + fmt, value)
+
 modifiers_operation_mapping = {
     "B": BitInterPreter.from_bits,
     "b": BitInterPreter.from_bits_le,
@@ -107,4 +116,5 @@ modifiers_operation_mapping = {
     "s": ModifierInterPreter.to_string,
     "t": ModifierInterPreter.to_trimmed,
     "u": ModifierInterPreter.to_lower,
+    "E": ModifierInterPreter.to_big_endian,
 }

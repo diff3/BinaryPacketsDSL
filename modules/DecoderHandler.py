@@ -215,30 +215,44 @@ class DecoderHandler():
                  Logger.to_log(msg)
 
         return result
-    
+        
     @staticmethod
     def apply_modifiers(field):
-        # Om inga modifiers finns, returnera direkt
         if not field.modifiers:
             return field.value
 
-        # Börja alltid från raw_data (bytes eller lista av bitar)
         value = field.raw_data
 
-        # Applicera varje modifier i ordning
         for mod in field.modifiers:
             func = modifiers_operation_mapping.get(mod)
             if func:
-                value = func(value)
+                if mod == "E":
+                    # packa värdet som big-endian med rätt format
+                    value = func(value, field.format)
+                else:
+                    value = func(value)
 
         return value
 
     @staticmethod
     def resolve_string_format(field, raw_data, offset):
-        string_data = raw_data[offset:].split(b'\x00')[0]
-        length = len(string_data) + 1  # include null terminator
-        field.format = f"{length}s"
-        field.interpreter = 'struct'  # säkerställ rätt hantering
+        # hitta nullterminator
+        end = offset
+        while end < len(raw_data) and raw_data[end] != 0:
+            end += 1
+
+        raw = raw_data[offset:end]   # utan null
+        value = raw.decode("ascii")
+
+        # längd med NUL
+        length = (end - offset) + 1
+
+        # uppdatera field
+        field.value = value
+        field.raw_length = length     # <-- SUPER VIKTIGT
+        field.format = f"{length}s"   # så decode läser exakt length bytes
+        field.interpreter = "struct"
+
         return field
 
     @staticmethod

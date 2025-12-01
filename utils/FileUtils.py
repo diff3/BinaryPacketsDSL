@@ -30,7 +30,7 @@ class FileHandler():
 
     @staticmethod
     def list_def_files(program: str, version: str) -> list[str]:
-        folder = f"packets/{program}/{version}/def"
+        folder = f"protocols/{program}/{version}/def"
         if not os.path.exists(folder):
             return []
         
