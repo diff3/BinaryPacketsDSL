@@ -363,7 +363,7 @@ class WorldProxy:
         safe = to_safe_json(decoded if decoded else {})
 
         # Full world packet
-        raw = raw_header + payload
+        raw = payload
 
         # -------------------------
         # case 1: --update

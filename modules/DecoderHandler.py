@@ -42,6 +42,9 @@ class DecoderHandler():
             # använd faktiska läspositionen
             Logger.debug(raw_data[bitstate.offset:])
 
+            if getattr(field, "processed", False):
+                continue
+
             if bitstate.offset >= len(raw_data):
                 Logger.warning(f"Ran out of raw data before processing field '{field.name}'. Stopping decode early.")
                 break
@@ -129,6 +132,23 @@ class DecoderHandler():
             if field.format == 'S':
                 # använd bitstate.offset som start
                 field = DecoderHandler.resolve_string_format(field, raw_data, bitstate.offset)
+
+            if field.format == 'R':
+                field = DecoderHandler.handle_read_rest(field, raw_data, bitstate)
+
+                field.value = DecoderHandler.apply_modifiers(field)
+                value = field.value
+                # store in result just like other fields
+                
+                if not getattr(field, "ignore", False):
+                    result[field.name] = value
+                               
+                fields[i] = field  # keep updated node in session.fields
+
+                i += 1
+                Logger.debug(field)
+                Logger.to_log('')
+                continue
 
             if field.interpreter == 'bits':
                 field = DecoderHandler.decode_bits_field(field, raw_data, bitstate)
@@ -253,6 +273,36 @@ class DecoderHandler():
         field.format = f"{length}s"   # så decode läser exakt length bytes
         field.interpreter = "struct"
 
+        return field
+    
+    @staticmethod
+    def handle_read_rest(field, raw_data, bitstate):
+        # Current read start
+        start = bitstate.offset
+        end = len(raw_data)
+
+        # Extract bytes
+        raw = raw_data[start:end]
+
+        # Try UTF-8, fallback to hex
+        try:
+            value = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            value = raw.hex()
+
+        length = end - start
+
+        # Update node WITHOUT letting DecoderHandler try to read it again
+        field.value = value
+        field.raw_length = length
+        field.raw_data = raw               # <-- extremely important
+        field.format = f"{length}s"        # ensures no re-read
+        field.interpreter = "raw"          # <-- disables struct unpack path
+        field.raw_offset = start           # mark as fully consumed
+
+        # Move bitstate forward
+        bitstate.offset = end
+        field.processed = True
         return field
 
     @staticmethod
@@ -519,6 +569,10 @@ class DecoderHandler():
                 if child.format == 'S':
                     child = DecoderHandler.resolve_string_format(child, raw_data, bitstate.offset)
                     bitstate.align_to_byte()
+
+                if child.format == 'R':
+                    child = DecoderHandler.handle_read_rest(child, raw_data, bitstate)
+                    continue
 
                 if child.interpreter == 'struct':
                     child, _, _ = DecoderHandler.decode_struct(child, raw_data, bitstate, endian)

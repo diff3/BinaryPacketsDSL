@@ -1,3 +1,4 @@
 endian: little
 header:
 data:
+    motd: R, rT

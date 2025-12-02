@@ -4,6 +4,7 @@
 import struct
 from modules.bitsHandler import BitInterPreter
 from modules.Session import get_session
+import re
 
 session = get_session()
 
@@ -102,6 +103,43 @@ class ModifierInterPreter:
         # fmt är t.ex. "I", "H", "f", "B"
         return struct.pack(">" + fmt, value)
 
+    @staticmethod
+    def to_rawstring(field_value):
+        if isinstance(field_value, bytes):
+            try:
+                return field_value.decode("utf-8", errors="ignore").rstrip("\x00")
+            except Exception:
+                return field_value.hex()
+        return field_value
+    
+    @staticmethod
+    def to_clean_text(field_value):
+        if not isinstance(field_value, (bytes, bytearray, str)):
+            return field_value
+
+        # 1) Försök tolka som text
+        if isinstance(field_value, (bytes, bytearray)):
+            try:
+                text = field_value.decode("utf-8", errors="replace")
+            except Exception:
+                return field_value.hex()
+        else:
+            text = field_value
+
+        # 2) Ta bort WoW färgtaggar och länkar
+        # |cffRRGGBB
+        text = re.sub(r"\|c[0-9A-Fa-f]{8}", "", text)
+        text = re.sub(r"\|c[0-9A-Fa-f]{6}", "", text)
+        # |r
+        text = text.replace("|r", "")
+        # |Hxxxx|h ... |h
+        text = re.sub(r"\|H.*?\|h", "", text)
+
+        # 3) Ta bort kontrolltecken (utom \n och \t)
+        cleaned = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ord(ch) >= 0x20)
+
+        return cleaned
+
 modifiers_operation_mapping = {
     "B": BitInterPreter.from_bits,
     "b": BitInterPreter.from_bits_le,
@@ -117,4 +155,6 @@ modifiers_operation_mapping = {
     "t": ModifierInterPreter.to_trimmed,
     "u": ModifierInterPreter.to_lower,
     "E": ModifierInterPreter.to_big_endian,
+    "r": ModifierInterPreter.to_rawstring,
+    "T": ModifierInterPreter.to_clean_text,
 }
