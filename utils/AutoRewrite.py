@@ -9,8 +9,7 @@ def resolve_import(request: str):
     version = cfg["version"]
 
     # ------------------------------------------------------
-    # Old import: "from packets.AuthOpcodes import ..."
-    # Return dynamic opcodes (client, server, lookup)
+    # AUTH OPCODES
     # ------------------------------------------------------
     if "protocols.AuthOpcodes" in request:
         from utils.OpcodeLoader import load_auth_opcodes
@@ -22,8 +21,19 @@ def resolve_import(request: str):
         }
 
     # ------------------------------------------------------
-    # Old import: "from handlers.AuthHandler import ..."
-    # Return dynamic handlers
+    # WORLD OPCODES
+    # ------------------------------------------------------
+    if "protocols.WorldOpcodes" in request:
+        from utils.OpcodeLoader import load_world_opcodes
+        client, server, lookup = load_world_opcodes()
+        return {
+            "WORLD_CLIENT_OPCODES": client,
+            "WORLD_SERVER_OPCODES": server,
+            "lookup": lookup
+        }
+
+    # ------------------------------------------------------
+    # AUTH HANDLERS
     # ------------------------------------------------------
     if "handlers.AuthHandler" in request:
         module_path = f"protocols.{program}.{version}.handlers.AuthHandlers"

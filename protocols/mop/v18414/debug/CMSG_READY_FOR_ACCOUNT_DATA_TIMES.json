@@ -1,0 +1,11 @@
+{
+  "name": "CMSG_READY_FOR_ACCOUNT_DATA_TIMES",
+  "hex_spaced": "1C 03 00 00",
+  "hex_compact": "1C030000",
+  "hex_offsets": [
+    "0000: 1C 03 00 00                                      ...."
+  ],
+  "ascii": "....",
+  "bits": "00011100 00000011 00000000 00000000",
+  "size_bytes": 4
+}

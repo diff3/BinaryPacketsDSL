@@ -60,7 +60,7 @@ def handle_AUTH_LOGON_CHALLENGE(client_socket, opcode, data: bytes):
 
     try:
         decoded = dsl_decode("AUTH_LOGON_CHALLENGE_C", data, silent=True)
-        Logger.success("AUTH_LOGON_CHALLENGE_C\n" + json.dumps(decoded, indent=4))
+        # Logger.success("AUTH_LOGON_CHALLENGE_C\n" + json.dumps(decoded, indent=4))
     except Exception as exc:
         Logger.error(f"[AUTH_LOGON_CHALLENGE_C] Decode failed: {exc}")
         return 1, None

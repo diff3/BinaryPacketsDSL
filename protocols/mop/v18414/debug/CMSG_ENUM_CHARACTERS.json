@@ -1,0 +1,11 @@
+{
+  "name": "CMSG_ENUM_CHARACTERS",
+  "hex_spaced": "E0 00 00 00",
+  "hex_compact": "E0000000",
+  "hex_offsets": [
+    "0000: E0 00 00 00                                      ...."
+  ],
+  "ascii": "....",
+  "bits": "11100000 00000000 00000000 00000000",
+  "size_bytes": 4
+}

@@ -1359,3 +1359,30 @@ class WorldOpcodes:
     @staticmethod
     def getServerOpCodeName(cmd):
         return WorldOpcodes.getCodeName(WorldServerOpcodes, cmd)
+
+# ============================================================
+# AUTO-GENERATED LOOKUP TABLES (som AuthOpcodes.py)
+# ============================================================
+
+# Client → Server
+WORLD_CLIENT_OPCODES = {
+    member.value: name
+    for name, member in WorldClientOpcodes.__members__.items()
+}
+
+# Server → Client
+WORLD_SERVER_OPCODES = {
+    member.value: name
+    for name, member in WorldServerOpcodes.__members__.items()
+}
+
+def lookup(direction: str, opcode: int) -> str | None:
+    """
+    direction = "C2S" eller "S2C"
+    Returnerar opcode-namnet eller None.
+    """
+    if direction == "C2S":
+        return WORLD_CLIENT_OPCODES.get(opcode)
+    elif direction == "S2C":
+        return WORLD_SERVER_OPCODES.get(opcode)
+    return None

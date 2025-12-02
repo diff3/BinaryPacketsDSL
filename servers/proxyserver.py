@@ -4,8 +4,8 @@
 import threading
 from utils.ConfigLoader import ConfigLoader
 
-from servers.proxy.auth_proxy import AuthProxy
-from servers.proxy.world_proxy import WorldProxy
+from modules.proxy.auth_proxy import AuthProxy
+from modules.proxy.world_proxy import WorldProxy
 
 
 def start_proxy(dump=False, update=False):
@@ -27,6 +27,8 @@ def start_proxy(dump=False, update=False):
         cfg["world_proxy"]["listen_port"],
         cfg["world_proxy"]["world_host"],
         cfg["world_proxy"]["world_port"],
+        dump=dump,
+        update=update
     )
 
     # Start AUTH i bakgrunden

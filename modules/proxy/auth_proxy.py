@@ -13,7 +13,6 @@ from modules.NodeTreeParser import NodeTreeParser
 
 from utils.PacketDump import PacketDump, dump_capture
 
-
 cfg = ConfigLoader.load_config()
 cfg["Logging"]["logging_levels"] = "Information, Success, Script, Error"
 
@@ -22,16 +21,10 @@ class AuthProxy:
     """
     Transparent TCP proxy for the MoP AuthServer.
 
-    Detta lager ska aldrig:
-        • tolka SRP-state
-        • spara username/sessionkey
-        • läsa eller skriva till auth-databasen
-        • avbryta TCP-sessionen
-
-    Den ska endast:
-        • vidarebefordra data byte-för-byte
-        • logga och DSL-dekoda om dump/update är aktiverat
-        • aldrig påverka SRP-handshake eller sessioner
+    Funktionen:
+      • Transparent forward, byte-för-byte
+      • DSL-decode bara om dump/update är aktiverat
+      • Dump/update: sparar EN fil per opcode, aldrig timestampade.
     """
 
     def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False):
@@ -40,14 +33,15 @@ class AuthProxy:
         self.auth_host = auth_host
         self.auth_port = auth_port
 
-        self.dump = dump
-        self.update = update
+        self.dump = dump       # dump → captures/<opcode>.*
+        self.update = update   # update → protocols/<version>/<opcode>.*
 
         self.client_opcodes, self.server_opcodes, self.lookup = load_auth_opcodes()
-        self.dumper = PacketDump(f"protocols/{cfg['program']}/{cfg['version']}")
-
         self.program = cfg["program"]
         self.version = cfg["version"]
+
+        # Update-läge använder denna dumper
+        self.dumper = PacketDump(f"protocols/{self.program}/{self.version}")
 
     # ----------------------------------------------------------------------
 
@@ -82,11 +76,12 @@ class AuthProxy:
             client_sock.close()
             return
 
-        # Start pipes
+        # Start C→S
         threading.Thread(
             target=self.forward, args=(client_sock, auth_sock, "C→S"), daemon=True
         ).start()
 
+        # S→C
         self.forward(auth_sock, client_sock, "S→C")
 
         try:
@@ -100,11 +95,7 @@ class AuthProxy:
     # ----------------------------------------------------------------------
 
     def forward(self, src, dst, direction):
-        """
-        Relay bytes between sockets. Optionally decode/log if enabled.
-
-        direction = "C→S" or "S→C"
-        """
+        """Transparent relay + valfri DSL decode + dump/update."""
         try:
             while True:
                 buf = src.recv(4096)
@@ -118,9 +109,6 @@ class AuthProxy:
                     else self.server_opcodes.get(op)
                 )
 
-                # ------------------------------------------------------------------
-                # Optional DSL decode/logging
-                # ------------------------------------------------------------------
                 if name:
                     Logger.info(f"{direction} {name} (0x{op:02X})")
 
@@ -130,29 +118,33 @@ class AuthProxy:
                         )
                         case = (case_name, def_lines, buf, expected)
 
+                        # Decode
                         s = get_session()
                         s.reset()
-
                         NodeTreeParser.parse(case)
                         decoded = DecoderHandler.decode(case)
 
+                        # ----------------------------
+                        # UPDATE-läge
+                        # ----------------------------
                         if self.update:
                             bin_p, json_p, dbg_p = self.dumper.dump_fixed(
                                 case_name, buf, decoded
                             )
-                            Logger.success(f"[UPDATE] Saved: {bin_p}")
+                            Logger.success(f"[UPDATE] {case_name}")
 
+                        # ----------------------------
+                        # DUMP-läge (men EN fil per opcode!)
+                        # ----------------------------
                         elif self.dump:
                             bin_p, json_p, dbg_p = dump_capture(case_name, buf, decoded)
-                            Logger.success(f"[DUMP] Captured: {bin_p}")
+                            Logger.success(f"[DUMP] {case_name}")
 
                     except Exception:
                         Logger.error(f"[AuthProxy] DSL decode failed for {name}")
                         Logger.error(traceback.format_exc())
 
-                # ------------------------------------------------------------------
-                # TRANSPARENT FORWARD
-                # ------------------------------------------------------------------
+                # Transparent forward
                 dst.sendall(buf)
 
         except Exception as exc:

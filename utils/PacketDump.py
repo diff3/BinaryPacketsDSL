@@ -116,11 +116,9 @@ def dump_capture(case_name: str, data: bytes, decoded: dict):
     (root / "json").mkdir(parents=True, exist_ok=True)
     (root / "debug").mkdir(parents=True, exist_ok=True)
 
-    ts = int(time.time())
-
-    bin_path = root / "bin" / f"{case_name}_{ts}.bin"
-    json_path = root / "json" / f"{case_name}_{ts}.json"
-    dbg_path = root / "debug" / f"{case_name}_{ts}.json"
+    bin_path = root / "bin" / f"{case_name}.bin"
+    json_path = root / "json" / f"{case_name}.json"
+    dbg_path = root / "debug" / f"{case_name}.json"
 
     # bin
     bin_path.write_bytes(data)
