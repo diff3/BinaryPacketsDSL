@@ -10,11 +10,7 @@ from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
 from utils.OpcodeLoader import load_world_opcodes
 from modules.crypto.ARC4Crypto import Arc4CryptoHandler
-
-from modules.Processor import load_case
-from modules.NodeTreeParser import NodeTreeParser
-from modules.DecoderHandler import DecoderHandler
-from modules.Session import get_session
+from modules.DslRuntime import DslRuntime
 
 from utils.PacketDump import PacketDump, dump_capture
 
@@ -27,7 +23,6 @@ version = cfg['version']
 
 mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
 DatabaseConnection = getattr(mod, "DatabaseConnection")
-DatabaseConnection.initialize()
 
 
 # ----------------------------------------------------------------------
@@ -63,7 +58,28 @@ def to_safe_json(value, key=None):
     return value
 
 
-# ---- DSL decode helper --------------------------------------------------
+_dsl_runtime = None
+
+
+def _get_dsl_runtime():
+    """Lazy init of DSL runtime with cached ASTs + watchdog reload."""
+    global _dsl_runtime
+    if _dsl_runtime is None:
+        cfg_local = ConfigLoader.load_config()
+        program_local = cfg_local["program"]
+        version_local = cfg_local["version"]
+        try:
+            rt = DslRuntime(program_local, version_local, watch=True)
+            rt.load_all()
+            _dsl_runtime = rt
+            Logger.info(f"[DSL] Runtime ready (watching {program_local}/{version_local})")
+        except Exception as e:
+            Logger.error(f"[DSL] Failed to init runtime (watch disabled): {e}")
+            rt = DslRuntime(program_local, version_local, watch=False)
+            rt.load_all()
+            _dsl_runtime = rt
+    return _dsl_runtime
+
 
 def dsl_decode(def_name, payload, silent=False):
     """
@@ -71,16 +87,8 @@ def dsl_decode(def_name, payload, silent=False):
     Returns {} on failure.
     """
     try:
-        cfg_local = ConfigLoader.load_config()
-        program = cfg_local["program"]
-        version = cfg_local["version"]
-
-        case_name, lines, _, expected = load_case(program, version, def_name)
-        session = get_session()
-        session.reset()
-
-        NodeTreeParser.parse((case_name, lines, payload, expected))
-        return DecoderHandler.decode((case_name, lines, payload, expected))
+        rt = _get_dsl_runtime()
+        return rt.decode(def_name, payload, silent=silent)
     except Exception as e:
         if not silent:
             Logger.error(f"[DSL] decode {def_name} failed: {e}")
@@ -178,6 +186,7 @@ class WorldProxy:
             f"[WorldProxy] Listening on {self.listen_host}:{self.listen_port} "
             f"→ {self.world_host}:{self.world_port}"
         )
+        DatabaseConnection.initialize()
 
         while True:
             client_sock, addr = s.accept()
@@ -264,14 +273,22 @@ class WorldProxy:
             if size is None:
                 break
 
-            payload = raw_data[4:4 + size]  # kan vara kort
-            raw_data = raw_data[4 + size:]
+            # -----------------------------------------------------------
+            # SPECIALFALL (MoP): SMSG_AUTH_RESPONSE (opcode 0x01F6)
+            # innehåller header i storleken → payload = size - 4 bytes
+            # -----------------------------------------------------------
+            adj_size = size
+            if cmd == 0x01F6:
+                adj_size = max(0, size - 4)
+
+            payload = raw_data[4:4 + adj_size]  # kan vara kort
+            raw_data = raw_data[4 + adj_size:]
 
             class H:
                 pass
 
             h = H()
-            h.size = size
+            h.size = adj_size
             h.cmd = cmd
             h.hex = hexop
             h.header_raw = header
@@ -288,10 +305,10 @@ class WorldProxy:
         """
         Används ENDAST efter att state['encrypted'] blivit True.
         Stream-parser:
-          - 4 bytes header per gång
-          - header dekrypteras med ARC4
-          - header packad som (size << 13) | (opcode & 0x1FFF)
-          - payload läses när tillräckligt många bytes finns
+        - 4 bytes header per gång
+        - header dekrypteras med ARC4
+        - header packad som (size << 13) | (opcode & 0x1FFF)
+        - payload läses när tillräckligt många bytes finns
         """
         packets = []
 
@@ -317,10 +334,20 @@ class WorldProxy:
 
                 h_dec = crypto.unpack_data(dec_header)
 
+                size = h_dec.size
+                cmd = h_dec.cmd
+
+                # -----------------------------------------------------------
+                # SPECIALFALL (MoP): SMSG_AUTH_RESPONSE inkluderar headern
+                # Opcode 0x01F6
+                # -----------------------------------------------------------
+                if cmd == 0x01F6:
+                    size = max(0, size - 4)
+
                 pending = {
-                    "size": h_dec.size,
-                    "opcode": h_dec.cmd,
-                    "hex": f"0x{h_dec.cmd:04X}",
+                    "size": size,
+                    "opcode": cmd,
+                    "hex": f"0x{cmd:04X}",
                     "header_raw": dec_header,
                 }
                 self._pending_headers[direction] = pending
@@ -353,48 +380,56 @@ class WorldProxy:
 
     def handle_dsl_and_dump(self, direction: str, name: str, raw_header: bytes, payload: bytes):
         """
-        DSL-decode (om möjligt) och dump i rätt mål:
-        --dump   → ./captures/* (timestampade filer)
-        --update → protocols/.../* (overwrite per opcode)
-        inget    → ingen dump
+        DSL-decode + dump:
+        --dump   → captures/
+        --update → protocols/
+        inget    → bara logga JSON
         """
-        # DSL decode
+
+        # Full rådata (för logg)
+        raw_full = raw_header + payload
+
+        # Decode payload via DSL
         decoded = dsl_decode(name, payload, silent=True)
         safe = to_safe_json(decoded if decoded else {})
 
-        # Full world packet
-        raw = payload
+        # Logga alltid DSL-resultat (även tomt) för transparens
+        try:
+            Logger.success(f"[DSL] {name}\n{json.dumps(safe, indent=2)}")
+        except Exception:
+            Logger.warning(f"[DSL] {name} (result not serializable)")
 
-        # -------------------------
-        # case 1: --update
-        # -------------------------
+        # -------------------------------------------------
+        # UPDATE-LÄGE (skriver till protocols/) — körs även om dump är aktiv.
         if self.update:
             try:
-                bin_p, json_p, dbg_p = self.dumper.dump_fixed(name, raw, safe)
+                bin_p, json_p, dbg_p = self.dumper.dump_fixed(
+                    name,
+                    raw_header,     # rätt
+                    payload,        # rätt
+                    safe            # rätt
+                )
                 Logger.success(f"[UPDATE] {name} → {bin_p}")
             except Exception as e:
                 Logger.error(f"[UPDATE ERROR] {name}: {e}")
-            return
 
-        # -------------------------
-        # case 2: --dump
-        # -------------------------
+        # DUMP-LÄGE (skriver till captures/) — körs oberoende av update.
         if self.dump:
             try:
-                bin_p, json_p, dbg_p = dump_capture(name, raw, safe)
+                bin_p, json_p, dbg_p = dump_capture(
+                    name,
+                    raw_header,     # rätt
+                    payload,        # rätt
+                    safe            # rätt
+                )
                 Logger.success(f"[DUMP] {name} → {bin_p}")
             except Exception as e:
                 Logger.error(f"[DUMP ERROR] {name}: {e}")
-            return
 
-        # -------------------------
-        # case 3: inget läge → ingen dump
-        # -------------------------
+        # Om varken update eller dump är aktiva, fortsätt till logg nedan.
 
-        if decoded:
-            # Bara logga json om det fanns decode
-            Logger.success(name)
-            Logger.success(json.dumps(safe, indent=4))
+        # if decoded:
+            #Logger.success(json.dumps(safe, indent=4))
 
     # ---- S→C -------------------------------------------------------------
 
@@ -402,6 +437,8 @@ class WorldProxy:
         try:
             while True:
                 data = server.recv(4096)
+                print("forward_s2c")
+                print(data)
                 if not data:
                     break
 
@@ -420,17 +457,17 @@ class WorldProxy:
                     packets = self.feed_buffer(buffer, crypto, state["encrypted"], "S")
 
                 for raw_header, h, payload in packets:
+                    name = self.decode_opcode(h.cmd, "S")
                     if h.cmd < 0:
-                        Logger.info(f"[WorldProxy S→C] RAW ({h.hex}), size={h.size}")
+                        Logger.success(f"[WorldProxy S→C] RAW ({h.hex}), size={h.size}")
+                        Logger.success(f"\n{json.dumps(payload, indent=4)}")
                         continue
 
-                    name = self.decode_opcode(h.cmd, "S")
                     if name in self.ignored:
                         # Hoppa över logg, DSL-dump mm – men FORWADA paketet som vanligt
                         continue
 
-                    Logger.info(f"[WorldProxy S→C] {name} ({h.hex}), size={h.size}")
-                    Logger.info(f"  header_raw: {raw_header.hex()}")
+                    Logger.success(f"[WorldProxy S→C] {name} ({h.hex}), size={h.size}")
 
                     # DSL + dump (full world-paket)
                     self.handle_dsl_and_dump("S", name, raw_header, payload)
@@ -439,7 +476,9 @@ class WorldProxy:
                 client.sendall(data)
 
         except Exception as e:
-            Logger.error(f"[WorldProxy S→C] {e}")
+            Logger.success(f"[WorldProxy S→C] RAW ({h.hex}), size={h.size}")
+            Logger.success(f"\n{payload}")
+           # Logger.error(f"[WorldProxy S→C] {e}")
 
     # ---- C→S -------------------------------------------------------------
 
@@ -447,6 +486,8 @@ class WorldProxy:
         try:
             while True:
                 data = client.recv(4096)
+                print("forward_c2s")
+                print(data)
                 if not data:
                     break
 
@@ -474,8 +515,7 @@ class WorldProxy:
                         # Hoppa över logg, DSL-dump mm – men FORWADA paketet som vanligt
                         continue
 
-                    Logger.info(f"[WorldProxy C→S] {name} ({h.hex}), size={h.size}")
-                    Logger.info(f"  header_raw: {raw_header.hex()}")
+                    Logger.info(f"[WorldProxy C→S] {name} ({h.hex}), size={h.size}, header raw: {raw_header.hex()}")
 
                     # DSL + dump (full world-paket)
                     self.handle_dsl_and_dump("C", name, raw_header, payload)
@@ -487,7 +527,7 @@ class WorldProxy:
                         Logger.success("[WorldProxy] CMSG_AUTH_SESSION detected")
 
                         decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=True)
-                        username = decoded_auth.get("user")
+                        username = decoded_auth.get("user") or decoded_auth.get("username")
 
                         if username:
                             acc = DatabaseConnection.get_user_by_username(username.upper())

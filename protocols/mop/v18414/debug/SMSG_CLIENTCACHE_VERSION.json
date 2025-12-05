@@ -1,11 +1,29 @@
 {
   "name": "SMSG_CLIENTCACHE_VERSION",
-  "hex_spaced": "2A 80 00 00 05 00 00 00",
-  "hex_compact": "2A80000005000000",
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "2A 80 00 00",
+  "raw_opcode_int": 42,
+  "raw_opcode_hex": "0x002A",
+  "raw_size_int": 4,
+  "raw_size_hex": "0x0004",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 42,
+  "size_plain": 32810,
+  "size_packed": 4,
+  "payload_len": 4,
+  "size_matches_payload": true,
+  "raw_data_hex": "2A 80 00 00 05 00 00 00",
+  "raw_data_bytes": "b'*\\x80\\x00\\x00\\x05\\x00\\x00\\x00'",
+  "hex_spaced": "05 00 00 00",
+  "hex_compact": "05000000",
   "hex_offsets": [
-    "0000: 2A 80 00 00 05 00 00 00                          *......."
+    "0000: 05 00 00 00                                      ...."
   ],
-  "ascii": "*.......",
-  "bits": "00101010 10000000 00000000 00000000 00000101 00000000 00000000 00000000",
-  "size_bytes": 8
+  "ascii": "....",
+  "bits": "00000101 00000000 00000000 00000000",
+  "size_bytes": 4
 }

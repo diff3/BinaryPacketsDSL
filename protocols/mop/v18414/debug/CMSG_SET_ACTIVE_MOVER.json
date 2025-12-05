@@ -1,0 +1,27 @@
+{
+  "name": "CMSG_SET_ACTIVE_MOVER",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "F0 69 00 00",
+  "raw_opcode_int": 2544,
+  "raw_opcode_hex": "0x09F0",
+  "raw_size_int": 3,
+  "raw_size_hex": "0x0003",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 2544,
+  "size_plain": 27120,
+  "size_packed": 3,
+  "payload_len": 3,
+  "size_matches_payload": true,
+  "raw_data_hex": "F0 69 00 00 20 00 03",
+  "raw_data_bytes": "b'\\xf0i\\x00\\x00 \\x00\\x03'",
+  "hex_spaced": "20 00 03",
+  "hex_compact": "200003",
+  "hex_offsets": [
+    "0000: 20 00 03                                          .."
+  ],
+  "ascii": " ..",
+  "bits": "00100000 00000000 00000011",
+  "size_bytes": 3
+}

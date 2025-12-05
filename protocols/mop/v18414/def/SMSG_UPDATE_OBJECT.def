@@ -1,3 +1,9 @@
+# SMSG_UPDATE_OBJECT - Not started
 endian: little
 header:
 data:
+    update_count: B        # 0x12 in capture
+    update_type: B         # 0x02 → likely create object
+
+    # Packed GUID + movement/update block is left as raw until we map it
+    raw_update_block: R

@@ -1,0 +1,28 @@
+{
+  "name": "SMSG_BIND_POINT_UPDATE",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "3B 8E 02 00",
+  "raw_opcode_int": 3643,
+  "raw_opcode_hex": "0x0E3B",
+  "raw_size_int": 20,
+  "raw_size_hex": "0x0014",
+  "header_mode": "packed",
+  "opcode_plain": 2,
+  "opcode_packed": 3643,
+  "size_plain": 36411,
+  "size_packed": 20,
+  "payload_len": 20,
+  "size_matches_payload": true,
+  "raw_data_hex": "3B 8E 02 00 66 B6 21 46 43 9C 05 42 52 AA C6 C5 67 0D 00 00 12 02 00 00",
+  "raw_data_bytes": "b';\\x8e\\x02\\x00f\\xb6!FC\\x9c\\x05BR\\xaa\\xc6\\xc5g\\r\\x00\\x00\\x12\\x02\\x00\\x00'",
+  "hex_spaced": "66 B6 21 46 43 9C 05 42 52 AA C6 C5 67 0D 00 00 12 02 00 00",
+  "hex_compact": "66B62146439C054252AAC6C5670D000012020000",
+  "hex_offsets": [
+    "0000: 66 B6 21 46 43 9C 05 42 52 AA C6 C5 67 0D 00 00  f.!FC..BR...g...",
+    "0010: 12 02 00 00                                      ...."
+  ],
+  "ascii": "f.!FC..BR...g.......",
+  "bits": "01100110 10110110 00100001 01000110 01000011 10011100 00000101 01000010 01010010 10101010 11000110 11000101 01100111 00001101 00000000 00000000 00010010 00000010 00000000 00000000",
+  "size_bytes": 20
+}

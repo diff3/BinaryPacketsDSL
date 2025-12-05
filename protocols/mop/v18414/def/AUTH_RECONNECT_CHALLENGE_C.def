@@ -1,18 +1,19 @@
+# AUTH_RECONNECT_CHALLENGE_C - Done
 endian: little
 header:
 data:
    cmd: B
    error: B
    size: H
-   gamename: 4s, sM
+   gamename: 4s, sM | MQ
    version1: B
    version2: B
    version3: B
    build: H
-   platform: 4s, sM
-   os: 4s, sM
-   country: 4s, sM
+   platform: 4s, sM | MQ
+   os: 4s, sM | MQ
+   country: 4s, sM | MQ
    timezone_bias: I
-   ip: 4s, W
+   ip: 4s, W | W
    I_len: B
    I: €I_len's

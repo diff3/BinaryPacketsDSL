@@ -14,6 +14,7 @@ class BaseNode:
     format: str
     interpreter: str
     modifiers: list[str] = field(default_factory=list)
+    encode_modifiers: list[str] = field(default_factory=list)
     depends_on: str | None = None
     dynamic: bool = False
     raw_offset: int | None = None
@@ -133,6 +134,63 @@ class VariableNode:
 
     def copy(self):
         return deepcopy(self)
+
+
+@dataclass
+class UncompressNode(BaseNode):
+    """Represents a compressed segment that should be inflated before decoding its children."""
+
+    algo: str = ""
+    length_expr: str | None = None
+    children: list[BaseNode] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.format = ""
+        self.interpreter = "uncompress"
+
+    def copy(self):
+        return UncompressNode(
+            name=self.name,
+            format=self.format,
+            interpreter=self.interpreter,
+            modifiers=list(self.modifiers),
+            encode_modifiers=list(self.encode_modifiers),
+            depends_on=self.depends_on,
+            dynamic=self.dynamic,
+            raw_offset=self.raw_offset,
+            raw_length=self.raw_length,
+            raw_data=self.raw_data,
+            value=self.value,
+            ignore=self.ignore,
+            algo=self.algo,
+            length_expr=self.length_expr,
+            children=[c.copy() for c in self.children],
+        )
+
+
+@dataclass
+class PackedGuidNode(BaseNode):
+    """Represents a packed GUID (mask byte + variable GUID bytes, LSB-first)."""
+
+    def __post_init__(self):
+        self.format = ""
+        self.interpreter = "packed_guid"
+
+    def copy(self):
+        return PackedGuidNode(
+            name=self.name,
+            format=self.format,
+            interpreter=self.interpreter,
+            modifiers=list(self.modifiers),
+            encode_modifiers=list(self.encode_modifiers),
+            depends_on=self.depends_on,
+            dynamic=self.dynamic,
+            raw_offset=self.raw_offset,
+            raw_length=self.raw_length,
+            raw_data=self.raw_data,
+            value=self.value,
+            ignore=self.ignore,
+        )
     
 
 @dataclass

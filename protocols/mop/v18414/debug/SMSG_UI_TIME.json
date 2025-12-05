@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_UI_TIME",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "27 80 00 00",
+  "raw_opcode_int": 39,
+  "raw_opcode_hex": "0x0027",
+  "raw_size_int": 4,
+  "raw_size_hex": "0x0004",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 39,
+  "size_plain": 32807,
+  "size_packed": 4,
+  "payload_len": 4,
+  "size_matches_payload": true,
+  "raw_data_hex": "27 80 00 00 43 01 32 69",
+  "raw_data_bytes": "b\"'\\x80\\x00\\x00C\\x012i\"",
+  "hex_spaced": "43 01 32 69",
+  "hex_compact": "43013269",
+  "hex_offsets": [
+    "0000: 43 01 32 69                                      C.2i"
+  ],
+  "ascii": "C.2i",
+  "bits": "01000011 00000001 00110010 01101001",
+  "size_bytes": 4
+}

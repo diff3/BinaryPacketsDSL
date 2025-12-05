@@ -1,0 +1,12 @@
+# SMSG_INIT_WORLD_STATES - Done
+endian: little
+header:
+data:
+    map_id:     I
+    zone_id:    I
+    area_id:    I
+    count:      H
+
+    loop €count to €states:
+        state_id: I
+        value:    I

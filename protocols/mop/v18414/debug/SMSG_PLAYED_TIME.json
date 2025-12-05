@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_PLAYED_TIME",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "E2 31 01 00",
+  "raw_opcode_int": 4578,
+  "raw_opcode_hex": "0x11E2",
+  "raw_size_int": 9,
+  "raw_size_hex": "0x0009",
+  "header_mode": "packed",
+  "opcode_plain": 1,
+  "opcode_packed": 4578,
+  "size_plain": 12770,
+  "size_packed": 9,
+  "payload_len": 9,
+  "size_matches_payload": true,
+  "raw_data_hex": "E2 31 01 00 58 0E 00 00 58 0E 00 00 00",
+  "raw_data_bytes": "b'\\xe21\\x01\\x00X\\x0e\\x00\\x00X\\x0e\\x00\\x00\\x00'",
+  "hex_spaced": "58 0E 00 00 58 0E 00 00 00",
+  "hex_compact": "580E0000580E000000",
+  "hex_offsets": [
+    "0000: 58 0E 00 00 58 0E 00 00 00                       X...X...."
+  ],
+  "ascii": "X...X....",
+  "bits": "01011000 00001110 00000000 00000000 01011000 00001110 00000000 00000000 00000000",
+  "size_bytes": 9
+}

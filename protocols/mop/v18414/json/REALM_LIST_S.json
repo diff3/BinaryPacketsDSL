@@ -1,6 +1,6 @@
 {
   "cmd": 16,
-  "size": 51,
+  "size": 48,
   "unk1": 0,
   "realm_list_size": 1,
   "realmlist": [
@@ -8,7 +8,7 @@
       "icon": 0,
       "lock": 0,
       "flag": 0,
-      "name": "PyPandaria548",
+      "name": "PyPandaria",
       "address": "192.168.11.30:8084",
       "pop": 0.0,
       "characters": 1,

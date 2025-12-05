@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_WEATHER",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "AB 26 01 00",
+  "raw_opcode_int": 1707,
+  "raw_opcode_hex": "0x06AB",
+  "raw_size_int": 9,
+  "raw_size_hex": "0x0009",
+  "header_mode": "packed",
+  "opcode_plain": 1,
+  "opcode_packed": 1707,
+  "size_plain": 9899,
+  "size_packed": 9,
+  "payload_len": 9,
+  "size_matches_payload": true,
+  "raw_data_hex": "AB 26 01 00 00 00 00 00 00 00 00 00 00",
+  "raw_data_bytes": "b'\\xab&\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'",
+  "hex_spaced": "00 00 00 00 00 00 00 00 00",
+  "hex_compact": "000000000000000000",
+  "hex_offsets": [
+    "0000: 00 00 00 00 00 00 00 00 00                       ........."
+  ],
+  "ascii": ".........",
+  "bits": "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000",
+  "size_bytes": 9
+}

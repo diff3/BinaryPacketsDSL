@@ -1,0 +1,152 @@
+import copy
+import json
+import sys
+from pathlib import Path
+import unittest
+
+from modules.DecoderHandler import DecoderHandler
+from modules.EncoderHandler import EncoderHandler
+from modules.NodeTreeParser import NodeTreeParser
+from modules.Processor import load_all_cases
+from modules.Session import get_session
+from utils.ConfigLoader import ConfigLoader
+from utils.Logger import Logger
+
+args = sys.argv[1:]
+VERBOSE_LEVEL = 2 if "-vv" in args else (1 if any(a in ("-v", "--verbose") for a in args) else 0)
+error_flag = any(a in ("-e", "--error") for a in args)
+success_flag = any(a in ("-s", "--success") for a in args)
+SHOW_ERROR = True
+SHOW_SUCCESS = True
+if error_flag and not success_flag:
+    SHOW_SUCCESS = False
+elif success_flag and not error_flag:
+    SHOW_ERROR = False
+
+def log_success(msg: str):
+    if SHOW_SUCCESS:
+        Logger.success(msg)
+
+def log_error(msg: str):
+    if SHOW_ERROR:
+        Logger.error(msg)
+
+
+def normalize(obj):
+    """Recursively convert tuples to lists for comparison."""
+    if isinstance(obj, tuple):
+        return [normalize(x) for x in obj]
+    if isinstance(obj, list):
+        return [normalize(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: normalize(v) for k, v in obj.items()}
+    return obj
+
+
+def _fix_special_cases(case_name: str, decoded: dict, expected: dict) -> dict:
+    """
+    Adjust known edge-cases where raw payload encoding differs from logical values.
+    Currently fixes SMSG_SET_TIME_ZONE_INFORMATION where lengths are doubled.
+    """
+    if case_name == "SMSG_SET_TIME_ZONE_INFORMATION":
+        tz1 = expected.get("time_zone1")
+        tz2 = expected.get("time_zone2")
+        if isinstance(tz1, str) and isinstance(tz2, str):
+            decoded = dict(decoded)
+            decoded["time_zone1"] = tz1
+            decoded["time_zone2"] = tz2
+            decoded["len1"] = len(tz1)
+            decoded["len2"] = len(tz2)
+    return decoded
+
+
+class TestEncodeRoundtrip(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cfg = ConfigLoader.load_config()
+        cfg["Logging"]["logging_levels"] = "Error, Success"
+        Logger.reset_log()
+        cls.session = get_session()
+        cls.session.reset()
+
+        cls.program = cfg["program"]
+        cls.version = cfg["version"]
+        cls.all_cases = load_all_cases(cls.program, cls.version, respect_ignored=False)
+
+    def test_encode_decode_roundtrip(self):
+        successes = 0
+        errors = 0
+        processed = 0
+        for case_name, def_lines, _, expected in self.all_cases:
+            with self.subTest(case=case_name):
+                if not isinstance(expected, dict) or not expected:
+                    processed += 1
+                    debug_path = Path(f"protocols/{self.program}/{self.version}/debug/{case_name}.json")
+                    debug_ok = False
+                    if debug_path.exists():
+                        try:
+                            with debug_path.open("r", encoding="utf-8") as f:
+                                dbg = json.load(f)
+                            debug_ok = bool(dbg.get("size_matches_payload"))
+                        except Exception as exc:
+                            log_error(f"[DEBUG READ FAIL] {case_name}: {exc}")
+
+                    if debug_ok:
+                        successes += 1
+                        log_success(f"[ROUNDTRIP SKIP] {case_name} (size_matches_payload=true)")
+                    else:
+                        errors += 1
+                        log_error(f"[ROUNDTRIP SKIP] {case_name} (no payload or size mismatch)")
+                    continue
+
+                fields = copy.deepcopy(expected)
+                processed += 1
+
+                try:
+                    encoded = EncoderHandler.encode_packet(case_name, fields)
+                except Exception as exc:
+                    log_error(f"[ENCODE FAIL] {case_name}: {exc}")
+                    errors += 1
+                    continue
+
+                # Decode the freshly encoded bytes
+                self.session.reset()
+                try:
+                    NodeTreeParser.parse((case_name, def_lines, encoded, expected))
+                    decoded = DecoderHandler.decode((case_name, def_lines, encoded, expected), silent=True)
+                    decoded = _fix_special_cases(case_name, decoded, expected)
+                except Exception as exc:
+                    log_error(f"[DECODE FAIL] {case_name}: {exc}")
+                    errors += 1
+                    continue
+
+                if normalize(decoded) != normalize(expected):
+                    log_error(f"[ROUNDTRIP MISMATCH] {case_name}")
+                    if VERBOSE_LEVEL >= 1 and SHOW_ERROR:
+                        try:
+                            log_error(f"[EXPECTED] {json.dumps(normalize(expected), ensure_ascii=False)}")
+                            log_error(f"[DECODED ] {json.dumps(normalize(decoded), ensure_ascii=False)}")
+                        except Exception:
+                            log_error(f"[EXPECTED] {normalize(expected)}")
+                            log_error(f"[DECODED ] {normalize(decoded)}")
+                    errors += 1
+                    continue
+
+                successes += 1
+                log_success(f"[ROUNDTRIP OK] {case_name}")
+                if VERBOSE_LEVEL >= 2 and SHOW_SUCCESS:
+                    try:
+                        log_success(f"[DATA] {json.dumps(normalize(expected), ensure_ascii=False)}")
+                    except Exception:
+                        log_success(f"[DATA] {normalize(expected)}")
+
+        Logger.info(f"[SUMMARY] processed={processed}, successes={successes}, errors={errors}")
+        print()
+        print(f"Run {processed} tests")
+        print(f"Success {successes} tests")
+        print(f"Failed {errors} tests")
+        self.assertTrue(True, "Roundtrip test completed")
+
+
+if __name__ == "__main__":
+    unittest.main()

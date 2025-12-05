@@ -53,6 +53,25 @@ class ModifierInterPreter:
         if isinstance(field_value, str): 
             return field_value.lower()
         return field_value
+    
+    @staticmethod
+    def to_bytes(field_value):
+        if isinstance(field_value, str):
+            return field_value.encode("utf-8")
+        return field_value
+    
+    @staticmethod
+    def to_null_terminated(field_value):
+        """
+        Ensure value ends with a single NUL byte. Useful for C-strings on encode side.
+        """
+        if isinstance(field_value, str):
+            data = field_value.encode("utf-8")
+        else:
+            data = field_value if isinstance(field_value, (bytes, bytearray)) else bytes([field_value])
+        if not data.endswith(b"\x00"):
+            data += b"\x00"
+        return data
 
     @staticmethod
     def to_guid(value):
@@ -135,8 +154,11 @@ class ModifierInterPreter:
         # |Hxxxx|h ... |h
         text = re.sub(r"\|H.*?\|h", "", text)
 
-        # 3) Ta bort kontrolltecken (utom \n och \t)
-        cleaned = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ord(ch) >= 0x20)
+        # 3) Ta bort kontrolltecken och icke-ASCII (utom \n och \t)
+        cleaned = "".join(
+            ch for ch in text
+            if ch in ("\n", "\t") or 0x20 <= ord(ch) <= 0x7E
+        )
 
         return cleaned
 
@@ -154,6 +176,8 @@ modifiers_operation_mapping = {
     "s": ModifierInterPreter.to_string,
     "t": ModifierInterPreter.to_trimmed,
     "u": ModifierInterPreter.to_lower,
+    "Q": ModifierInterPreter.to_bytes,
+    "0": ModifierInterPreter.to_null_terminated,
     "E": ModifierInterPreter.to_big_endian,
     "r": ModifierInterPreter.to_rawstring,
     "T": ModifierInterPreter.to_clean_text,

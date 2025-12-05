@@ -1,33 +1,56 @@
+# SMSG_AUTH_RESPONSE
 endian: little
 header:
-  auth_ok: bits, 1BI
-  realm_count: bits, 21BI
 
-  loop €realm_count to realmlist:
-    realm_name_length: bits, 8BI
-    normalized_name_length: bits, 8BI
-    is_home_realm: bits, 1BI
-    playable_classes_count: bits, 23BI
-    reserved_bit: bits, 21BI
-    _ : bits, 4B
-    playable_races_count: bits, 23BI
-    _ : bits, 1B
-    queued: bits, 1BI
+data:
+  # --- BIT SECTION ---
+  auth_ok:            bits, 1
+  realm_count:        bits, 21
 
-  loop €realm_count to realmdata:
-    realm_id: I
-    realm_name: €realmlist[0].realm_name_length's
-    normalized_name: €realmlist[0].normalized_name_length's
+  loop realm_count to realm_bits:
+      name_len:       bits, 8
+      normalized_len: bits, 8
+      is_home:        bits, 1
 
-    loop €realmlist[0].playable_races_count to races:
-      expansion: B
-      race_id: B
+  class_count:        bits, 23
+  unk21:              bits, 21
+  unk_flag0:          bits, 1
+  unk_flag1:          bits, 1
+  unk_flag2:          bits, 1
+  unk_flag3:          bits, 1
 
-    loop €realmlist[0].playable_classes_count to classes:
-      expansion: B
-      class_id: B
+  race_count:         bits, 23
+  unk_flag4:          bits, 1
+  queued:             bits, 1
+  queued_has_pos:     bits, 1
 
-    _ : I
-    server_expansion_id: I
-    _reserved: I
-    flags: I
+  padding 0
+
+  # --- BYTE SECTION ---
+  if queued:
+      queue_pos: I
+
+  if auth_ok:
+      loop realm_count to realms:
+          realm_id: I
+          realm_name: realm_bits[i].name_len's
+          normalized_name: realm_bits[i].normalized_len's
+
+      loop race_count to races:
+          expansion: B
+          race_id: B
+
+      loop class_count to classes:
+          expansion: B
+          class_id: B
+
+      flag1: I
+      expansion_active: B
+      flag2: I
+      flag3: I
+      expansion_server: B
+      flag4: I
+      flag5: I
+      flag6: I
+
+  auth_result: B

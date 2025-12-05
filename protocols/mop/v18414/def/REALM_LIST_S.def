@@ -1,4 +1,4 @@
-# definition REALM_LIST_S:
+# REALM_LIST_S - Done
 endian: little
 header:
     cmd: B
@@ -10,8 +10,8 @@ data:
         icon: B
         lock: B
         flag: B
-        name: S
-        address: S
+        name: S | Q
+        address: S | Q
         pop: f
         characters: B
         timezone: B

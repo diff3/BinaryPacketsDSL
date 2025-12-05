@@ -19,6 +19,7 @@ import traceback
 
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
+from utils.OpcodeLoader import load_auth_opcodes
 
 from modules.DecoderHandler import DecoderHandler
 from modules.EncoderHandler import EncoderHandler
@@ -34,6 +35,28 @@ from protocols.mop.v18414.database.DatabaseConnection import DatabaseConnection
 
 srp6_sessions: dict[int, SRP6Session] = {}
 authenticated_users: dict[int, str] = {}
+
+# Opcode maps: int → name (per direction) + reverse for convenience
+AUTH_CLIENT_OPCODES, AUTH_SERVER_OPCODES, _ = load_auth_opcodes()
+AUTH_SERVER_OPCODE_BY_NAME = {name: code for code, name in AUTH_SERVER_OPCODES.items()}
+
+
+# ---- Server packet builders ---------------------------------------------
+
+
+
+
+def build_REALM_LIST_S(realm_entries) -> bytes:
+    fields = {
+        "cmd": 0x10,
+        "size": 48,
+        "unk1": 0,
+        "realm_list_size": len(realm_entries),
+        "realmlist": realm_entries,
+        "unk2": 0x10,
+        "unk3": 0x00,
+    }
+    return EncoderHandler.encode_packet("REALM_LIST_S", fields)
 
 
 # ---- DSL decoding ---------------------------------------------------------
@@ -231,7 +254,7 @@ def build_realmlist_entries(realms, account_id):
     return entries
 
 
-def handle_REALM_LIST(client_socket, opcode, data: bytes):
+def handle_REALM_LIST_C(client_socket, opcode, data: bytes):
     try:
         decoded = dsl_decode("REALM_LIST_C", data, silent=True)
         Logger.info(f"[REALM_LIST_C] {decoded}")
@@ -242,6 +265,7 @@ def handle_REALM_LIST(client_socket, opcode, data: bytes):
     username = authenticated_users.get(fd)
 
     account_id = None
+
     if username:
         acc = DatabaseConnection.get_user_by_username(username)
         if acc:
@@ -254,18 +278,8 @@ def handle_REALM_LIST(client_socket, opcode, data: bytes):
 
     realm_entries = build_realmlist_entries(db_realms, account_id)
 
-    fields = {
-        "cmd": 0x10,
-        "size": 48,
-        "unk1": 0,
-        "realm_list_size": len(realm_entries),
-        "realmlist": realm_entries,
-        "unk2": 0x10,
-        "unk3": 0x00,
-    }
-
     try:
-        out = EncoderHandler.encode_packet("REALM_LIST_S", fields)
+        out = build_REALM_LIST_S(realm_entries)
         Logger.info(f"REALM_LIST_S raw: {out.hex().upper()}")
         return 0, out
     except Exception as exc:
@@ -274,15 +288,33 @@ def handle_REALM_LIST(client_socket, opcode, data: bytes):
         return 1, None
 
 
-# ---- AUTH_RECONNECT_CHALLENGE_C -----------------------------------------
+# ---- AUTH_RECONNECT_CHALLENGE -----------------------------------------
 
-def handle_AUTH_RECONNECT_CHALLENGE(client_socket, opcode, data: bytes):
+def handle_AUTH_RECONNECT_CHALLENGE_C(client_socket, opcode, data: bytes):
+    """
+    Handle AUTH_RECONNECT_CHALLENGE_C.
+    Input: client socket, opcode byte, raw payload.
+    Output: (err, response_bytes) tuple built from DSL encoder.
+    """
     try:
         decoded = dsl_decode("AUTH_RECONNECT_CHALLENGE_C", data, silent=True)
         Logger.info(f"[AUTH_RECONNECT_CHALLENGE_C] {decoded}")
     except Exception:
         pass
 
+    try:
+        out = build_AUTH_RECONNECT_CHALLENGE_S()
+        return 0, out
+    except Exception as exc:
+        Logger.error(f"[AUTH_RECONNECT_CHALLENGE_S] Encode failed: {exc}")
+        return 1, None
+
+def build_AUTH_RECONNECT_CHALLENGE_S() -> bytes:
+    """
+    Build AUTH_RECONNECT_CHALLENGE_S packet.
+    Input: none; uses os.urandom for two 16-byte fields, cmd fixed to 0x02.
+    Output: raw bytes ready to send (header+payload per EncoderHandler).
+    """
     fields = {
         "cmd": 0x02,
         "_1": 0,
@@ -290,15 +322,14 @@ def handle_AUTH_RECONNECT_CHALLENGE(client_socket, opcode, data: bytes):
         "_2": os.urandom(16),
     }
 
-    out = EncoderHandler.encode_packet("AUTH_RECONNECT_CHALLENGE_S", fields)
-    return 0, out
-
+    return EncoderHandler.encode_packet("AUTH_RECONNECT_CHALLENGE_S", fields)
 
 # ---- Opcode dispatch -----------------------------------------------------
 
+# Single opcode map; server builders are kept alongside for clarity.
 opcode_handlers = {
     "AUTH_LOGON_CHALLENGE_C": handle_AUTH_LOGON_CHALLENGE,
     "AUTH_LOGON_PROOF_C": handle_AUTH_LOGON_PROOF,
-    "REALM_LIST_C": handle_REALM_LIST,
-    "AUTH_RECONNECT_CHALLENGE_C": handle_AUTH_RECONNECT_CHALLENGE,
+    "REALM_LIST_C": handle_REALM_LIST_C,
+    "AUTH_RECONNECT_CHALLENGE_C": handle_AUTH_RECONNECT_CHALLENGE_C,
 }

@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_MOVE_SET_ACTIVE_MOVER",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "6D 4C 00 00",
+  "raw_opcode_int": 3181,
+  "raw_opcode_hex": "0x0C6D",
+  "raw_size_int": 2,
+  "raw_size_hex": "0x0002",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 3181,
+  "size_plain": 19565,
+  "size_packed": 2,
+  "payload_len": 2,
+  "size_matches_payload": true,
+  "raw_data_hex": "6D 4C 00 00 02 03",
+  "raw_data_bytes": "b'mL\\x00\\x00\\x02\\x03'",
+  "hex_spaced": "02 03",
+  "hex_compact": "0203",
+  "hex_offsets": [
+    "0000: 02 03                                            .."
+  ],
+  "ascii": "..",
+  "bits": "00000010 00000011",
+  "size_bytes": 2
+}

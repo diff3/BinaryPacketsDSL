@@ -17,14 +17,10 @@ import signal
 import traceback
 import threading
 
+from modules.DslRuntime import DslRuntime
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
 from utils.AutoRewrite import resolve_import
-
-from modules.DecoderHandler import DecoderHandler
-from modules.NodeTreeParser import NodeTreeParser
-from modules.Processor import load_case
-from modules.Session import get_session
 
 from protocols.mop.v18414.database.DatabaseConnection import DatabaseConnection
 DatabaseConnection.initialize()
@@ -48,6 +44,7 @@ config["Logging"]["logging_levels"] = "Information, Success, Error"
 HOST = config["authserver"]["host"]
 PORT = 3724
 running = True
+runtime = None
 
 
 # ---- Signal handling ---------------------------------------------------
@@ -82,18 +79,9 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
                 Logger.info(f"Raw: {data.hex().upper()}")
                 break
 
-            # Decode incoming packet using DSL definitions
             try:
-                case_name, def_lines, _, expected = load_case(
-                    config["program"], config["version"], opcode_name
-                )
-                session = get_session()
-                session.reset()
-
-                NodeTreeParser.parse((case_name, def_lines, data, expected))
-                DecoderHandler.decode((case_name, def_lines, data, expected))
-
                 Logger.info(f"Raw: {data.hex().upper()}")
+                runtime.decode(opcode_name, data, silent=True)
 
             except Exception as exc:
                 Logger.error(f"{addr}: DSL decode failed: {exc}")
@@ -119,20 +107,13 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
                 Logger.info(f"{addr}: No response from handler")
                 continue
 
-            # Debug-decode server → client packet using DSL
             try:
                 server_op = response[0]
                 server_name = AUTH_SERVER_OPCODES.get(server_op)
 
                 Logger.info("Direction: Client <-- Server")
 
-                case_name, def_lines, _, expected = load_case(
-                    config["program"], config["version"], server_name
-                )
-
-                session.reset()
-                NodeTreeParser.parse((case_name, def_lines, response, expected))
-                DecoderHandler.decode((case_name, def_lines, response, expected))
+                runtime.decode(server_name, response, silent=True)
 
                 Logger.info(f"Raw: {response.hex().upper()}")
 
@@ -188,6 +169,15 @@ def start_server() -> None:
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint)
+
+    try:
+        runtime = DslRuntime(config["program"], config["version"], watch=True)
+        runtime.load_all()
+        Logger.info("[AuthServer] DSL runtime ready (watching defs)")
+    except Exception as exc:
+        Logger.error(f"[AuthServer] Failed to init runtime with watch: {exc}")
+        runtime = DslRuntime(config["program"], config["version"], watch=False)
+        runtime.load_all()
 
     Logger.info(
         f"{config['friendly_name']} "

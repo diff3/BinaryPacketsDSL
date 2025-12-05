@@ -2,14 +2,12 @@ from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
 from utils.OpcodeLoader import load_auth_opcodes
 
+import json
 import socket
 import threading
 import traceback
 
-from modules.Processor import load_case
-from modules.Session import get_session
-from modules.DecoderHandler import DecoderHandler
-from modules.NodeTreeParser import NodeTreeParser
+from modules.DslRuntime import DslRuntime
 
 from utils.PacketDump import PacketDump, dump_capture
 
@@ -42,6 +40,15 @@ class AuthProxy:
 
         # Update-läge använder denna dumper
         self.dumper = PacketDump(f"protocols/{self.program}/{self.version}")
+
+        try:
+            self.runtime = DslRuntime(self.program, self.version, watch=True)
+            self.runtime.load_all()
+            Logger.info(f"[AuthProxy] DSL runtime ready (watching {self.program}/{self.version})")
+        except Exception as e:
+            Logger.error(f"[AuthProxy] Runtime init failed, disabling watch: {e}")
+            self.runtime = DslRuntime(self.program, self.version, watch=False)
+            self.runtime.load_all()
 
     # ----------------------------------------------------------------------
 
@@ -93,7 +100,6 @@ class AuthProxy:
         Logger.info("[AuthProxy] Closed connection")
 
     # ----------------------------------------------------------------------
-
     def forward(self, src, dst, direction):
         """Transparent relay + valfri DSL decode + dump/update."""
         try:
@@ -102,6 +108,7 @@ class AuthProxy:
                 if not buf:
                     break
 
+                # Endast 1 byte opcode i auth
                 op = buf[0]
                 name = (
                     self.client_opcodes.get(op)
@@ -113,33 +120,39 @@ class AuthProxy:
                     Logger.info(f"{direction} {name} (0x{op:02X})")
 
                     try:
-                        case_name, def_lines, _, expected = load_case(
-                            self.program, self.version, name
-                        )
-                        case = (case_name, def_lines, buf, expected)
+                        case_name = name
+                        decoded = self.runtime.decode(name, buf, silent=True)
+                        # Logga alltid DSL-resultat (även tomt)
+                        Logger.success(f"[DSL] {case_name}\n{json.dumps(decoded, indent=2)}")
 
-                        # Decode
-                        s = get_session()
-                        s.reset()
-                        NodeTreeParser.parse(case)
-                        decoded = DecoderHandler.decode(case)
+                        # authpacket = opcode byte + payload
+                        raw_header = buf[:1]
+                        payload    = buf[1:]
 
-                        # ----------------------------
-                        # UPDATE-läge
-                        # ----------------------------
+                        # -----------------------------------
+                        # UPDATE → protocols/<version>/
+                        # -----------------------------------
                         if self.update:
                             bin_p, json_p, dbg_p = self.dumper.dump_fixed(
-                                case_name, buf, decoded
+                                case_name,
+                                raw_header,     # korrekt
+                                payload,        # korrekt
+                                decoded         # korrekt
                             )
                             Logger.success(f"[UPDATE] {case_name}")
 
-                        # ----------------------------
-                        # DUMP-läge (men EN fil per opcode!)
-                        # ----------------------------
-                        elif self.dump:
-                            bin_p, json_p, dbg_p = dump_capture(case_name, buf, decoded)
+                        # -----------------------------------
+                        # DUMP → captures/
+                        # -----------------------------------
+                        if self.dump:
+                            bin_p, json_p, dbg_p = dump_capture(
+                                case_name,
+                                raw_header,     # korrekt
+                                payload,        # korrekt
+                                decoded         # korrekt
+                            )
                             Logger.success(f"[DUMP] {case_name}")
-
+                        
                     except Exception:
                         Logger.error(f"[AuthProxy] DSL decode failed for {name}")
                         Logger.error(traceback.format_exc())

@@ -1,6 +1,158 @@
 {
-  "auth_ok": 1,
-  "realm_count": 0,
-  "realmlist": [],
-  "realmdata": []
+  "auth_ok": [
+    1
+  ],
+  "realm_count": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "realm_bits": [],
+  "class_count": 11,
+  "unk21": 0,
+  "unk_flag0": 0,
+  "unk_flag1": 0,
+  "unk_flag2": 0,
+  "unk_flag3": 0,
+  "race_count": 15,
+  "unk_flag4": 0,
+  "queued": 0,
+  "queued_has_pos": 0,
+  "queue_pos": 83887616,
+  "realms": [],
+  "races": [
+    {
+      "expansion": 0,
+      "race_id": 2
+    },
+    {
+      "expansion": 0,
+      "race_id": 7
+    },
+    {
+      "expansion": 3,
+      "race_id": 9
+    },
+    {
+      "expansion": 0,
+      "race_id": 1
+    },
+    {
+      "expansion": 0,
+      "race_id": 8
+    },
+    {
+      "expansion": 4,
+      "race_id": 24
+    },
+    {
+      "expansion": 1,
+      "race_id": 11
+    },
+    {
+      "expansion": 3,
+      "race_id": 22
+    },
+    {
+      "expansion": 1,
+      "race_id": 10
+    },
+    {
+      "expansion": 0,
+      "race_id": 4
+    },
+    {
+      "expansion": 0,
+      "race_id": 3
+    },
+    {
+      "expansion": 4,
+      "race_id": 25
+    },
+    {
+      "expansion": 4,
+      "race_id": 26
+    },
+    {
+      "expansion": 4,
+      "race_id": 10
+    },
+    {
+      "expansion": 0,
+      "race_id": 1
+    }
+  ],
+  "classes": [
+    {
+      "expansion": 0,
+      "class_id": 2
+    },
+    {
+      "expansion": 0,
+      "class_id": 3
+    },
+    {
+      "expansion": 0,
+      "class_id": 4
+    },
+    {
+      "expansion": 0,
+      "class_id": 5
+    },
+    {
+      "expansion": 0,
+      "class_id": 7
+    },
+    {
+      "expansion": 0,
+      "class_id": 8
+    },
+    {
+      "expansion": 0,
+      "class_id": 9
+    },
+    {
+      "expansion": 0,
+      "class_id": 11
+    },
+    {
+      "expansion": 2,
+      "class_id": 6
+    },
+    {
+      "expansion": 0,
+      "class_id": 0
+    },
+    {
+      "expansion": 0,
+      "class_id": 0
+    }
+  ],
+  "flag1": 4,
+  "expansion_active": 0,
+  "flag2": 0,
+  "flag3": 4,
+  "expansion_server": 0,
+  "flag4": 0,
+  "flag5": 0,
+  "flag6": null,
+  "auth_result": 12
 }

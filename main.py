@@ -70,4 +70,14 @@ if __name__ == "__main__":
         SessionPrint.pretty_print_compact_all(session)
         Logger.to_log('')
 
-        DecoderHandler.decode(case)
+        result = DecoderHandler.decode(case, silent=args.silent)
+
+        # Uppdatera expected-json om flaggan --update är satt
+        if args.update:
+            base = f"protocols/{program}/{version}/json"
+            out_path = f"{base}/{case[0]}.json"
+            import json, os
+            os.makedirs(base, exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as jf:
+                json.dump(result, jf, indent=2, ensure_ascii=False)
+            Logger.success(f"[UPDATE] Wrote expected JSON → {out_path}")

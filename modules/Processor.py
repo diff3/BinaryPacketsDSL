@@ -12,10 +12,7 @@ from utils.Logger import Logger
 # GLOBALS
 config = ConfigLoader.load_config()
 ignored = config.get("IgnoredCases", [])
-
-
-
-def process_case(program: str, version: str, case: str) -> tuple[bool, list[str], bytes, object]:
+def process_case(program: str, version: str, case: str, require_payload: bool = True) -> tuple[bool, list[str], bytes, object]:
     """
     Load and prepare a packet case for parsing and validation.
 
@@ -36,12 +33,29 @@ def process_case(program: str, version: str, case: str) -> tuple[bool, list[str]
 
         base_path = f"protocols/{program}/{version}"
         def_path = f"{base_path}/def/{case}.def"
-        bin_path = f"{base_path}/bin/{case}.bin"
         json_path = f"{base_path}/json/{case}.json"
+        debug_path = f"{base_path}/debug/{case}.json"
 
         definition = FileHandler.load_file(def_path)
-        binary_data = FileHandler.load_bin_file(bin_path)
-        expected = FileHandler.load_json_file(json_path)
+        binary_data = b""
+        expected = {}
+
+        if require_payload:
+            try:
+                binary_data = FileHandler.load_payload(program, version, case)
+            except FileNotFoundError:
+                # Tillåt tom payload för marker/keep-alive om json finns (eller saknas helt)
+                if os.path.exists(json_path):
+                    expected = FileHandler.load_json_file(json_path)
+                if not expected:
+                    binary_data = b""
+                else:
+                    raise
+            else:
+                if os.path.exists(json_path):
+                    expected = FileHandler.load_json_file(json_path)
+                else:
+                    expected = {}
 
         # session.raw_data = binary_data
         session.version = version
@@ -51,7 +65,7 @@ def process_case(program: str, version: str, case: str) -> tuple[bool, list[str]
         Logger.error(f"[{case}] Failed to process: {e}")
         return False, [], b"", None
 
-def load_case(program: str, version: str, case: str) -> tuple[str, list[str], bytes, object]:
+def load_case(program: str, version: str, case: str, require_payload: bool = True) -> tuple[str, list[str], bytes, object]:
     """
     Load a single packet case from .def, .bin, and .json files.
 
@@ -66,14 +80,14 @@ def load_case(program: str, version: str, case: str) -> tuple[str, list[str], by
     Raises:
         FileNotFoundError: If the case could not be loaded
     """
-    success, def_lines, binary_data, expected = process_case(program, version, case)
+    success, def_lines, binary_data, expected = process_case(program, version, case, require_payload)
 
     if not success:
         raise FileNotFoundError(f"Case {case} could not be loaded.")
     
     return case, def_lines, binary_data, expected
 
-def load_all_cases(program: str, version: str) -> list[tuple[str, list[str], bytes, object]]:
+def load_all_cases(program: str, version: str, respect_ignored: bool = True) -> list[tuple[str, list[str], bytes, object]]:
     """
     Load all available packet cases for the given program and version.
 
@@ -99,7 +113,7 @@ def load_all_cases(program: str, version: str) -> list[tuple[str, list[str], byt
             Logger.error(f"Skipping: {case}")
             continue
 
-        if case in ignored:
+        if respect_ignored and case in ignored:
             Logger.warning(f"[{case.upper()}] Skipped (ignored in config)")
             continue
 
@@ -124,9 +138,9 @@ def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
     """
     try:
         base_path = f"protocols/{program}/{version}"
-        os.makedirs(f"{base_path}/bin", exist_ok=True)
         os.makedirs(f"{base_path}/def", exist_ok=True)
         os.makedirs(f"{base_path}/json", exist_ok=True)
+        os.makedirs(f"{base_path}/debug", exist_ok=True)
 
         # Försök tolka bin_data som bytes literal eller filepath
         bin_data = bin_data.strip()
@@ -138,14 +152,20 @@ def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
         else:
             raise ValueError("Invalid --bin input: must be bytes literal or valid file path.")
 
-        # Skriv binärfil
-        with open(f"{base_path}/bin/{case}.bin", "wb") as bf:
-            bf.write(bin_bytes)
-
-        # Skapa tom .def och .json
+        # Skapa tom .def, .json och debug placeholder
         open(f"{base_path}/def/{case}.def", "w", encoding="utf-8").close()
         with open(f"{base_path}/json/{case}.json", "w", encoding="utf-8") as jf:
             json.dump({}, jf, indent=2)
+        with open(f"{base_path}/debug/{case}.json", "w", encoding="utf-8") as dbg:
+            json.dump(
+                {
+                    "name": case,
+                    "hex_compact": bin_bytes.hex().upper(),
+                    "hex_spaced": " ".join(f"{b:02X}" for b in bin_bytes),
+                },
+                dbg,
+                indent=2,
+            )
 
         Logger.info(f"Created new packet files for {case}")
         return True

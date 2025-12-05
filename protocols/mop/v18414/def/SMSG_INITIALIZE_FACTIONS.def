@@ -1,0 +1,8 @@
+# SMSG_INITIALIZE_FACTIONS - Done - need testing
+endian: little
+header:
+data:
+    count: I
+
+    loop 328 to €flag_list:
+        flags: I

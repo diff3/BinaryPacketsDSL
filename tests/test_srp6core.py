@@ -1,14 +1,14 @@
 import unittest
 import os
-from modules.SRP6Core import SRP6Core
+from modules.crypto.SRP6Crypto import SRP6Crypto
 
 
-class TestSRP6Core(unittest.TestCase):
-    """Unit tests for the SRP6Core class (SkyFire SRP6 implementation)."""
+class TestSRP6Crypto(unittest.TestCase):
+    """Unit tests for the SRP6Crypto class (SkyFire SRP6 implementation)."""
 
     def setUp(self) -> None:
-        """Create a fresh SRP6Core instance for each test."""
-        self.core = SRP6Core()
+        """Create a fresh SRP6Crypto instance for each test."""
+        self.core = SRP6Crypto()
         self.username = "srptest"
         self.password = "srptest"
 

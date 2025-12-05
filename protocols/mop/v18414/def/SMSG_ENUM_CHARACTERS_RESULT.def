@@ -1,14 +1,102 @@
 endian: little
+
 header:
+    faction_mask_bits: bits, 21BI
+    char_count_bits:   bits, 16BI
 
-    faction_mask_bits: B
-    char_count_bits: I
-    test: B
+#--
+# Legacy / reference bit capture (kept for notes):
+#     randseq_bits 24:
+#         test: 0-23, list
+#--#
 
-    loop 1 to characters:
-        randseq 19:
-            guildGuid: 13 12 18 3 1 19 9
-            guid: 2 11 16 4 14 17 8 5 
-            boosted: 6
-            name_len: 10
-            first_login: 7
+data:
+    # Packed bit section (Player::BuildEnumData)
+    loop €char_count_bits to chars_meta:
+        guild_guid4_mask: bits, 1BI
+        guid0_mask:       bits, 1BI
+        guild_guid3_mask: bits, 1BI
+        guid3_mask:       bits, 1BI
+        guid7_mask:       bits, 1BI
+        boosted:          bits, 1BI
+        at_login_first:   bits, 1BI
+        guid6_mask:       bits, 1BI
+        guild_guid6_mask: bits, 1BI
+        name_len:         bits, 6BI
+        guid1_mask:       bits, 1BI
+        guild_guid1_mask: bits, 1BI
+        guild_guid0_mask: bits, 1BI
+        guid4_mask:       bits, 1BI
+        guild_guid7_mask: bits, 1BI
+        guid2_mask:       bits, 1BI
+        guid5_mask:       bits, 1BI
+        guild_guid2_mask: bits, 1BI
+        guild_guid5_mask: bits, 1BI
+
+    success: bits, 1BI
+    padding 0
+
+    # Byte-aligned payload per character
+    loop €char_count_bits to chars:
+        unk02:       I
+        if €chars_meta[i].guid1_mask:
+            guid_1:      B
+        slot:        B
+        hair_style:  B
+        if €chars_meta[i].guild_guid2_mask:
+            guildGuid_2: B
+        if €chars_meta[i].guild_guid0_mask:
+            guildGuid_0: B
+        if €chars_meta[i].guild_guid6_mask:
+            guildGuid_6: B
+        name:       €chars_meta[i].name_len's
+        if €chars_meta[i].guild_guid3_mask:
+            guildGuid_3: B
+        x:           f
+        unk00:       I
+        face:        B
+        class:       B
+        if €chars_meta[i].guild_guid5_mask:
+            guildGuid_5: B
+
+        loop 23 to equipment:
+            enchant:        I
+            int_type:       B
+            display_id:     I
+
+        customizationFlag: I
+        if €chars_meta[i].guid3_mask:
+            guid_3:     B
+        if €chars_meta[i].guid5_mask:
+            guid_5:     B
+        petFamily:   I
+        if €chars_meta[i].guild_guid4_mask:
+            guildGuid_4: B
+        mapId:       I
+        race:        B
+        skin:        B
+        if €chars_meta[i].guild_guid1_mask:
+            guildGuid_1: B
+        level:       B
+        if €chars_meta[i].guid0_mask:
+            guid_0:     B
+        if €chars_meta[i].guid2_mask:
+            guid_2:     B
+        hair_color:  B
+        gender:      B
+        facial_hair: B
+        pet_level:   I
+        if €chars_meta[i].guid4_mask:
+            guid_4:     B
+        if €chars_meta[i].guid7_mask:
+            guid_7:     B
+        y:           f
+        petDisplayID: I
+        unk3:        I
+        if €chars_meta[i].guid6_mask:
+            guid_6:     B
+        char_flags:  I
+        zone:        I 
+        if €chars_meta[i].guild_guid7_mask:
+            guildGuid_7: B
+        z:           f

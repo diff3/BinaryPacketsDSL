@@ -1,3 +1,5 @@
+# CMSG_PLAYER_LOGIN - Done
 endian: little
 header:
   guid: 6B, G
+data:

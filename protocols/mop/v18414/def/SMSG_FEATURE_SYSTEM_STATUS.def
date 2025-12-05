@@ -1,3 +1,20 @@
+# SMSG_FEATURE_SYSTEM_STATUS - Partial
 endian: little
 header:
 data:
+   voice: B
+   browser: B
+   scroll: B
+   mountpreview: B
+   unk0: B
+   complaint1: B
+   complaint2: B
+
+   # resten stora okända ints:
+   i1: I
+   i2: I
+   i3: I
+   i4: I
+   i5: I
+   i6: I
+   i7: I

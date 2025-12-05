@@ -56,7 +56,7 @@ def main():
     program = config["program"]
     version = str(config["version"])
 
-    root = Path("packets") / program / version
+    root = Path("protocols") / program / version
     bin_dir = root / "bin"
     dbg_dir = root / "debug"
 

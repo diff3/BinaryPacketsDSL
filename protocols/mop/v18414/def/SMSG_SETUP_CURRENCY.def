@@ -1,0 +1,11 @@
+# SMSG_SETUP_CURRENCY - Done, need testing
+endian: little
+header:
+    flags: B
+    currency_count: B
+data:
+    loop €currency_count to currencies:
+        id: I
+        quantity: I
+        weekly_cap: I
+        max_quantity: I

@@ -1,0 +1,28 @@
+{
+  "name": "SMSG_LOGIN_SET_TIME_SPEED",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "2B 88 02 00",
+  "raw_opcode_int": 2091,
+  "raw_opcode_hex": "0x082B",
+  "raw_size_int": 20,
+  "raw_size_hex": "0x0014",
+  "header_mode": "packed",
+  "opcode_plain": 2,
+  "opcode_packed": 2091,
+  "size_plain": 34859,
+  "size_packed": 20,
+  "payload_len": 20,
+  "size_matches_payload": true,
+  "raw_data_hex": "2B 88 02 00 00 00 00 00 AE E5 B0 19 00 00 00 00 AE E5 B0 19 8A 88 88 3C",
+  "raw_data_bytes": "b'+\\x88\\x02\\x00\\x00\\x00\\x00\\x00\\xae\\xe5\\xb0\\x19\\x00\\x00\\x00\\x00\\xae\\xe5\\xb0\\x19\\x8a\\x88\\x88<'",
+  "hex_spaced": "00 00 00 00 AE E5 B0 19 00 00 00 00 AE E5 B0 19 8A 88 88 3C",
+  "hex_compact": "00000000AEE5B01900000000AEE5B0198A88883C",
+  "hex_offsets": [
+    "0000: 00 00 00 00 AE E5 B0 19 00 00 00 00 AE E5 B0 19  ................",
+    "0010: 8A 88 88 3C                                      ...<"
+  ],
+  "ascii": "...................<",
+  "bits": "00000000 00000000 00000000 00000000 10101110 11100101 10110000 00011001 00000000 00000000 00000000 00000000 10101110 11100101 10110000 00011001 10001010 10001000 10001000 00111100",
+  "size_bytes": 20
+}

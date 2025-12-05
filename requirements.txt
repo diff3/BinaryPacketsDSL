@@ -1,3 +1,4 @@
 argcomplete==3.6.2
 colorama==0.4.6
 PyYAML==6.0.2
+watchdog==4.0.1

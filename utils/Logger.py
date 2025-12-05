@@ -161,10 +161,21 @@ class Logger:
     # ===================================================================
 
     @staticmethod
-    def progress(msg, current, total, divisions=20):
-        pct = int(current * 100 / total)
-        text = f"{msg} [{current}/{total}] ({pct}%)"
+    def progress(msg, current, total, divisions=20, inline=False, detail=None):
+        pct = int(current * 100 / total) if total else 0
+        detail_txt = f" {detail}" if detail else ""
+        text = f"{msg}{detail_txt} [{current}/{total}] ({pct}%)"
 
+        # Inline (single-line) progress for rapid updates
+        if inline:
+            if Logger._should_log(DebugLevel.INFO):
+                end = "" if current != total else "\n"
+                print(f"\r{text}", end=end)
+            if current == total and Logger._should_log_file(DebugLevel.INFO):
+                Logger.add_to_log(text, "INFO")
+            return
+
+        # Legacy multi-line mode
         if current != total and divisions > 0:
             if int(current % (total / divisions)) == 0:
                 Logger.info(text)

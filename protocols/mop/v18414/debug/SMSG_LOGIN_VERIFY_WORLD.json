@@ -1,12 +1,30 @@
 {
   "name": "SMSG_LOGIN_VERIFY_WORLD",
-  "hex_spaced": "0F 9C 02 00 6D BB 21 46 9E 3E AB 40 58 B0 C6 C5 12 02 00 00 C2 5F 06 42",
-  "hex_compact": "0F9C02006DBB21469E3EAB4058B0C6C512020000C25F0642",
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "0F 9C 02 00",
+  "raw_opcode_int": 7183,
+  "raw_opcode_hex": "0x1C0F",
+  "raw_size_int": 20,
+  "raw_size_hex": "0x0014",
+  "header_mode": "packed",
+  "opcode_plain": 2,
+  "opcode_packed": 7183,
+  "size_plain": 39951,
+  "size_packed": 20,
+  "payload_len": 20,
+  "size_matches_payload": true,
+  "raw_data_hex": "0F 9C 02 00 6D BB 21 46 20 0B AB 40 58 B0 C6 C5 12 02 00 00 54 60 06 42",
+  "raw_data_bytes": "b'\\x0f\\x9c\\x02\\x00m\\xbb!F \\x0b\\xab@X\\xb0\\xc6\\xc5\\x12\\x02\\x00\\x00T`\\x06B'",
+  "hex_spaced": "6D BB 21 46 20 0B AB 40 58 B0 C6 C5 12 02 00 00 54 60 06 42",
+  "hex_compact": "6DBB2146200BAB4058B0C6C51202000054600642",
   "hex_offsets": [
-    "0000: 0F 9C 02 00 6D BB 21 46 9E 3E AB 40 58 B0 C6 C5  ....m.!F.>.@X...",
-    "0010: 12 02 00 00 C2 5F 06 42                          ....._.B"
+    "0000: 6D BB 21 46 20 0B AB 40 58 B0 C6 C5 12 02 00 00  m.!F ..@X.......",
+    "0010: 54 60 06 42                                      T`.B"
   ],
-  "ascii": "....m.!F.>.@X........_.B",
-  "bits": "00001111 10011100 00000010 00000000 01101101 10111011 00100001 01000110 10011110 00111110 10101011 01000000 01011000 10110000 11000110 11000101 00010010 00000010 00000000 00000000 11000010 01011111 00000110 01000010",
-  "size_bytes": 24
+  "ascii": "m.!F ..@X.......T`.B",
+  "bits": "01101101 10111011 00100001 01000110 00100000 00001011 10101011 01000000 01011000 10110000 11000110 11000101 00010010 00000010 00000000 00000000 01010100 01100000 00000110 01000010",
+  "size_bytes": 20
 }

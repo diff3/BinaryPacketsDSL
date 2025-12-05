@@ -1,11 +1,29 @@
 {
   "name": "REALM_LIST_C",
-  "hex_spaced": "10 00 00 00 00",
-  "hex_compact": "1000000000",
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "10",
+  "raw_opcode_int": 16,
+  "raw_opcode_hex": "0x0010",
+  "raw_size_int": 4,
+  "raw_size_hex": "0x0004",
+  "header_mode": "auth1b",
+  "opcode_plain": 16,
+  "opcode_packed": 16,
+  "size_plain": 4,
+  "size_packed": 4,
+  "payload_len": 4,
+  "size_matches_payload": true,
+  "raw_data_hex": "10 00 00 00 00",
+  "raw_data_bytes": "b'\\x10\\x00\\x00\\x00\\x00'",
+  "hex_spaced": "00 00 00 00",
+  "hex_compact": "00000000",
   "hex_offsets": [
-    "0000: 10 00 00 00 00                                   ....."
+    "0000: 00 00 00 00                                      ...."
   ],
-  "ascii": ".....",
-  "bits": "00010000 00000000 00000000 00000000 00000000",
-  "size_bytes": 5
+  "ascii": "....",
+  "bits": "00000000 00000000 00000000 00000000",
+  "size_bytes": 4
 }

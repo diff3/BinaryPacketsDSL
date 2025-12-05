@@ -1,11 +1,27 @@
 {
   "name": "CMSG_BATTLE_PAY_GET_PURCHASE_LIST",
-  "hex_spaced": "B2 18 00 00",
-  "hex_compact": "B2180000",
-  "hex_offsets": [
-    "0000: B2 18 00 00                                      ...."
-  ],
-  "ascii": "....",
-  "bits": "10110010 00011000 00000000 00000000",
-  "size_bytes": 4
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "B2 18 00 00",
+  "raw_opcode_int": 6322,
+  "raw_opcode_hex": "0x18B2",
+  "raw_size_int": 0,
+  "raw_size_hex": "0x0000",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 6322,
+  "size_plain": 6322,
+  "size_packed": 0,
+  "payload_len": 0,
+  "size_matches_payload": true,
+  "raw_data_hex": "B2 18 00 00",
+  "raw_data_bytes": "b'\\xb2\\x18\\x00\\x00'",
+  "hex_spaced": "",
+  "hex_compact": "",
+  "hex_offsets": [],
+  "ascii": "",
+  "bits": "",
+  "size_bytes": 0
 }

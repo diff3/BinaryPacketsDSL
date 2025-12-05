@@ -66,6 +66,14 @@ class BitInterPreter:
             bit, byte_pos, bit_pos = BitInterPreter.read_bit(data, byte_pos, bit_pos)
             value = (value << 1) | bit
         return value, byte_pos, bit_pos
+    
+    @staticmethod
+    def read_bits_tc(data: bytes, byte_pos: int, bit_pos: int, num_bits: int):
+        """
+        Trinity/SkyFire WriteBits → MSB-first.
+        Equivalent to read_bits() but exists for clarity.
+        """
+        return BitInterPreter.read_bits(data, byte_pos, bit_pos, num_bits)
 
     @staticmethod
     def read_bits_le(data: bytes, byte_pos: int, bit_pos: int, num_bits: int) -> tuple:

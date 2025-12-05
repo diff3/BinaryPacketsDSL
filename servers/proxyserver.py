@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
 import threading
 from utils.ConfigLoader import ConfigLoader
 
 from modules.proxy.auth_proxy import AuthProxy
 from modules.proxy.world_proxy import WorldProxy
-
+from utils.Logger import Logger
 
 def start_proxy(dump=False, update=False):
     cfg = ConfigLoader.load_config()
@@ -39,7 +40,8 @@ def start_proxy(dump=False, update=False):
 
 
 if __name__ == "__main__":
-    import argparse
+    Logger.info("Mist of Pandaria 5.4.8 ProxyServer")
+
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--dump", action="store_true")

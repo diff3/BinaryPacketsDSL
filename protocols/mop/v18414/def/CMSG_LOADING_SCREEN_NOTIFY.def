@@ -1,4 +1,6 @@
+# CMSG_LOADING_SCREEN_NOTIFY - Done
 endian: little
+header:
 data:
     mapId: bits, 31bI
     showing: bits, 1bI

@@ -1,12 +1,29 @@
 {
   "name": "SMSG_SET_TIME_ZONE_INFORMATION",
-  "hex_spaced": "C1 19 02 00 0E 1C 45 74 63 2F 55 54 43 45 74 63 2F 55 54 43",
-  "hex_compact": "C11902000E1C4574632F5554434574632F555443",
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "C1 19 02 00",
+  "raw_opcode_int": 6593,
+  "raw_opcode_hex": "0x19C1",
+  "raw_size_int": 16,
+  "raw_size_hex": "0x0010",
+  "header_mode": "packed",
+  "opcode_plain": 2,
+  "opcode_packed": 6593,
+  "size_plain": 6593,
+  "size_packed": 16,
+  "payload_len": 16,
+  "size_matches_payload": true,
+  "raw_data_hex": "C1 19 02 00 0E 1C 45 74 63 2F 55 54 43 45 74 63 2F 55 54 43",
+  "raw_data_bytes": "b'\\xc1\\x19\\x02\\x00\\x0e\\x1cEtc/UTCEtc/UTC'",
+  "hex_spaced": "0E 1C 45 74 63 2F 55 54 43 45 74 63 2F 55 54 43",
+  "hex_compact": "0E1C4574632F5554434574632F555443",
   "hex_offsets": [
-    "0000: C1 19 02 00 0E 1C 45 74 63 2F 55 54 43 45 74 63  ......Etc/UTCEtc",
-    "0010: 2F 55 54 43                                      /UTC"
+    "0000: 0E 1C 45 74 63 2F 55 54 43 45 74 63 2F 55 54 43  ..Etc/UTCEtc/UTC"
   ],
-  "ascii": "......Etc/UTCEtc/UTC",
-  "bits": "11000001 00011001 00000010 00000000 00001110 00011100 01000101 01110100 01100011 00101111 01010101 01010100 01000011 01000101 01110100 01100011 00101111 01010101 01010100 01000011",
-  "size_bytes": 20
+  "ascii": "..Etc/UTCEtc/UTC",
+  "bits": "00001110 00011100 01000101 01110100 01100011 00101111 01010101 01010100 01000011 01000101 01110100 01100011 00101111 01010101 01010100 01000011",
+  "size_bytes": 16
 }

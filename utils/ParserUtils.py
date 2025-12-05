@@ -74,9 +74,9 @@ class ParserUtils:
         return [ant, block_lines]
 
     @staticmethod
-    def split_field_definition(line: str) -> tuple[str, str, list] | None:
+    def split_field_definition(line: str) -> tuple[str, str, list, list] | None:
         """
-        Smart splitting of a line into (name, format, modifiers).
+        Smart splitting of a line into (name, format, decode_mods, encode_mods).
         Supports ':' for struct fields and '=' for variable definitions.
         """
         try:
@@ -97,7 +97,7 @@ class ParserUtils:
 
                 fmt = "bits"
                 mods = [m.strip() for m in rest2.split(",") if m.strip()]
-                return name, fmt, mods
+                return name, fmt, mods, []
             elif ":" in line:
                 # Normal struct field
                 name, rest = [x.strip() for x in line.split(":", 1)]
@@ -107,8 +107,8 @@ class ParserUtils:
             else:
                 raise ValueError(f"Missing ':' or '=' in field definition: '{line}'")
 
-            fmt, mods = ModifierUtils.parse_modifiers(rest)
-            return name, fmt, mods
+            fmt, mods, enc_mods = ModifierUtils.parse_modifiers(rest)
+            return name, fmt, mods, enc_mods
 
         except Exception as e:
             Logger.warning(f"Failed to parse line: '{line}' - {str(e)}")

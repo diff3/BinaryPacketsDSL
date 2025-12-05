@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_LOGOUT_RESPONSE",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "8F A0 00 00",
+  "raw_opcode_int": 143,
+  "raw_opcode_hex": "0x008F",
+  "raw_size_int": 5,
+  "raw_size_hex": "0x0005",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 143,
+  "size_plain": 41103,
+  "size_packed": 5,
+  "payload_len": 5,
+  "size_matches_payload": true,
+  "raw_data_hex": "8F A0 00 00 00 00 00 00 00",
+  "raw_data_bytes": "b'\\x8f\\xa0\\x00\\x00\\x00\\x00\\x00\\x00\\x00'",
+  "hex_spaced": "00 00 00 00 00",
+  "hex_compact": "0000000000",
+  "hex_offsets": [
+    "0000: 00 00 00 00 00                                   ....."
+  ],
+  "ascii": ".....",
+  "bits": "00000000 00000000 00000000 00000000 00000000",
+  "size_bytes": 5
+}

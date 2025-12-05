@@ -6,9 +6,9 @@ _COMPOUND_BITS_RE = re.compile(r"^\s*(\d+)\s*([Bb])\s*(I?)\s*$")
 
 class ModifierUtils:
     @staticmethod
-    def parse_modifiers(raw_line: str) -> Tuple[str, List[str]]:
+    def parse_modifiers(raw_line: str) -> Tuple[str, List[str], List[str]]:
         """
-        Parse "format, modifiers..." into (fmt, modifiers_list).
+        Parse "format, modifiers... | encode_mods..." into (fmt, decode_mods, encode_mods).
         Rules:
           - If fmt == 'bits', we enter bit-mode and only allow compound bit tokens ('<n>B', '<n>BI', '<n>b', '<n>bI').
           - Otherwise, we allow normal one-letter modifiers (s, M, I, H, U, u, t, W, ...).
@@ -19,18 +19,37 @@ class ModifierUtils:
         else:
             fmt_raw, mods_raw = raw_line.strip(), ""
 
+        # Support syntax like "S | Q" (fmt and encode-mods only)
+        if "|" in fmt_raw and not mods_raw:
+            left, right = [x.strip() for x in fmt_raw.split("|", 1)]
+            fmt_raw, mods_raw = left, ""  # no decode mods
+            mods_enc_inline = right
+        else:
+            mods_enc_inline = ""
+
+        # Split decode/encode mods på '|'
+        if "|" in mods_raw:
+            mods_dec_raw, mods_enc_raw = [x.strip() for x in mods_raw.split("|", 1)]
+        else:
+            mods_dec_raw, mods_enc_raw = mods_raw, ""
+
+        if mods_enc_inline:
+            mods_enc_raw = mods_enc_inline
+
         # Decide mode
         is_bits_mode = fmt_raw.lower() == "bits"
 
         if is_bits_mode:
             # In bits mode we suppress fmt (no struct format) and inject a sentinel 'bits'
             fmt = ""  # or None, depending on your downstream
-            modifiers = ModifierUtils._expand_modifiers(mods_raw, bits_mode=True)
+            modifiers = ModifierUtils._expand_modifiers(mods_dec_raw, bits_mode=True)
             modifiers.insert(0, "bits")
+            encode_mods = ModifierUtils._expand_modifiers(mods_enc_raw, bits_mode=False)
         else:
             # Normal struct mode: keep fmt as-is
             fmt = fmt_raw
-            modifiers = ModifierUtils._expand_modifiers(mods_raw, bits_mode=False)
+            modifiers = ModifierUtils._expand_modifiers(mods_dec_raw, bits_mode=False)
+            encode_mods = ModifierUtils._expand_modifiers(mods_enc_raw, bits_mode=False)
 
             # Guard: forbid bit operators outside bits-mode
             bad = [m for m in modifiers if _COMPOUND_BITS_RE.fullmatch(m)]
@@ -39,7 +58,7 @@ class ModifierUtils:
                 # Strict is safer so you notice mistakes early:
                 raise ValueError(f"Bit-operators {bad} used without 'bits' mode in '{raw_line}'. "
                                  f"Write it as: 'bits, {', '.join(bad)}' instead.")
-        return fmt, modifiers
+        return fmt, modifiers, encode_mods
 
     @staticmethod
     def _expand_modifiers(raw_mods: str, *, bits_mode: bool) -> List[str]:

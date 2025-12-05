@@ -1,11 +1,29 @@
 {
   "name": "CMSG_VIOLENCE_LEVEL",
-  "hex_spaced": "40 20 00 00 02",
-  "hex_compact": "4020000002",
+  "program": "mop",
+  "version": "v18414",
+  "timestamp_ms": null,
+  "timestamp_iso": null,
+  "raw_header_hex": "40 20 00 00",
+  "raw_opcode_int": 64,
+  "raw_opcode_hex": "0x0040",
+  "raw_size_int": 1,
+  "raw_size_hex": "0x0001",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 64,
+  "size_plain": 8256,
+  "size_packed": 1,
+  "payload_len": 1,
+  "size_matches_payload": true,
+  "raw_data_hex": "40 20 00 00 02",
+  "raw_data_bytes": "b'@ \\x00\\x00\\x02'",
+  "hex_spaced": "02",
+  "hex_compact": "02",
   "hex_offsets": [
-    "0000: 40 20 00 00 02                                   @ ..."
+    "0000: 02                                               ."
   ],
-  "ascii": "@ ...",
-  "bits": "01000000 00100000 00000000 00000000 00000010",
-  "size_bytes": 5
+  "ascii": ".",
+  "bits": "00000010",
+  "size_bytes": 1
 }

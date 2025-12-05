@@ -1,3 +1,4 @@
+# AUTH_LOGON_CHALLENGE_C - Done
 endian: little
 header: 
     cmd: B
