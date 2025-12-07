@@ -12,6 +12,8 @@ from utils.PrintUtils import SessionPrint
 
 # GLOBALS
 config = ConfigLoader.get_config()
+config["Logging"]["logging_levels"] = "Information, Success, Error"
+
 session = get_session()
 args = parse_args()
 
@@ -26,7 +28,7 @@ if __name__ == "__main__":
     friendly_name = config['friendly_name']
 
     if args.verbose:
-        Logger.set_level("ALL")
+        config["Logging"]["logging_levels"] = "All"
 
     if args.program:
         program = args.program

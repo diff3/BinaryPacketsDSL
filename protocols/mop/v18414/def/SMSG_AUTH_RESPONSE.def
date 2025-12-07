@@ -1,56 +1,60 @@
-# SMSG_AUTH_RESPONSE
+# SMSG_AUTH_RESPONSE - Partial
 endian: little
 header:
-
 data:
-  # --- BIT SECTION ---
-  auth_ok:            bits, 1
-  realm_count:        bits, 21
+    auth_ok:            bits, 1BI
+    realm_count:        bits, 21BI
 
-  loop realm_count to realm_bits:
-      name_len:       bits, 8
-      normalized_len: bits, 8
-      is_home:        bits, 1
+    loop €realm_count to €realm_bits:
+        name_len:       bits, 8BI
+        normalized_len: bits, 8BI
+        is_home:        bits, 1BI
 
-  class_count:        bits, 23
-  unk21:              bits, 21
-  unk_flag0:          bits, 1
-  unk_flag1:          bits, 1
-  unk_flag2:          bits, 1
-  unk_flag3:          bits, 1
+    
+        class_count:        bits, 23BI
+        unk21:              bits, 21BI
 
-  race_count:         bits, 23
-  unk_flag4:          bits, 1
-  queued:             bits, 1
-  queued_has_pos:     bits, 1
+        flag0:              bits, 1BI
+        flag1:              bits, 1BI
+        flag2:              bits, 1BI
+        flag3:              bits, 1BI
 
-  padding 0
+        race_count:         bits, 23BI
+        empty_bit:          bits, 1BI
+        queued:             bits, 1BI
+    
+    padding 0
 
-  # --- BYTE SECTION ---
-  if queued:
-      queue_pos: I
+    # --- BYTE SECTION ---
+    name_len = 10
+    normalized_len = 10
+    race_count = 15
+    class_count = 11
+    
+    if €queued > 0:
+        queue_pos: I
 
-  if auth_ok:
-      loop realm_count to realms:
-          realm_id: I
-          realm_name: realm_bits[i].name_len's
-          normalized_name: realm_bits[i].normalized_len's
+    if €auth_ok == 1:
+        realm_id: I
+        realm_name: €name_len's
+        normalized_name: €normalized_len's
+        
+        
+    loop €race_count to races:
+        expansion: B
+        race_id:  B
 
-      loop race_count to races:
-          expansion: B
-          race_id: B
+    loop €class_count to classes:
+        expansion: B
+        class_id:  B
+        
+    flag1_int: I
+    expansion_active: B
+    flag2_int: I
+    flag3_int: I
+    expansion_server: B
+    flag4_int: I
+    flag5_int: I
+    flag6_int: I
 
-      loop class_count to classes:
-          expansion: B
-          class_id: B
-
-      flag1: I
-      expansion_active: B
-      flag2: I
-      flag3: I
-      expansion_server: B
-      flag4: I
-      flag5: I
-      flag6: I
-
-  auth_result: B
+    auth_result: B

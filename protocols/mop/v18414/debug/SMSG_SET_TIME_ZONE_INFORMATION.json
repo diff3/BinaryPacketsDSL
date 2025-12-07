@@ -2,8 +2,6 @@
   "name": "SMSG_SET_TIME_ZONE_INFORMATION",
   "program": "mop",
   "version": "v18414",
-  "timestamp_ms": null,
-  "timestamp_iso": null,
   "raw_header_hex": "C1 19 02 00",
   "raw_opcode_int": 6593,
   "raw_opcode_hex": "0x19C1",

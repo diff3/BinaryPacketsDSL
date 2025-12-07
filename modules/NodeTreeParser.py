@@ -101,6 +101,29 @@ class NodeTreeParser:
                 i += consumed
                 continue
 
+            # --- Combine ---
+            if "combine" in line:
+                # Format:   guid: combine guid_mask
+                # split into "guid" and "combine guid_mask"
+                target, rhs = [x.strip() for x in line.split(":", 1)]
+
+                parts = rhs.split()
+                # parts[0] = "combine"
+                # parts[1] = mask name, e.g. "guid_mask"
+
+                node = BaseNode(
+                    name=target,              # t.ex. "guid"
+                    format=parts[1],          # t.ex. "guid_mask"
+                    interpreter="combine",    # styr dispatch i DecoderHandler
+                    modifiers=[],
+                    encode_modifiers=[],
+                    ignore=False
+                )
+
+                nodes.append(node)
+                i += 1
+                continue
+
             # --- Include ---
             if line.strip().startswith("include"):
                 match = re.match(r"\s*include\s+(\w+):?", line)
@@ -576,6 +599,23 @@ class NodeTreeParser:
         """
         Parses a single line into a BaseNode or VariableNode.
         """
+
+        stripped = line.strip()
+        if ":" in stripped and "combine" in stripped:
+            left, rhs = [x.strip() for x in stripped.split(":", 1)]
+            parts = rhs.split()
+
+            if len(parts) >= 2 and parts[0] == "combine":
+                mask_name = parts[1]  # t.ex. "guid_mask"
+
+                return BaseNode(
+                    name=left,            # "guid"
+                    format=mask_name,     # "guid_mask"
+                    interpreter="combine",
+                    modifiers=[],
+                    encode_modifiers=[],
+                    ignore=False
+                )
         
         # Special: Padding
         if line.strip().startswith("padding "):

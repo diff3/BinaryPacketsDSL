@@ -14,14 +14,14 @@
   "size_packed": 4,
   "payload_len": 4,
   "size_matches_payload": true,
-  "raw_data_hex": "8F 9A 00 00 05 00 00 00",
-  "raw_data_bytes": "b'\\x8f\\x9a\\x00\\x00\\x05\\x00\\x00\\x00'",
-  "hex_spaced": "05 00 00 00",
-  "hex_compact": "05000000",
+  "raw_data_hex": "8F 9A 00 00 07 00 00 00",
+  "raw_data_bytes": "b'\\x8f\\x9a\\x00\\x00\\x07\\x00\\x00\\x00'",
+  "hex_spaced": "07 00 00 00",
+  "hex_compact": "07000000",
   "hex_offsets": [
-    "0000: 05 00 00 00                                      ...."
+    "0000: 07 00 00 00                                      ...."
   ],
   "ascii": "....",
-  "bits": "00000101 00000000 00000000 00000000",
+  "bits": "00000111 00000000 00000000 00000000",
   "size_bytes": 4
 }

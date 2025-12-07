@@ -2,101 +2,121 @@ endian: little
 
 header:
     faction_mask_bits: bits, 21BI
-    char_count_bits:   bits, 16BI
-
-#--
-# Legacy / reference bit capture (kept for notes):
-#     randseq_bits 24:
-#         test: 0-23, list
-#--#
+    char_count_bits: bits, 16BI
 
 data:
-    # Packed bit section (Player::BuildEnumData)
-    loop €char_count_bits to chars_meta:
-        guild_guid4_mask: bits, 1BI
-        guid0_mask:       bits, 1BI
-        guild_guid3_mask: bits, 1BI
-        guid3_mask:       bits, 1BI
-        guid7_mask:       bits, 1BI
-        boosted:          bits, 1BI
-        at_login_first:   bits, 1BI
-        guid6_mask:       bits, 1BI
-        guild_guid6_mask: bits, 1BI
-        name_len:         bits, 6BI
-        guid1_mask:       bits, 1BI
-        guild_guid1_mask: bits, 1BI
-        guild_guid0_mask: bits, 1BI
-        guid4_mask:       bits, 1BI
-        guild_guid7_mask: bits, 1BI
-        guid2_mask:       bits, 1BI
-        guid5_mask:       bits, 1BI
-        guild_guid2_mask: bits, 1BI
-        guild_guid5_mask: bits, 1BI
+    loop €char_count_bits to €chars_meta:
+        guildguid_4_mask: bits, 1BI
+        guid_0_mask: bits, 1BI
+        guildguid_3_mask: bits, 1BI
+        guid_3_mask: bits, 1BI
+        guid_7_mask: bits, 1BI
+        boosted: bits, 1BI
+        at_login_first: bits, 1BI
+        guid_6_mask: bits, 1BI
+        guildguid_6_mask: bits, 1BI
+        name_len: bits, 6BI
+        guid_1_mask: bits, 1BI
+        guildguid_1_mask: bits, 1BI
+        guildguid_0_mask: bits, 1BI
+        guid_4_mask: bits, 1BI
+        guild_guid_7_mask: bits, 1BI
+        guid_2_mask: bits, 1BI
+        guid_5_mask: bits, 1BI
+        guildguid_2_mask: bits, 1BI
+        guildguid_5_mask: bits, 1BI
 
     success: bits, 1BI
     padding 0
 
-    # Byte-aligned payload per character
-    loop €char_count_bits to chars:
-        unk02:       I
-        if €chars_meta[i].guid1_mask:
-            guid_1:      B
-        slot:        B
-        hair_style:  B
-        if €chars_meta[i].guild_guid2_mask:
-            guildGuid_2: B
-        if €chars_meta[i].guild_guid0_mask:
-            guildGuid_0: B
-        if €chars_meta[i].guild_guid6_mask:
-            guildGuid_6: B
-        name:       €chars_meta[i].name_len's
-        if €chars_meta[i].guild_guid3_mask:
-            guildGuid_3: B
-        x:           f
-        unk00:       I
-        face:        B
-        class:       B
-        if €chars_meta[i].guild_guid5_mask:
-            guildGuid_5: B
+    loop €char_count_bits to €chars:
+        unk02: I
+
+        if €chars_meta[i].guid_1_mask:
+            guid_1: B
+    
+        slot: B
+        hair_style: B
+
+        if €chars_meta[i].guildguid_2_mask:
+            guildguid_2: B
+
+        if €chars_meta[i].guildguid_0_mask:
+            guildguid_0: B
+
+        if €chars_meta[i].guildguid_6_mask:
+            guildguid_6: B
+
+        name: €chars_meta[i].name_len's
+
+        if €chars_meta[i].guildguid_3_mask:
+            guildguid_3: B
+
+        x: f
+        unk00: I
+        face: B
+        class: B
+
+        if €chars_meta[i].guildguid_5_mask:
+            guildguid_5: B
 
         loop 23 to equipment:
-            enchant:        I
-            int_type:       B
-            display_id:     I
+            enchant: I
+            int_type: B
+            display_id: I
 
         customizationFlag: I
-        if €chars_meta[i].guid3_mask:
-            guid_3:     B
-        if €chars_meta[i].guid5_mask:
-            guid_5:     B
-        petFamily:   I
-        if €chars_meta[i].guild_guid4_mask:
-            guildGuid_4: B
-        mapId:       I
-        race:        B
-        skin:        B
-        if €chars_meta[i].guild_guid1_mask:
-            guildGuid_1: B
-        level:       B
-        if €chars_meta[i].guid0_mask:
+
+        if €chars_meta[i].guid_3_mask:
+            guid_3: B
+
+        if €chars_meta[i].guid_5_mask:
+            guid_5: B
+
+        petFamily: I
+
+        if €chars_meta[i].guildguid_4_mask:
+            guildguid_4: B
+
+        mapId: I
+        race: B
+        skin: B
+
+        if €chars_meta[i].guildguid_1_mask:
+            guildguid_1: B
+
+        level: B
+
+        if €chars_meta[0].guid_0_mask:
             guid_0:     B
-        if €chars_meta[i].guid2_mask:
+    
+        if €chars_meta[i].guid_2_mask:
             guid_2:     B
-        hair_color:  B
-        gender:      B
+    
+        hair_color: B
+        gender: B
         facial_hair: B
-        pet_level:   I
-        if €chars_meta[i].guid4_mask:
-            guid_4:     B
-        if €chars_meta[i].guid7_mask:
-            guid_7:     B
-        y:           f
+        pet_level: I
+
+        if €chars_meta[i].guid_4_mask:
+            guid_4: B
+    
+        if €chars_meta[i].guid_7_mask:
+            guid_7: B
+    
+        y: f
         petDisplayID: I
-        unk3:        I
-        if €chars_meta[i].guid6_mask:
-            guid_6:     B
-        char_flags:  I
-        zone:        I 
-        if €chars_meta[i].guild_guid7_mask:
+        unk3: I
+      
+        if €chars_meta[i].guid_6_mask:
+            guid_6: B
+
+        char_flags: I
+        zone: I 
+        
+        if €chars_meta[i].guildguid_7_mask:
             guildGuid_7: B
-        z:           f
+        
+        z: f
+        guid: combine guid_mask
+        guildguid: combine guid_mask

@@ -1,0 +1,27 @@
+{
+  "name": "AUTH_RECONNECT_PROOF_S",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "03",
+  "raw_opcode_int": 3,
+  "raw_opcode_hex": "0x0003",
+  "raw_size_int": 3,
+  "raw_size_hex": "0x0003",
+  "header_mode": "auth1b",
+  "opcode_plain": 3,
+  "opcode_packed": 3,
+  "size_plain": 3,
+  "size_packed": 3,
+  "payload_len": 3,
+  "size_matches_payload": true,
+  "raw_data_hex": "03 00 00 00",
+  "raw_data_bytes": "b'\\x03\\x00\\x00\\x00'",
+  "hex_spaced": "00 00 00",
+  "hex_compact": "000000",
+  "hex_offsets": [
+    "0000: 00 00 00                                         ..."
+  ],
+  "ascii": "...",
+  "bits": "00000000 00000000 00000000",
+  "size_bytes": 3
+}

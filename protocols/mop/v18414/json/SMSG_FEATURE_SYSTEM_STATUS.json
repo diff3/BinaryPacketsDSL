@@ -2,15 +2,10 @@
   "voice": 0,
   "browser": 0,
   "scroll": 0,
-  "mountpreview": 0,
-  "unk0": 0,
-  "complaint1": 0,
-  "complaint2": 0,
-  "i1": 0,
-  "i2": 512,
-  "i3": 1078198272,
-  "i4": 0,
-  "i5": 1,
-  "i6": 10,
-  "i7": 60000
+  "mountpreview": 2,
+  "complaint1": 4211712,
+  "complaint2": 16777216,
+  "flags1": 167772160,
+  "flags2": 1610612736,
+  "flags3": null
 }

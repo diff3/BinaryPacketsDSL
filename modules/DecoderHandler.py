@@ -16,6 +16,17 @@ import ast
 # GLOBALS
 session = get_session()
 
+def preprocess_condition(cond: str):
+    if not cond:
+        return cond
+
+    # Remove €
+    cond = cond.replace("€", "")
+
+    # Replace array.member → array[index]["member"]
+    cond = re.sub(r'(\w+\[\w+\])\.(\w+)', r'\1["\2"]', cond)
+
+    return cond
 
 class DecoderHandler(): 
     @staticmethod
@@ -54,6 +65,22 @@ class DecoderHandler():
         if field.name == 'endian':
             endian = '<' if field.format == 'little' else '>'
             field.processed = True
+            return field, True, endian
+
+        if field.interpreter == "combine":
+            mask_name = field.format            # ex: "guid_mask"
+            mask = DecoderHandler.resolve_variable(mask_name, result)
+
+            combined = DecoderHandler.combine_generic(
+                target_name=field.name,
+                mask=mask,
+                values=target_dict,
+                result=result      # <-- nytt argument
+            )
+
+            field.value = combined
+            target_dict[field.name] = combined
+
             return field, True, endian
 
         # Resolve variable refs
@@ -219,6 +246,7 @@ class DecoderHandler():
 
         field.processed = True
         return field, True, endian
+    
 
     @staticmethod
     def decode(case, silent=False):
@@ -598,19 +626,19 @@ class DecoderHandler():
     
     @staticmethod
     def handle_loop(field, raw_data, bitstate, endian, result, target_dict):
+
         loop_count = DecoderHandler.resolve_variable(field.count_from, result)
         if isinstance(loop_count, list):
             try:
-                # interpret list of bits as binary number
                 loop_count = int("".join(str(b) for b in loop_count), 2)
             except Exception:
                 loop_count = len(loop_count)
+
         name = field.target
         target_dict[name] = []
 
         Logger.debug(f"[Loop] Entering loop '{name}' with {loop_count} iterations")
 
-        # Spara startpositionen för loopen (för ev. debug/info)
         field.raw_offset = bitstate.offset
 
         if loop_count == 0:
@@ -620,33 +648,55 @@ class DecoderHandler():
                 target_dict[name] = []
             return field, True, endian
 
-        for n in range(loop_count):
-            # Expose current loop index for formats like €arr[i].len
-            session.variables["i"] = VariableNode(
-                name="i", raw_value=n, value=n, interpreter="literal"
-            )
-            if bitstate.offset >= len(raw_data):
-                Logger.warning(f"[Loop] '{name}' ran out of raw data at iteration {n}. Stopping loop early.")
-                break
+        # --- INDEX CONTROL: Save outer i ---
+        old_i = session.variables.get("i", None)
+        i_stack = session.variables.setdefault("_i_stack", [])
+        i_stack.append(old_i)
 
-            tmp_dict = {}
-            Logger.debug(f"[BitState] LOOP {n} START → offset={bitstate.offset}, bit_pos={bitstate.bit_pos}")
+        # This loop SHOULD control i
+        loop_sets_i = name in ("chars", "chars_meta")
 
-            for child_template in field.children:
+        try:
+            for n in range(loop_count):
 
-                # Skapa en ren kopia av noden
-                child = child_template.copy()
+                # Set loop index ONLY for character loops
+                if loop_sets_i:
+                    session.variables["i"] = VariableNode(
+                        name="i", raw_value=n, value=n, interpreter="literal"
+                    )
 
-                child, _, endian = DecoderHandler._process_field(
-                    child, raw_data, bitstate, endian, result, tmp_dict
+                if bitstate.offset >= len(raw_data):
+                    Logger.warning(
+                        f"[Loop] '{name}' ran out of raw data at iteration {n}. Stopping loop early."
+                    )
+                    break
+
+                tmp_dict = {}
+                Logger.debug(
+                    f"[BitState] LOOP {n} START → offset={bitstate.offset}, bit_pos={bitstate.bit_pos}"
                 )
-                DebugHelper.trace_field(child, bitstate)
 
-            target_dict[name].append(tmp_dict)
+                for child_template in field.children:
+                    child = child_template.copy()
+                    child, _, endian = DecoderHandler._process_field(
+                        child, raw_data, bitstate, endian, result, tmp_dict
+                    )
+                    DebugHelper.trace_field(child, bitstate)
 
-            Logger.debug(f"[BitState] LOOP {n} END   → offset={bitstate.offset}, bit_pos={bitstate.bit_pos}")
+                target_dict[name].append(tmp_dict)
 
-        # Uppdatera loopens längd i bytes
+                Logger.debug(
+                    f"[BitState] LOOP {n} END   → offset={bitstate.offset}, bit_pos={bitstate.bit_pos}"
+                )
+
+        finally:
+            # --- RESTORE OUTER i ---
+            prev = session.variables["_i_stack"].pop()
+            if prev is None:
+                session.variables.pop("i", None)
+            else:
+                session.variables["i"] = prev
+
         field.raw_length = bitstate.offset - field.raw_offset
         return field, True, endian
 
@@ -688,8 +738,9 @@ class DecoderHandler():
     @staticmethod
     def _eval_condition(condition: str, context: dict) -> bool:
         try:
-            return bool(eval(condition, {}, context))
-        except Exception:
+            result = eval(condition, {}, context)
+            return bool(result)
+        except Exception as e:
             return False
 
     @staticmethod
@@ -697,27 +748,104 @@ class DecoderHandler():
         """
         Evaluate an IfNode and decode only the matching branch.
         """
+        # Context includes loop variables that target_dict contains
         context = {**result, **target_dict}
 
+        # --- Preprocess condition (handles €, .key, etc.) ---
+        cond_main = preprocess_condition(field.condition)
+
         branch = None
-        if field.condition and DecoderHandler._eval_condition(field.condition, context):
+
+        # --- IF ---
+        if cond_main and DecoderHandler._eval_condition(cond_main, context):
             branch = field.true_branch
+
         else:
+            # --- ELIF ---
             if field.elif_branches:
                 for cond, nodes in field.elif_branches:
-                    if DecoderHandler._eval_condition(cond, context):
+                    cond_eval = preprocess_condition(cond)
+                    if DecoderHandler._eval_condition(cond_eval, context):
                         branch = nodes
                         break
+
+            # --- ELSE ---
             if branch is None:
                 branch = field.false_branch or []
 
+        # --- Execute chosen branch ---
         for child_template in branch or []:
             child = child_template.copy()
             DecoderHandler._process_field(child, raw_data, bitstate, endian, result, target_dict)
             DebugHelper.trace_field(child, bitstate)
 
         return field, True, endian
+    
+    @staticmethod
+    def combine_generic(target_name: str, mask, values: dict, result: dict):
+        """
+        Combine GUID-like structures.
+        Works with:
+            - explicit lists from randseq_bits (mask = [0,3,6,7])
+            - implicit fields like guid0_mask, guid1_mask, ...
+        """
 
+        # --- Get loop index i (character index) ---
+        try:
+            i = session.variables["i"].value
+        except:
+            return 0
+
+        # --- Fetch metadata for this character ---
+        try:
+            meta = result["chars_meta"][i]
+        except:
+            return 0
+
+        # --- Case 1: mask IS ALREADY a list (randseq_bits) ---
+        if isinstance(mask, list):
+            auto_mask = mask
+
+        else:
+            # --- Case 2: mask is a NAME (e.g. 'guid_mask') → derive automatically ---
+            prefix = target_name.rstrip("_")   # "guid" or "guild_guid"
+            regex = re.compile(rf"^{prefix}_?(\d+)_mask$", re.IGNORECASE)
+
+            auto_mask = []
+
+            for key, val in meta.items():
+                m = regex.match(key)
+                if m and val:          # val must be 1
+                    auto_mask.append(int(m.group(1)))
+
+            auto_mask.sort()
+
+        # --- Combine bytes from values dict using mask ---
+        guid = 0
+        prefix = target_name.rstrip("_")
+
+        for bit_index in auto_mask:
+            # common naming patterns:
+            candidates = [
+                f"{target_name}_{bit_index}",   # guid_0
+                f"{prefix}_{bit_index}",        # guid_0 alternative
+                f"{prefix}{bit_index}",         # guid0 (rare)
+            ]
+
+            val = None
+            used_key = None
+
+            for k in candidates:
+                if k in values:
+                    val = values[k]
+                    used_key = k
+                    break
+
+            if val is not None:
+                guid |= (val & 0xFF) << (bit_index * 8)
+
+        return guid
+    
     @staticmethod
     def handle_packed_guid(field, raw_data, bitstate, target_dict):
         # align to byte
