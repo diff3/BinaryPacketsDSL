@@ -54,7 +54,7 @@ if __name__ == "__main__":
         config["Logging"]["logging_levels"] = "None"    
    
     Logger.info(f"{tool_name} - {friendly_name}")
-    Logger.info(f"Parsing {program} v{version}\n")
+    Logger.info(f"Parsing {program} {version}\n")
 
     if args.file:
         case_data = [load_case(program, version, args.file)]
