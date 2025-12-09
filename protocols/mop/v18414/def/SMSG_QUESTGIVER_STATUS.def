@@ -1,0 +1,8 @@
+# SMSG_QUESTGIVER_STATUS – MoP v18414
+endian: little
+header:
+data:
+    npcGUID: packed_guid
+    status: B
+    unk1: I
+    unk2: H

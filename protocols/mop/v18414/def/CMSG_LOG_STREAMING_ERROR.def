@@ -1,0 +1,7 @@
+# CMSG_LOG_STREAMING_ERROR – Minimal working version
+endian: little
+header:
+data:
+    errorType: I
+    errorCode: I
+    msg: R, r

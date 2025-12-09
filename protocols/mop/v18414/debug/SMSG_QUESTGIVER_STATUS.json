@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_QUESTGIVER_STATUS",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "75 72 01 00",
+  "raw_opcode_int": 4725,
+  "raw_opcode_hex": "0x1275",
+  "raw_size_int": 11,
+  "raw_size_hex": "0x000B",
+  "header_mode": "packed",
+  "opcode_plain": 1,
+  "opcode_packed": 4725,
+  "size_plain": 29301,
+  "size_packed": 11,
+  "payload_len": 11,
+  "size_matches_payload": true,
+  "raw_data_hex": "75 72 01 00 EB F0 02 00 00 00 C0 31 D6 3A 0E",
+  "raw_data_bytes": "b'ur\\x01\\x00\\xeb\\xf0\\x02\\x00\\x00\\x00\\xc01\\xd6:\\x0e'",
+  "hex_spaced": "EB F0 02 00 00 00 C0 31 D6 3A 0E",
+  "hex_compact": "EBF002000000C031D63A0E",
+  "hex_offsets": [
+    "0000: EB F0 02 00 00 00 C0 31 D6 3A 0E                 .......1.:."
+  ],
+  "ascii": ".......1.:.",
+  "bits": "11101011 11110000 00000010 00000000 00000000 00000000 11000000 00110001 11010110 00111010 00001110",
+  "size_bytes": 11
+}

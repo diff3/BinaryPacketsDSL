@@ -1,190 +1,286 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import re
-from modules.Session import BaseNode, IfNode, VariableNode, LoopNode, BlockDefinition, RandSeqNode,  get_session, PaddingNode, SeekNode, BitmaskNode, UncompressNode, PackedGuidNode
+"""
+NodeTreeParser
 
+Parses the DSL .def files into an AST of nodes (BaseNode, LoopNode, IfNode, etc).
+Backwards compatible with the current system (DecoderHandler, DslRuntime).
+Prepared for future DSL changes.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional, Any
+
+from modules.Session import (
+    BaseNode,
+    IfNode,
+    VariableNode,
+    LoopNode,
+    BlockDefinition,
+    RandSeqNode,
+    BitmaskNode,
+    UncompressNode,
+    PackedGuidNode,
+    SliceNode,
+    get_session,
+)
 from modules.ModifierParser import ModifierUtils
 from utils.ParserUtils import ParserUtils
 from utils.Logger import Logger
 
 session = get_session()
-parse_warnings = []
 
+
+# =====================================================================
+# PARSE CONTEXT
+# =====================================================================
+
+@dataclass
+class ParseContext:
+    """Holds parsing-time state separate from the global session."""
+    variables: Dict[str, VariableNode] = field(default_factory=dict)
+    blocks: Dict[str, BlockDefinition] = field(default_factory=dict)
+    anon_counter: int = 0
+
+
+# =====================================================================
+# MAIN PARSER
+# =====================================================================
 
 class NodeTreeParser:
+
     @staticmethod
-    def parse(case: tuple) -> list:
+    def parse(case: tuple) -> List[Any]:
         """
-        Parses a list of lines into a list of BaseNode/LoopNode/etc.
+        case → (name, lines, raw_bytes, expected)
+        Returns parsed top-level nodes.
         """
 
-        lines = case[1]
+        name, lines, *_ = case
 
-        nodes = []
+        ctx = ParseContext()
+        nodes: List[Any] = []
+
+        # Reset session state for new parse
         session.fields = []
         session.blocks = {}
         session.variables = {}
-        anon_counter = 0
 
+        # Remove comments, strip reserved keywords
         lines = ParserUtils.remove_comments_and_reserved(lines)
+
+        total = len(lines)
         i = 0
 
-        while i < len(lines):
-            line = lines[i]
+        while i < total:
+            raw = lines[i]
+            stripped = raw.strip()
 
-            # --- Block ---
-            if line.strip().startswith("block"):
-                parsed_node, consumed = NodeTreeParser.parse_block(session, lines, i, anon_counter)
-
-                if isinstance(parsed_node, VariableNode):
-                    session.variables[parsed_node.name] = parsed_node
-                else:
-                    session.blocks[parsed_node.name] = parsed_node
-
-                i += consumed
-                continue
-
-            # --- Loop ---
-            if line.strip().startswith("loop"):
-                parsed_node, consumed = NodeTreeParser.parse_loop(session, lines, i, anon_counter)
-
-                if parsed_node:
-                    if isinstance(parsed_node, VariableNode):
-                        session.variables[parsed_node.name] = parsed_node
-                    else:
-                        nodes.append(parsed_node)
-                    i += consumed
-                    continue
-            
-            # --- Randseq bits ---
-            if line.strip().startswith("randseq_bits"):
-                parsed_node, consumed = NodeTreeParser.parse_randseq_bits(session, lines, i, anon_counter)
-                if parsed_node:
-                    nodes.append(parsed_node)
-                i += consumed
-                continue
-
-            # --- Randseq ---
-            if line.strip().startswith("randseq"):
-                parsed_node, consumed = NodeTreeParser.parse_randseq(session, lines, i, anon_counter)
-                if parsed_node:
-                    nodes.append(parsed_node)
-                i += consumed
-                continue
-
-            if line.strip().startswith("uncompress"):
-                parsed_node, consumed = NodeTreeParser.parse_uncompress(lines, i, anon_counter)
-                if parsed_node:
-                    nodes.append(parsed_node)
-                i += consumed
-                continue
-
-            # --- Bitmask ---
-            if line.strip().startswith("bitmask"):
-                parsed_node, consumed = NodeTreeParser.parse_bitmask(session, lines, i, anon_counter)
-                
-                if parsed_node:
-                    nodes.append(parsed_node)
-                i += consumed
-                continue
-
-            # --- If / Elif / Else ---
-            if line.strip().startswith("if"):
-                parsed_node, consumed = NodeTreeParser.parse_if(lines, i, anon_counter)
-                if parsed_node:
-                    if isinstance(parsed_node, VariableNode):
-                        session.variables[parsed_node.name] = parsed_node
-                    else:
-                        nodes.append(parsed_node)
-                
-                i += consumed
-                continue
-
-            # --- Combine ---
-            if "combine" in line:
-                # Format:   guid: combine guid_mask
-                # split into "guid" and "combine guid_mask"
-                target, rhs = [x.strip() for x in line.split(":", 1)]
-
-                parts = rhs.split()
-                # parts[0] = "combine"
-                # parts[1] = mask name, e.g. "guid_mask"
-
-                node = BaseNode(
-                    name=target,              # t.ex. "guid"
-                    format=parts[1],          # t.ex. "guid_mask"
-                    interpreter="combine",    # styr dispatch i DecoderHandler
-                    modifiers=[],
-                    encode_modifiers=[],
-                    ignore=False
-                )
-
-                nodes.append(node)
+            if not stripped:
                 i += 1
                 continue
 
-            # --- Include ---
-            if line.strip().startswith("include"):
-                match = re.match(r"\s*include\s+(\w+):?", line)
-                if match:
-                    block_name = match.group(1)
-                    if block_name in session.blocks:
-                        Logger.debug(f"Including block: {block_name}")
-                        for node in session.blocks[block_name].nodes:
-                            nodes.append(node)
-                    else:
-                        Logger.error(f"Unknown block: include {block_name}")
+
+            # ----------- variable assignment ------------
+            if "=" in stripped and not stripped.startswith("if "):
+                parsed = NodeTreeParser.parse_variable(stripped, ctx)
+                ctx.variables[parsed.name] = parsed
+                nodes.append(parsed)
                 i += 1
                 continue
 
-            # --- Vanlig rad (BaseNode eller variabel) ---
-            parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
+            # ----------------- block -----------------
+            if stripped.startswith("block "):
+                parsed, consumed = NodeTreeParser.parse_block(lines, i, ctx)
+                if parsed:
+                    ctx.blocks[parsed.name] = parsed
+                i += consumed
+                continue
 
-            if parsed_node:
-                if isinstance(parsed_node, VariableNode):
-                    session.variables[parsed_node.name] = parsed_node
-                else:
-                    nodes.append(parsed_node)
+            # ----------------- loop ------------------
+            if stripped.startswith("loop "):
+                parsed, consumed = NodeTreeParser.parse_loop(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # -------------- randseq_bits -------------
+            if stripped.startswith("randseq_bits"):
+                parsed, consumed = NodeTreeParser.parse_randseq_bits(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # ---------------- randseq ----------------
+            if stripped.startswith("randseq "):
+                parsed, consumed = NodeTreeParser.parse_randseq(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # ---------------- uncompress -------------
+            if stripped.startswith("uncompress "):
+                parsed, consumed = NodeTreeParser.parse_uncompress(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # ---------------- bitmask ----------------
+            if stripped.startswith("bitmask "):
+                parsed, consumed = NodeTreeParser.parse_bitmask(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # ---------------- if ---------------------
+            if stripped.startswith("if "):
+                parsed, consumed = NodeTreeParser.parse_if(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
+            # ---------------- include ----------------
+            if stripped.startswith("include "):
+                NodeTreeParser._handle_include(stripped, nodes, ctx)
+                i += 1
+                continue
+
+            # ------------- normal field --------------
+            parsed = NodeTreeParser.parse_line_to_node(raw, ctx)
+
+            # Variabler hanteras numera av parse_variable() högre upp
+            # så här ska vi *inte* fånga dem längre.
+            if parsed:
+                nodes.append(parsed)
 
             i += 1
+            continue
 
+        # ---------------------------------------------------
+        # IMPORTANT FIX:
+        # Reset processed-flaggan på alla noder
+        # ---------------------------------------------------
+        for n in nodes:
+            if hasattr(n, "processed"):
+                n.processed = False
+
+            # även barnnoder i strukturer måste nollställas
+            if hasattr(n, "children") and n.children:
+                for c in n.children:
+                    if hasattr(c, "processed"):
+                        c.processed = False
+
+        # Push into session for DecoderHandler
         session.fields = nodes
+        session.blocks = ctx.blocks
+        session.variables = ctx.variables
 
         return nodes
 
+    # =====================================================================
+    # INCLUDE
+    # =====================================================================
+
     @staticmethod
-    def parse_padding(line: str) -> tuple[PaddingNode, int]:
+    def _handle_include(stripped: str, target_list: List[Any], ctx: ParseContext):
+        match = re.match(r"include\s+(\w+):?", stripped)
+        if not match:
+            Logger.warning(f"Malformed include '{stripped}'")
+            return
+
+        block_name = match.group(1)
+        block = ctx.blocks.get(block_name)
+
+        if not block:
+            Logger.error(f"Include: Unknown block '{block_name}'")
+            return
+
+        for n in block.nodes:
+            target_list.append(n)
+
+    # =====================================================================
+    # PADDING
+    # =====================================================================
+
+    @staticmethod
+    def parse_padding(line: str) -> Optional[BaseNode]:
         parts = line.strip().split()
+
+        # padding → zero-length padding
         if len(parts) == 1:
-            # Alias without argument (e.g. flushbits) → just align to byte
-            return PaddingNode(size=0, value=0)
+            node = BaseNode(
+                name="_",
+                format="0",
+                interpreter="padding",
+                modifiers=[],
+                encode_modifiers=[],
+                depends_on=None,
+                dynamic=False,
+                ignore=False,
+            )
+            node.size = 0
+            node.value = 0
+            return node
 
+        # padding N
         if len(parts) == 2 and parts[1].isdigit():
-            size = int(parts[1])
-            return PaddingNode(size=size, value=size)
+            N = int(parts[1])
+            node = BaseNode(
+                name="_",
+                format=str(N),
+                interpreter="padding",
+                modifiers=[],
+                encode_modifiers=[],
+                depends_on=None,
+                dynamic=False,
+                ignore=False,
+            )
+            node.size = N
+            node.value = N
+            return node
 
-        Logger.warning(f"Malformed padding line: {line}")
+        Logger.warning(f"Malformed padding '{line}'")
         return None
 
+    # =====================================================================
+    # SEEK
+    # =====================================================================
+
     @staticmethod
-    def parse_seek(line: str) -> tuple[SeekNode, int]:
+    def parse_seek(line: str) -> Optional[BaseNode]:
         parts = line.strip().split()
         if len(parts) == 2 and parts[1].isdigit():
-            size = int(parts[1])
-            return SeekNode(offset=size, value=size)
-        else:
-            Logger.warning(f"Malformed seek line: {line}")
-            return None
+            return BaseNode(
+                name="seek",
+                format=parts[1],
+                interpreter="seek",
+                modifiers=[],
+                encode_modifiers=[],
+                depends_on=None,
+                dynamic=False,
+                ignore=False,
+            )
+
+        Logger.warning(f"Malformed seek '{line}'")
+        return None
+
+    # =====================================================================
+    # BITMASK BLOCK
+    # =====================================================================
 
     @staticmethod
-    def parse_bitmask(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BitmaskNode, int]:
-        """
-        Parses a bitmask structure starting from a given index.
-        Returns the created BitmaskNode and number of lines consumed.
-        """
+    def parse_bitmask(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[BitmaskNode], int]:
         line = lines[start_idx].strip()
-
         match = re.match(r"bitmask\s+(\d+)", line)
         if not match:
             Logger.warning(f"Malformed bitmask: {line}")
@@ -192,162 +288,268 @@ class NodeTreeParser:
 
         size = int(match.group(1))
 
-        # Samla blockets rader
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
-        children = []
-        idx = 0
-        while idx < len(block_lines):
-            parsed_node = NodeTreeParser.parse_line_to_node(block_lines[idx].strip(), anon_counter)
-            if parsed_node:
-                children.append(parsed_node)
-            idx += 1
+        children: List[Any] = []
+        for blk in block_lines:
+            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
+            if parsed:
+                children.append(parsed)
 
-        bitmask_node = BitmaskNode(
+        node = BitmaskNode(
             name="_",
             size=size,
-            children=children,
+            children=children
         )
 
-        return bitmask_node, block_count + 1
+        return node, block_count + 1
+
+    # =====================================================================
+    # BLOCK
+    # =====================================================================
 
     @staticmethod
-    def parse_block(session, lines: list, start_idx: int, anon_counter: int) -> tuple[BlockDefinition, int]:
+    def parse_block(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[BlockDefinition], int]:
         line = lines[start_idx]
         match = re.match(r"block\s+(\w+):", line)
         if not match:
-            Logger.warning(f"Malformed block: {line}")
+            Logger.warning(f"Malformed block: {line.strip()}")
             return None, 1
 
         block_name = match.group(1)
-        count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
+        block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
-        block_nodes = []
-        idx = 0
-        while idx < len(block_lines):
-            block_line = block_lines[idx]
-            block_line_strip = block_line.strip()
+        block_nodes: List[Any] = []
+        i = 0
 
-            if block_line_strip.startswith("if "):
-                parsed_node, consumed = NodeTreeParser.parse_if(block_lines, idx, anon_counter)
+        while i < len(block_lines):
+            raw = block_lines[i].strip()
+            if not raw:
+                i += 1
+                continue
+
+            if raw.startswith("if "):
+                parsed, consumed = NodeTreeParser.parse_if(block_lines, i, ctx)
+            elif raw.startswith("loop "):
+                parsed, consumed = NodeTreeParser.parse_loop(block_lines, i, ctx)
+            elif raw.startswith("randseq_bits"):
+                parsed, consumed = NodeTreeParser.parse_randseq_bits(block_lines, i, ctx)
+            elif raw.startswith("randseq "):
+                parsed, consumed = NodeTreeParser.parse_randseq(block_lines, i, ctx)
+            elif raw.startswith("uncompress "):
+                parsed, consumed = NodeTreeParser.parse_uncompress(block_lines, i, ctx)
+            elif raw.startswith("bitmask "):
+                parsed, consumed = NodeTreeParser.parse_bitmask(block_lines, i, ctx)
+            elif raw.startswith("include "):
+                tmp: List[Any] = []
+                NodeTreeParser._handle_include(raw, tmp, ctx)
+                for n in tmp:
+                    block_nodes.append(n)
+                i += 1
+                continue
             else:
-                parsed_node = NodeTreeParser.parse_line_to_node(block_line_strip, anon_counter)
+                parsed = NodeTreeParser.parse_line_to_node(block_lines[i], ctx)
                 consumed = 1
 
-            if parsed_node:
-                if isinstance(parsed_node, VariableNode):
-                    session.variables[parsed_node.name] = parsed_node
-                else:
-                    block_nodes.append(parsed_node)
-            idx += consumed
+            if "=" in raw and not raw.startswith("if "):
+                parsed = NodeTreeParser.parse_variable(raw, ctx)
+                ctx.variables[parsed.name] = parsed
+                block_nodes.append(parsed)
+                i += 1
+                continue
+            else:
+                if parsed:
+                    block_nodes.append(parsed)
 
-        return BlockDefinition(name=block_name, nodes=block_nodes), count + 1
+            i += consumed
+
+        node = BlockDefinition(name=block_name, nodes=block_nodes)
+        return node, block_count + 1
+
+    # =====================================================================
+    # LOOP
+    # =====================================================================
 
     @staticmethod
-    def parse_loop(session, lines: list, start_idx: int, anon_counter: int) -> tuple[LoopNode, int]:
-        """
-        Parses a loop structure starting from a given index.
-        Returns the created LoopNode and number of lines consumed.
-        """
+    def parse_loop(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[LoopNode], int]:
         line = lines[start_idx]
-
-        match = re.match(r"\s*loop\s+(.+?)\s+to\s+\€?(\w+):?", line)
+        match = re.match(r"\s*loop\s+(.+?)\s+to\s+€?(\w+):?", line)
         if not match:
             Logger.warning(f"Malformed loop: {line.strip()}")
             return None, 1
 
-        count_from, target = match.groups()
+        count_expr, target = match.groups()
+
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
-        children = []
-        idx = 0
-        while idx < len(block_lines):
-            block_line = block_lines[idx].strip()
+        children: List[Any] = []
+        i = 0
 
-            if block_line.startswith("if "):
-                # If-sats inuti loopen
-                parsed_node, consumed = NodeTreeParser.parse_if(block_lines, idx, anon_counter)
-            elif block_line.startswith("loop "):
-                # Nästlad loop
-                parsed_node, consumed = NodeTreeParser.parse_loop(session, block_lines, idx, anon_counter)
-            elif block_line.startswith("randseq_bits"):
-                parsed_node, consumed = NodeTreeParser.parse_randseq_bits(session, block_lines, idx, anon_counter)
-            elif block_line.startswith("randseq"):
-                parsed_node, consumed = NodeTreeParser.parse_randseq(session, block_lines, idx, anon_counter)
+        while i < len(block_lines):
+            raw = block_lines[i].strip()
+            if not raw:
+                i += 1
+                continue
+
+            if raw.startswith("if "):
+                parsed, consumed = NodeTreeParser.parse_if(block_lines, i, ctx)
+            elif raw.startswith("loop "):
+                parsed, consumed = NodeTreeParser.parse_loop(block_lines, i, ctx)
+            elif raw.startswith("randseq_bits"):
+                parsed, consumed = NodeTreeParser.parse_randseq_bits(block_lines, i, ctx)
+            elif raw.startswith("randseq "):
+                parsed, consumed = NodeTreeParser.parse_randseq(block_lines, i, ctx)
+            elif raw.startswith("uncompress "):
+                parsed, consumed = NodeTreeParser.parse_uncompress(block_lines, i, ctx)
+            elif raw.startswith("bitmask "):
+                parsed, consumed = NodeTreeParser.parse_bitmask(block_lines, i, ctx)
+            elif raw.startswith("include "):
+                tmp: List[Any] = []
+                NodeTreeParser._handle_include(raw, tmp, ctx)
+                for n in tmp:
+                    children.append(n)
+                i += 1
+                continue
             else:
-                # Vanlig nod
-                parsed_node = NodeTreeParser.parse_line_to_node(block_line, anon_counter)
+                parsed = NodeTreeParser.parse_line_to_node(block_lines[i], ctx)
                 consumed = 1
 
-            if parsed_node:
-                if isinstance(parsed_node, VariableNode):
-                    session.variables[parsed_node.name] = parsed_node
-                else:
-                    children.append(parsed_node)
+            if "=" in raw and not raw.startswith("if "):
+                parsed = NodeTreeParser.parse_variable(raw, ctx)
+                ctx.variables[parsed.name] = parsed
+                children.append(parsed)
+                i += 1
+                continue
+            else:
+                if parsed:
+                    children.append(parsed)
 
-            idx += consumed
+            i += consumed
 
-        loop_node = LoopNode(
-            name=target,  # 👈 direkt namn (inte €target_loop)
+        node = LoopNode(
+            name=target,
             format="",
             interpreter="loop",
-            count_from=count_from,
+            count_from=count_expr,
             target=target,
-            dynamic="€" in count_from,  # 👈 markera om loopen är dynamisk
+            dynamic=("€" in count_expr),
             children=children
         )
 
-        return loop_node, block_count + 1
+        return node, block_count + 1
+
+    # =====================================================================
+    # RANDSEQ (legacy byte-based)
+    # =====================================================================
 
     @staticmethod
-    def parse_randseq(session, lines: list, start_idx: int, anon_counter: int) -> tuple[RandSeqNode, int]:
-        """
-        Parses a randseq structure starting from a given index.
-        Returns the created RandSeqNode and number of lines consumed.
-        """
+    def parse_randseq(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[RandSeqNode], int]:
         line = lines[start_idx]
-
-        # Matcha: tillåt siffror eller €variabel
-        match = re.match(r"\s*randseq\s+(\d+|\€\w+)\s*:", line)
+        match = re.match(r"\s*randseq\s+(\d+|€\w+)\s*:", line)
         if not match:
             Logger.warning(f"Malformed randseq: {line.strip()}")
             return None, 1
 
-        raw_count_from = match.group(1)
-
-        # Konvertera till int om det går, annars sträng
+        raw_count = match.group(1)
         try:
-            count_from = int(raw_count_from)
+            count_val: Any = int(raw_count)
         except ValueError:
-            count_from = raw_count_from  # Antag €variabel
+            count_val = raw_count  # €var
 
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
         children = []
-        for block_line in block_lines:
-            parsed_node = NodeTreeParser.parse_line_to_node(block_line.strip(), anon_counter)
-            if parsed_node:
-                children.append(parsed_node)
+        for blk in block_lines:
+            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
+            if parsed:
+                children.append(parsed)
 
-        randseq_node = RandSeqNode(
-            name=f"randseq {raw_count_from}",  # Obs! Använd raw här för korrekt namn
+        node = RandSeqNode(
+            name=f"randseq {raw_count}",
             format="",
             interpreter="randseq",
-            count_from=count_from,
+            count_from=count_val,
             children=children
         )
 
-        return randseq_node, block_count + 1
+        return node, block_count + 1
+
+    # =====================================================================
+    # RANDSEQ_BITS
+    # =====================================================================
 
     @staticmethod
-    def parse_uncompress(lines: list, start_idx: int, anon_counter: int) -> tuple[UncompressNode, int]:
+    def parse_randseq_bits(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[RandSeqNode], int]:
+        line = lines[start_idx]
+
+        pattern = r"""
+            \s*randseq_bits\s+
+            (?:
+                (?P<num>\d+)(?P<byte>B)?
+                | (?P<var>€\w+)
+            )
+            \s*,?\s*
+            (?P<mods>(?:[\w]+(?:\s+[\w]+)*)?) 
+            \s*:
         """
-        Parse an uncompress block:
-            uncompress zlib <len_expr>:
-                ...
-        len_expr optional; if missing, consume remaining payload.
-        """
+
+        match = re.match(pattern, line, re.VERBOSE)
+        if not match:
+            Logger.warning(f"Malformed randseq_bits: {line.strip()}")
+            return None, 1
+
+        # bit count or variable
+        if match.group("var"):
+            raw_count = match.group("var")
+            count_bits = raw_count
+        else:
+            num = int(match.group("num"))
+            if match.group("byte"):
+                raw_count = f"{num}B"
+                count_bits = num * 8
+            else:
+                raw_count = str(num)
+                count_bits = num
+
+        # modifiers
+        raw_mods = (match.group("mods") or "").strip()
+        mods: List[str] = []
+        if raw_mods:
+            tokens = raw_mods.split()
+            for t in tokens:
+                sub = re.findall(r"(?:M|\d+m)", t)
+                if sub:
+                    mods.extend(sub)
+                else:
+                    mods.append(t)
+
+        block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
+
+        children = []
+        for blk in block_lines:
+            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
+            if parsed:
+                children.append(parsed)
+
+        node = RandSeqNode(
+            name=f"randseq_bits {raw_count}",
+            format="",
+            interpreter="randseq_bits",
+            modifiers=mods,
+            count_from=count_bits,
+            children=children
+        )
+
+        return node, block_count + 1
+
+    # =====================================================================
+    # UNCOMPRESS
+    # =====================================================================
+
+    @staticmethod
+    def parse_uncompress(lines: List[str], start_idx: int, ctx: ParseContext) -> Tuple[Optional[UncompressNode], int]:
         line = lines[start_idx].strip()
+
         match = re.match(r"\s*uncompress\s+(\w+)(?:\s+([^\s:]+))?:?", line)
         if not match:
             Logger.warning(f"Malformed uncompress: {line}")
@@ -360,7 +562,7 @@ class NodeTreeParser:
 
         children = []
         for blk in block_lines:
-            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), anon_counter)
+            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
             if parsed:
                 children.append(parsed)
 
@@ -370,215 +572,126 @@ class NodeTreeParser:
             interpreter="uncompress",
             algo=algo,
             length_expr=length_expr,
-            children=children,
+            children=children
         )
 
         return node, block_count + 1
 
+    # =====================================================================
+    # STRUCT OR IF (used inside if-blocks)
+    # =====================================================================
+
     @staticmethod
-    def parse_randseq_bits(session, lines: list, start_idx: int, anon_counter: int) -> tuple[RandSeqNode, int]:
-        """
-        Parses a bit-based randseq structure with modifiers:
-            randseq_bits 24:
-            randseq_bits 24, M:
-            randseq_bits 24 M8m:
-            randseq_bits €var M 8m:
+    def parse_struct_or_if(lines: List[str], idx: int, ctx: ParseContext):
+        raw = lines[idx]
+        stripped = raw.strip()
 
-        Supported modifiers:
-            M     = mirror whole block
-            Xm    = mirror groups of X bits (e.g. 8m, 4m, 16m)
-        """
+        # Vars
+        if "=" in stripped and not stripped.startswith("if "):
+            parsed = NodeTreeParser.parse_variable(stripped, ctx)
+            ctx.variables[parsed.name] = parsed
+            return parsed, 1
+        # padding
+        if stripped.startswith("padding"):
+            return NodeTreeParser.parse_padding(raw), 1
 
-        line = lines[start_idx]
-
-        # Regex med stöd för t.ex:
-        #   randseq_bits 24, M8m:
-        #   randseq_bits €var M 8m:
-        pattern = r"""
-            \s*randseq_bits\s+
-            (?:
-                (?P<num>\d+)(?P<byte>B)?      # numeriskt värde eller X B
-                | (?P<var>€\w+)               # eller variabel
-            )
-            \s*,?\s*                          # valfritt kommatecken
-            (?P<mods>(?:[\w]+(?:\s+[\w]+)*)?) # valfria modifiers, t.ex. "M 8m"
-            \s*:
-        """
-
-        match = re.match(pattern, line, re.VERBOSE)
-        if not match:
-            Logger.warning(f"Malformed randseq_bits: {line.strip()}")
-            return None, 1
-
-        # -------- BITCOUNT -------------------------------
-        if match.group("var"):
-            raw_count_from = match.group("var")
-            count_from = raw_count_from
-        else:
-            num = int(match.group("num"))
-            if match.group("byte"):
-                raw_count_from = f"{num}B"
-                count_from = num * 8
-            else:
-                raw_count_from = str(num)
-                count_from = num
-
-        # -------- MODIFIERS -------------------------------
-        modifiers_raw = match.group("mods") or ""
-        if modifiers_raw.strip():
-            # Split on whitespace
-            modifiers = modifiers_raw.split()
-        else:
-            modifiers = []
-
-        # Nu är t.ex. "M8m" fortfarande en sträng.
-        # Vi vill splittra den till ["M", "8m"].
-        normalized_modifiers = []
-        for m in modifiers:
-            # Matcha M eller Xm i samma token
-            submods = re.findall(r"(?:M|\d+m)", m)
-            if submods:
-                normalized_modifiers.extend(submods)
-            else:
-                normalized_modifiers.append(m)
-
-        # -------- BARNNODER -------------------------------
-        block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
-
-        children = []
-        for block_line in block_lines:
-            parsed_node = NodeTreeParser.parse_line_to_node(block_line.strip(), anon_counter)
-            if parsed_node:
-                children.append(parsed_node)
-
-        # -------- NODE ------------------------------------
-        randseq_node = RandSeqNode(
-            name=f"randseq_bits {raw_count_from}",
-            format="",
-            interpreter="randseq_bits",
-            modifiers=normalized_modifiers,  # ← KLART!
-            count_from=count_from,
-            children=children
-        )
-
-        return randseq_node, block_count + 1
-    
-    @staticmethod
-    def parse_struct_or_if(lines: list, idx: int, anon_counter: int):
-        """
-        Parses either a struct field, an if/elif/else block, or special nodes like padding and bitmask.
-        """
-        line = lines[idx].strip()
-        stripped = line.strip()
-
-        if stripped.startswith("padding "):
-            parsed_node = NodeTreeParser.parse_padding(line)
-            return parsed_node
-        if stripped.startswith("uncompress "):
-            parsed_node, consumed = NodeTreeParser.parse_uncompress(lines, idx, anon_counter)
-            return parsed_node, consumed
-
-        # Alias: flushbit/flushbits → padding 0 (byte align)
+        # flushbit alias
         if stripped in ("flushbit", "flushbits"):
-            parsed_node = NodeTreeParser.parse_padding("padding 0")
-            return parsed_node
+            return NodeTreeParser.parse_padding("padding 0"), 1
 
+        # seek
         if stripped.startswith("seek "):
-            parsed_node = NodeTreeParser.parse_seek(line)
-            return parsed_node
+            return NodeTreeParser.parse_seek(raw), 1
 
-        if line.startswith("if "):
-            parsed_node, consumed = NodeTreeParser.parse_if(lines, idx, anon_counter)
-            return parsed_node, consumed
+        # uncompress
+        if stripped.startswith("uncompress "):
+            return NodeTreeParser.parse_uncompress(lines, idx, ctx)
 
-        parsed_node = NodeTreeParser.parse_line_to_node(line, anon_counter)
-        return parsed_node, 1
+        # bitmask
+        if stripped.startswith("bitmask "):
+            return NodeTreeParser.parse_bitmask(lines, idx, ctx)
 
-    
-    
-    @staticmethod
-    def count_size_of_block_structure(lines: list, start_idx: int) -> tuple[int, list[str]]:
-        """
-        Counts how many lines belong to the current block based on indentation.
-        Returns (number of lines, list of block lines with original indentation preserved).
-        """
-        block_lines = []
-        base_indent = len(re.match(r"^\s*", lines[start_idx])[0])
-        i = start_idx + 1
+        # randseq_bits
+        if stripped.startswith("randseq_bits"):
+            return NodeTreeParser.parse_randseq_bits(lines, idx, ctx)
 
-        while i < len(lines):
-            line = lines[i]
-            if not line.strip():
-                i += 1
-                continue
+        # randseq
+        if stripped.startswith("randseq "):
+            return NodeTreeParser.parse_randseq(lines, idx, ctx)
 
-            current_indent = len(re.match(r"^\s*", line)[0])
+        # loop
+        if stripped.startswith("loop "):
+            return NodeTreeParser.parse_loop(lines, idx, ctx)
 
-            if current_indent <= base_indent:
-                break
+        # nested if
+        if stripped.startswith("if "):
+            return NodeTreeParser.parse_if(lines, idx, ctx)
 
-            block_lines.append(line)  # BEHÅLL original (med whitespace!)
-            i += 1
+        # normal struct
+        return NodeTreeParser.parse_line_to_node(raw, ctx), 1
 
-        return i - start_idx - 1, block_lines
+    # =====================================================================
+    # IF / ELIF / ELSE
+    # =====================================================================
 
     @staticmethod
-    def parse_if(lines: list, start_idx: int, anon_counter: int):
+    def parse_if(lines, start_idx, ctx):
         base_indent = len(re.match(r"^\s*", lines[start_idx])[0])
-        line = lines[start_idx].strip()
-        
-        if not line.startswith("if "):
-            Logger.warning(f"Expected 'if' statement at line {start_idx}: {line}")
-            return None, 1
+        header = lines[start_idx].strip()
 
-        condition = line[3:].rstrip(":").strip()
+        condition = header[3:].rstrip(":").strip()
+
         true_branch = []
         false_branch = []
         elif_branches = []
 
-        i = start_idx + 1
         current_branch = true_branch
         current_condition = condition
-        seen_first = False
 
-        while i < len(lines):
-            raw_line = lines[i]
-            line = raw_line.strip()
+        i = start_idx + 1
+        total = len(lines)
 
-            if not line:
+        while i < total:
+            raw = lines[i]
+            stripped = raw.strip()
+
+            if not stripped:
                 i += 1
                 continue
 
-            indent = len(re.match(r"^\s*", raw_line)[0])
+            indent = len(re.match(r"^\s*", raw)[0])
 
-            if indent < base_indent:
+            # ---------- FIX: only deeper indent belongs to IF block ----------
+            if indent <= base_indent:
                 break
-            elif indent == base_indent:
-                if line.startswith("elif "):
-                    if seen_first:
-                        elif_branches.append((current_condition, current_branch))
-                    else:
-                        seen_first = True
-                    current_condition = line[5:].rstrip(":").strip()
-                    current_branch = []
-                    i += 1
-                    continue
-                elif line.startswith("else"):
-                    if seen_first:
-                        elif_branches.append((current_condition, current_branch))
-                    else:
-                        seen_first = True
-                    current_condition = "else"
-                    current_branch = false_branch
-                    i += 1
-                    continue
-                else:
-                    break
 
-            # --- Här byter vi till parse_struct_or_if ---
-            parsed_node, consumed = NodeTreeParser.parse_struct_or_if(lines, i, anon_counter)
-            if parsed_node:
-                current_branch.append(parsed_node)
+            # ---------- elif ----------
+            if stripped.startswith("elif ") and indent == base_indent:
+                current_branch = []
+                current_condition = stripped[5:].rstrip(":").strip()
+                elif_branches.append((current_condition, current_branch))
+                i += 1
+                continue
+
+            # ---------- else ----------
+            if stripped.startswith("else") and indent == base_indent:
+                current_condition = "else"
+                current_branch = false_branch
+                i += 1
+                continue
+
+            # ---------- child inside IF ----------
+            if "=" in stripped and not stripped.startswith("if "):
+                parsed = NodeTreeParser.parse_variable(stripped, ctx)
+                ctx.variables[parsed.name] = parsed
+                current_branch.append(parsed)
+                i += 1
+                continue
+
+            parsed, consumed = NodeTreeParser.parse_struct_or_if(lines, i, ctx)
+            if parsed:
+                current_branch.append(parsed)
+
             i += consumed
 
         node = IfNode(
@@ -587,234 +700,247 @@ class NodeTreeParser:
             interpreter="if",
             condition=condition,
             true_branch=true_branch,
-            false_branch=false_branch if false_branch else None,
-            elif_branches=elif_branches if elif_branches else None
+            false_branch=false_branch or None,
+            elif_branches=elif_branches or None,
         )
 
-        consumed_lines = i - start_idx
-        return node, consumed_lines
+        return node, i - start_idx
+
+    # =====================================================================
+    # SINGLE-LINE FIELD → NODE
+    # =====================================================================
 
     @staticmethod
-    def parse_line_to_node(line: str, anon_counter: int):
-        """
-        Parses a single line into a BaseNode or VariableNode.
-        """
-
+    def parse_line_to_node(line: str, ctx: ParseContext):
         stripped = line.strip()
+        if not stripped:
+            return None
+
+        # ------------------------------------------------------------
+        # combine syntax:  foo: combine seed
+        # ------------------------------------------------------------
         if ":" in stripped and "combine" in stripped:
             left, rhs = [x.strip() for x in stripped.split(":", 1)]
             parts = rhs.split()
 
             if len(parts) >= 2 and parts[0] == "combine":
-                mask_name = parts[1]  # t.ex. "guid_mask"
+                node = BaseNode()
+                node.name = left
+                node.format = parts[1]
+                node.interpreter = "combine"
+                node.modifiers = []
+                node.encode_modifiers = []
+                node.value = None
+                node.ignore = False
+                return node
 
-                return BaseNode(
-                    name=left,            # "guid"
-                    format=mask_name,     # "guid_mask"
-                    interpreter="combine",
-                    modifiers=[],
-                    encode_modifiers=[],
-                    ignore=False
-                )
-        
-        # Special: Padding
-        if line.strip().startswith("padding "):
-            parsed_node = NodeTreeParser.parse_padding(line)
-            return parsed_node
+        # ------------------------------------------------------------
+        # padding / seek / flushbit
+        # ------------------------------------------------------------
+        if stripped.startswith("padding"):
+            return NodeTreeParser.parse_padding(line)
 
-        if line.strip().startswith("seek "):
-            parsed_node = NodeTreeParser.parse_seek(line)
-            return parsed_node
+        if stripped.startswith("seek "):
+            return NodeTreeParser.parse_seek(line)
 
-        if "+=" in line:
-            name, rest = [x.strip() for x in line.split("+=", 1)]
+        if stripped in ("flushbit", "flushbits"):
+            return NodeTreeParser.parse_padding("padding 0")
+
+        # ------------------------------------------------------------
+        # "+=" append
+        # ------------------------------------------------------------
+        if "+=" in stripped:
+            name, rest = [x.strip() for x in stripped.split("+=", 1)]
             fmt, mods, enc_mods = ModifierUtils.parse_modifiers(rest)
-            name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
 
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="append",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=None,
-                dynamic=False,
-                ignore=ignore,
+            name, ignore, ctx.anon_counter = ParserUtils.check_ignore_and_rename(
+                name, ctx.anon_counter
             )
 
-        # Special: Variable assignment ("=")
-        if "=" in line:
-            name, rest = [x.strip() for x in line.split("=", 1)]
-            fmt, mods, enc_mods = ModifierUtils.parse_modifiers(rest)
-            name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
+            node = BaseNode()
+            node.name = name
+            node.format = fmt
+            node.interpreter = "append"
+            node.modifiers = mods
+            node.encode_modifiers = enc_mods
+            node.value = None
+            node.ignore = ignore
+            return node
 
-            # Slice-variabel
-            if fmt.startswith("€") and "[" in fmt and ":" in fmt:
-                depends_on = fmt.split("[")[0][1:]
-                return VariableNode(
-                    name=name,
-                    raw_value=fmt,
-                    format=fmt,
-                    interpreter="slice",
-                    modifiers=mods,
-                    depends_on=depends_on,
-                    dynamic=True,
-                )
-            else:
-                # Literal variabel
-                try:
-                    int_val = int(fmt)
-                    return VariableNode(
-                        name=name,
-                        raw_value=int_val,
-                        format=None,
-                        interpreter="literal",
-                        modifiers=mods,
-                        depends_on=None,
-                        dynamic=False,
-                    )
-                except ValueError:
-                    return VariableNode(
-                        name=name,
-                        raw_value=fmt,
-                        format=None,
-                        interpreter="literal",
-                        modifiers=mods,
-                        depends_on=None,
-                        dynamic=False,
-                    )
 
-        # Annars normal parsing
-        result = ParserUtils.split_field_definition(line)
-        if not result:
+
+        # ======================================================================
+        # FIELD DEFINITIONS  (name: format modifiers?)
+        # ======================================================================
+        parsed = ParserUtils.split_field_definition(line)
+        if not parsed:
             return None
 
-        name, fmt, mods, enc_mods = result
+        name, fmt, mods, enc_mods = parsed
         mods = NodeTreeParser.expand_combined_bit_modifiers(mods)
-        name, ignore, anon_counter = ParserUtils.check_ignore_and_rename(name, anon_counter)
 
-        # Special: Slice-fält i struct (ex: €name[1:4])
+        name, ignore, ctx.anon_counter = ParserUtils.check_ignore_and_rename(
+            name, ctx.anon_counter
+        )
+
+        # ----------------------------------------------------------------------
+        # field slice: foo: €var[x:y]
+        # ----------------------------------------------------------------------
         if fmt.startswith("€") and "[" in fmt and ":" in fmt:
-            depends_on = fmt.split("[")[0][1:]
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="slice",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=depends_on,
-                dynamic=True,
-                ignore=ignore
-            )
+            # ex: fmt = "€addon_data_start[3:7]"
+            inner = fmt[fmt.index("[")+1 : fmt.rindex("]")]
+            node = SliceNode(name=name, slice_expr=inner)
+            return node
 
-        # Special: Bits-slice (ex: €len1's)
+        # ----------------------------------------------------------------------
+        # dynamic: foo: €len's
+        # ----------------------------------------------------------------------
         if fmt.startswith("€") and fmt.endswith("'s"):
-            depends_on = fmt[1:-2]  # Ta bort € och 's
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="dynamic",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=depends_on,
-                dynamic=True,
-                ignore=ignore
-            )
+            node = BaseNode()
+            node.name = name
+            node.format = fmt
+            node.interpreter = "dynamic"
+            node.modifiers = mods
+            node.encode_modifiers = enc_mods
+            node.depends_on = fmt[1:-2]
+            node.value = None
+            node.ignore = ignore
+            return node
 
-        # Special: Variabel-referens (ex: €seed)
+        # ----------------------------------------------------------------------
+        # var reference: foo: €seed
+        # ----------------------------------------------------------------------
         if fmt.startswith("€"):
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="var",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=fmt[1:],
-                dynamic=True,
-                ignore=ignore
-            )
+            node = BaseNode()
+            node.name = name
+            node.format = fmt
+            node.interpreter = "var"
+            node.modifiers = mods
+            node.encode_modifiers = enc_mods
+            node.depends_on = fmt[1:]
+            node.value = None
+            node.ignore = ignore
+            return node
 
-        # Bitsfält (ex: 7B, B)
-        if any(m.endswith("B") and (m[:-1].isdigit() or m[:-1] == "") for m in mods):
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="bits",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=None,
-                dynamic=False,
-                ignore=ignore
-            )
+        # ----------------------------------------------------------------------
+        # bits fields
+        # ----------------------------------------------------------------------
+        if any(m.endswith("B") or m.endswith("b") for m in mods):
+            node = BaseNode()
+            node.name = name
+            node.format = fmt
+            node.interpreter = "bits"
+            node.modifiers = mods
+            node.encode_modifiers = enc_mods
+            node.value = None
+            node.ignore = ignore
+            return node
 
-        # Bitsfält (ex: 7b, b)
-        if any(m.endswith("b") and (m[:-1].isdigit() or m[:-1] == "") for m in mods):
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="bits",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                depends_on=None,
-                dynamic=False,
-                ignore=ignore
-            )
-
-        # Hantera 'bits' som format
         if fmt == "bits":
-            return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="bits",
-                modifiers=mods, 
-                encode_modifiers=enc_mods,
-                depends_on=None,
-                dynamic=False,
-                ignore=ignore
-            )
+            node = BaseNode()
+            node.name = name
+            node.format = fmt
+            node.interpreter = "bits"
+            node.modifiers = mods
+            node.encode_modifiers = enc_mods
+            node.value = None
+            node.ignore = ignore
+            return node
 
-        # Standard struct
+        # ----------------------------------------------------------------------
+        # packed_guid
+        # ----------------------------------------------------------------------
         if fmt == "packed_guid":
             return PackedGuidNode(
                 name=name,
-                format="",
+                format="packed_guid",
                 interpreter="packed_guid",
-                modifiers=mods,
-                encode_modifiers=enc_mods,
-                ignore=ignore,
-            )
-
-        return BaseNode(
-                name=name,
-                format=fmt,
-                interpreter="struct",
                 modifiers=mods,
                 encode_modifiers=enc_mods,
                 ignore=ignore
             )
 
+        # ----------------------------------------------------------------------
+        # default struct field
+        # ----------------------------------------------------------------------
+        node = BaseNode()
+        node.name = name
+        node.format = fmt
+        node.interpreter = "struct"
+        node.modifiers = mods
+        node.encode_modifiers = enc_mods
+        node.value = None
+        node.ignore = ignore
+        return node
+    
+    
     @staticmethod
-    def expand_combined_bit_modifiers(modifiers: list[str]) -> list[str]:
-        """
-        Split tokens such as '7BI' into ['7B', 'I'] so bit-length and
-        post-modifiers can be processed separately downstream.
-        """
-        if not modifiers:
+    def parse_variable(line: str, ctx: ParseContext):
+        name, expr = [x.strip() for x in line.split("=", 1)]
+
+        # slice-variant: foo = slice[...]
+        if expr.startswith("slice[") and expr.endswith("]"):
+            inner = expr[len("slice["):-1].strip()
+            return SliceNode(name=name, slice_expr=inner)
+
+        # annars vanlig variabel
+        return VariableNode(
+            name=name,
+            raw_value=expr,
+            value=None,
+            interpreter="expr",
+        )
+
+    # =====================================================================
+    # BIT MODIFIER EXPANSION (e.g. "7BI" → ["7B","I"])
+    # =====================================================================
+
+    @staticmethod
+    def expand_combined_bit_modifiers(mods):
+        if not mods:
             return []
 
-        expanded = []
-        for mod in modifiers:
-            if not isinstance(mod, str):
-                expanded.append(mod)
+        out = []
+        for m in mods:
+            if not isinstance(m, str):
+                out.append(m)
                 continue
 
-            match = re.match(r"^(\d+)([Bb])(.*)$", mod)
+            match = re.match(r"^(\d+)([Bb])(.*)$", m)
             if match:
-                expanded.append(f"{match.group(1)}{match.group(2)}")
-                trailing = match.group(3)
-                if trailing:
-                    expanded.extend(list(trailing))
-            else:
-                expanded.append(mod)
+                out.append(f"{match.group(1)}{match.group(2)}")
+                tail = match.group(3)
+                if tail:
+                    out.extend(list(tail))
+                continue
 
-        return expanded
+            out.append(m)
+
+        return out
+    
+    # =====================================================================
+    # EXTERNAL COMPATIBILITY WRAPPER
+    # =====================================================================
+
+    @staticmethod
+    def count_size_of_block_structure(lines, start_idx):
+        """
+        Compatibility wrapper.
+
+        Some older parts of the system may call:
+
+            NodeTreeParser.count_size_of_block_structure(...)
+
+        This now simply forwards to ParserUtils.count_size_of_block_structure.
+        """
+        return ParserUtils.count_size_of_block_structure(lines, start_idx)
+
+
+# ========================================================================
+# EXPORTS
+# ========================================================================
+
+__all__ = [
+    "NodeTreeParser",
+    "ParseContext",
+]

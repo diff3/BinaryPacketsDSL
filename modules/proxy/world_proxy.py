@@ -12,6 +12,7 @@ from utils.OpcodeLoader import load_world_opcodes
 from modules.crypto.ARC4Crypto import Arc4CryptoHandler
 from modules.DslRuntime import DslRuntime
 
+from utils.OpcodesFilter import filter_opcode
 from utils.PacketDump import PacketDump, dump_capture
 
 
@@ -70,16 +71,15 @@ def _get_dsl_runtime():
         version_local = cfg_local["version"]
         try:
             rt = DslRuntime(program_local, version_local, watch=True)
-            rt.load_all()
+            rt.load_runtime_all()          # <-- ändrat här
             _dsl_runtime = rt
             Logger.info(f"[DSL] Runtime ready (watching {program_local}/{version_local})")
         except Exception as e:
             Logger.error(f"[DSL] Failed to init runtime (watch disabled): {e}")
             rt = DslRuntime(program_local, version_local, watch=False)
-            rt.load_all()
+            rt.load_runtime_all()          # <-- och här
             _dsl_runtime = rt
     return _dsl_runtime
-
 
 def dsl_decode(def_name, payload, silent=False):
     """
@@ -135,7 +135,7 @@ class WorldProxy:
 
         self.dump = dump
         self.update = update
-        self.ignored = set(cfg.get("IgnoredWorldOpcodes", []))
+        self.cfg = cfg
 
         # WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, lookup-funktion
         self.client_opcodes, self.server_opcodes, self.world_lookup = load_world_opcodes()
@@ -380,56 +380,31 @@ class WorldProxy:
 
     def handle_dsl_and_dump(self, direction: str, name: str, raw_header: bytes, payload: bytes):
         """
-        DSL-decode + dump:
-        --dump   → captures/
-        --update → protocols/
-        inget    → bara logga JSON
+        Decode DSL once, then:
+        - return decoded (för loggning i forward)
+        - handle dump/update (men ingen vanlig Logger-utskrift)
         """
 
-        # Full rådata (för logg)
-        raw_full = raw_header + payload
-
-        # Decode payload via DSL
         decoded = dsl_decode(name, payload, silent=True)
         safe = to_safe_json(decoded if decoded else {})
 
-        # Logga alltid DSL-resultat (även tomt) för transparens
-        try:
-            Logger.success(f"[DSL] {name}\n{json.dumps(safe, indent=2)}")
-        except Exception:
-            Logger.warning(f"[DSL] {name} (result not serializable)")
+        raw_full = raw_header + payload
 
-        # -------------------------------------------------
-        # UPDATE-LÄGE (skriver till protocols/) — körs även om dump är aktiv.
+        # UPDATE → protocols/
         if self.update:
             try:
-                bin_p, json_p, dbg_p = self.dumper.dump_fixed(
-                    name,
-                    raw_header,     # rätt
-                    payload,        # rätt
-                    safe            # rätt
-                )
-                Logger.success(f"[UPDATE] {name} → {bin_p}")
+                self.dumper.dump_fixed(name, raw_header, payload, safe)
             except Exception as e:
                 Logger.error(f"[UPDATE ERROR] {name}: {e}")
 
-        # DUMP-LÄGE (skriver till captures/) — körs oberoende av update.
+        # DUMP → captures/
         if self.dump:
             try:
-                bin_p, json_p, dbg_p = dump_capture(
-                    name,
-                    raw_header,     # rätt
-                    payload,        # rätt
-                    safe            # rätt
-                )
-                Logger.success(f"[DUMP] {name} → {bin_p}")
+                dump_capture(name, raw_header, payload, safe)
             except Exception as e:
                 Logger.error(f"[DUMP ERROR] {name}: {e}")
 
-        # Om varken update eller dump är aktiva, fortsätt till logg nedan.
-
-        # if decoded:
-            #Logger.success(json.dumps(safe, indent=4))
+        return safe
 
     # ---- S→C -------------------------------------------------------------
 
@@ -437,14 +412,14 @@ class WorldProxy:
         try:
             while True:
                 data = server.recv(4096)
-                print("forward_s2c")
-                print(data)
+                # print("forward_s2c")
+                
                 if not data:
                     break
 
                 # Handshake (okrypterad)
                 if data.startswith(self.HANDSHAKE):
-                    Logger.info("[WorldProxy S→C] HANDSHAKE")
+                    Logger.info("[WorldProxy Server → Client] HANDSHAKE")
                     client.sendall(data)
                     continue
 
@@ -458,19 +433,46 @@ class WorldProxy:
 
                 for raw_header, h, payload in packets:
                     name = self.decode_opcode(h.cmd, "S")
-                    if h.cmd < 0:
-                        Logger.success(f"[WorldProxy S→C] RAW ({h.hex}), size={h.size}")
-                        Logger.success(f"\n{json.dumps(payload, indent=4)}")
+                    opcode_int = h.cmd
+
+                    decoded_safe = self.handle_dsl_and_dump("S", name, raw_header, payload)
+
+                    # Specialfall: handshake/raw utan opcode
+                    if opcode_int < 0:
+                        Logger.success(f"[WorldProxy Server → Client] RAW ({h.hex}), size={h.size}")
+                        Logger.success(f"\n{payload.hex(' ')}")
                         continue
 
-                    if name in self.ignored:
-                        # Hoppa över logg, DSL-dump mm – men FORWADA paketet som vanligt
-                        continue
+                    # Filtrering: vilka opkoder får detaljer?
+                    show_details = filter_opcode(name, opcode_int, self.cfg)
 
-                    Logger.success(f"[WorldProxy S→C] {name} ({h.hex}), size={h.size}")
+                    # RAW-flagga: global toggle
+                    show_raw = bool(self.cfg.get("ShowRawData", False))
 
-                    # DSL + dump (full world-paket)
-                    self.handle_dsl_and_dump("S", name, raw_header, payload)
+                    # Decode once (och dumpa om --dump/--update)
+            
+                    
+                    if show_details:
+                        # Logger.success(json.dumps(decoded_safe, indent=2))
+                        decoded_json = json.dumps(decoded_safe, indent=2)
+                        
+                        if decoded_json == "{}":
+                            decoded_json = ""
+
+                    else:
+                        decoded_json = ""
+
+                    view_json = decoded_json
+
+                    blacklist = cfg.get("BlackListedOpcodes", [])
+                    
+                    if name not in blacklist:
+                        Logger.info(f"[WorldProxy Server → Client] {name} ({h.hex}), size={h.size}{view_json}")
+
+                    # RAW-data?
+                    if show_details and show_raw:
+                        Logger.info(f"[RAW]\n{payload}")
+
 
                 # Transparent forward
                 client.sendall(data)
@@ -478,7 +480,6 @@ class WorldProxy:
         except Exception as e:
             Logger.success(f"[WorldProxy S→C] RAW ({h.hex}), size={h.size}")
             Logger.success(f"\n{payload}")
-           # Logger.error(f"[WorldProxy S→C] {e}")
 
     # ---- C→S -------------------------------------------------------------
 
@@ -486,14 +487,12 @@ class WorldProxy:
         try:
             while True:
                 data = client.recv(4096)
-                print("forward_c2s")
-                print(data)
                 if not data:
                     break
 
                 # Handshake
                 if data.startswith(self.HANDSHAKE):
-                    Logger.info("[WorldProxy C→S] HANDSHAKE")
+                    Logger.info("[WorldProxy Client → Server] HANDSHAKE")
                     server.sendall(data)
                     continue
 
@@ -506,19 +505,45 @@ class WorldProxy:
                     packets = self.feed_buffer(buffer, crypto, state["encrypted"], "C")
 
                 for raw_header, h, payload in packets:
-                    if h.cmd < 0:
-                        Logger.info(f"[WorldProxy C→S] RAW ({h.hex}), size={h.size}")
-                        continue
-
                     name = self.decode_opcode(h.cmd, "C")
-                    if name in self.ignored:
-                        # Hoppa över logg, DSL-dump mm – men FORWADA paketet som vanligt
+                    opcode_int = h.cmd
+                    decoded_safe = self.handle_dsl_and_dump("C", name, raw_header, payload)
+                    # Specialfall: handshake/raw utan opcode
+                    if opcode_int < 0:
+                        Logger.success(f"[WorldProxy Client → Server] RAW ({h.hex}), size={h.size}")
+                        Logger.success(f"\n{payload.hex(' ')}")
                         continue
 
-                    Logger.info(f"[WorldProxy C→S] {name} ({h.hex}), size={h.size}, header raw: {raw_header.hex()}")
+                    # Filtrering: vilka opkoder får detaljer?
+                    show_details = filter_opcode(name, opcode_int, self.cfg)
 
-                    # DSL + dump (full world-paket)
-                    self.handle_dsl_and_dump("C", name, raw_header, payload)
+                    # RAW-flagga: global toggle
+                    show_raw = bool(self.cfg.get("ShowRawData", False))
+
+                    # Decode once (och dumpa om --dump/--update)
+                    
+                    
+                    if show_details:
+                        # Logger.success(json.dumps(decoded_safe, indent=2))
+                        decoded_json = json.dumps(decoded_safe, indent=2)
+                        
+                        if decoded_json == "{}":
+                            decoded_json = ""
+
+                    else:
+                        decoded_json = ""
+
+                    view_json = decoded_json
+
+                    blacklist = cfg.get("BlackListedOpcodes", [])
+                    
+                    if name not in blacklist:
+                        Logger.info(f"[WorldProxy Client → Server] {name} ({h.hex}), size={h.size}{view_json}")
+
+                    # RAW-data?
+                    if show_details and show_raw:
+                        Logger.info(f"[RAW]\n{payload}")
+
 
                     # ------------------------------
                     #    C M S G _ A U T H _ S E S S I O N

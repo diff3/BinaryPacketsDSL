@@ -2,6 +2,58 @@
   "map_id": 530,
   "zone_id": 6455,
   "area_id": 3431,
-  "count": 0,
-  "states": []
+  "states": [
+    {
+      "state_id": 104,
+      "value": 578304
+    },
+    {
+      "state_id": 0,
+      "value": 578560
+    },
+    {
+      "state_id": 0,
+      "value": 578816
+    },
+    {
+      "state_id": 0,
+      "value": 579072
+    },
+    {
+      "state_id": 0,
+      "value": 579328
+    },
+    {
+      "state_id": 0,
+      "value": 579584
+    },
+    {
+      "state_id": 0,
+      "value": 594432
+    },
+    {
+      "state_id": 0,
+      "value": 594688
+    },
+    {
+      "state_id": 0,
+      "value": 594944
+    },
+    {
+      "state_id": 0,
+      "value": 595200
+    },
+    {
+      "state_id": 3840,
+      "value": 637696
+    },
+    {
+      "state_id": 3840,
+      "value": 638208
+    },
+    {
+      "state_id": 0,
+      "value": 638720
+    }
+  ]
 }

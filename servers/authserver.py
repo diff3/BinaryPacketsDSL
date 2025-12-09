@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Minimal standalone authentication server used for debugging, replay testing,
-and reverse-engineering of the MoP 5.4.8 login flow.
-
-Responsibilities:
-    • Accept incoming TCP connections on the auth port.
-    • Decode incoming DSL-defined packets using the NodeTree + DecoderHandler.
-    • Dispatch opcodes to dynamically resolved handlers (AuthHandler).
-    • Encode and return server responses.
-    • Maintain predictable, synchronous behaviour for testing.
-"""
 
 import socket
 import signal
@@ -47,7 +36,7 @@ running = True
 runtime = None
 
 
-# ---- Signal handling ---------------------------------------------------
+# ---- Signal handling ----------------------------------------------------
 
 def sigint(sig, frame):
     """Gracefully stop authserver on Ctrl+C."""
@@ -56,7 +45,18 @@ def sigint(sig, frame):
     running = False
 
 
-# ---- Client session handler --------------------------------------------
+# ---- Utility helpers ----------------------------------------------------
+
+def safe_decode(direction: str, name: str, payload: bytes):
+    """Decode DSL packets without crashing handler logic."""
+    try:
+        runtime.decode(name, payload, silent=True)
+    except Exception as exc:
+        Logger.error(f"{direction}: decode failed for {name}: {exc}")
+        Logger.error(traceback.format_exc())
+
+
+# ---- Client session handler ---------------------------------------------
 
 def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
     """Handle a single authentication client connection."""
@@ -73,19 +73,13 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
             opcode_name = AUTH_CLIENT_OPCODES.get(opcode)
 
             Logger.info("Direction: Client --> Server")
+            Logger.info(f"Raw: {data.hex().upper()}")
 
             if opcode_name is None:
                 Logger.warning(f"{addr}: Unknown opcode 0x{opcode:02X}")
-                Logger.info(f"Raw: {data.hex().upper()}")
                 break
 
-            try:
-                Logger.info(f"Raw: {data.hex().upper()}")
-                runtime.decode(opcode_name, data, silent=True)
-
-            except Exception as exc:
-                Logger.error(f"{addr}: DSL decode failed: {exc}")
-                Logger.error(traceback.format_exc())
+            safe_decode("Client", opcode_name, data)
 
             handler = opcode_handlers.get(opcode_name)
             if handler is None:
@@ -104,23 +98,23 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
                 break
 
             if not response:
-                Logger.info(f"{addr}: No response from handler")
+                Logger.info(f"{addr}: Handler returned no response")
                 continue
 
+            server_op = response[0]
+            server_name = AUTH_SERVER_OPCODES.get(server_op)
+
+            Logger.info("Direction: Client <-- Server")
+            Logger.info(f"Raw: {response.hex().upper()}")
+
+            if server_name:
+                safe_decode("Server", server_name, response)
+
             try:
-                server_op = response[0]
-                server_name = AUTH_SERVER_OPCODES.get(server_op)
-
-                Logger.info("Direction: Client <-- Server")
-
-                runtime.decode(server_name, response, silent=True)
-
-                Logger.info(f"Raw: {response.hex().upper()}")
-
+                sock.send(response)
             except Exception as exc:
-                Logger.error(f"DSL decode failed on server packet: {exc}")
-
-            sock.send(response)
+                Logger.error(f"{addr}: Failed to send response: {exc}")
+                break
 
     except Exception as exc:
         Logger.error(f"{addr}: Unexpected error: {exc}")
@@ -131,10 +125,9 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
         sock.close()
 
 
-# ---- Server loop -------------------------------------------------------
+# ---- Server loop --------------------------------------------------------
 
 def start_server() -> None:
-    """Start the listening loop for incoming authentication connections."""
     global running
 
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -148,13 +141,7 @@ def start_server() -> None:
         try:
             srv.settimeout(1.0)
             sock, addr = srv.accept()
-
-            threading.Thread(
-                target=handle_client,
-                args=(sock, addr),
-                daemon=True
-            ).start()
-
+            threading.Thread(target=handle_client, args=(sock, addr), daemon=True).start()
         except socket.timeout:
             continue
         except Exception as exc:
@@ -165,19 +152,20 @@ def start_server() -> None:
     srv.close()
 
 
-# ---- Main entry --------------------------------------------------------
+# ---- Main entry ---------------------------------------------------------
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint)
 
     try:
-        runtime = DslRuntime(config["program"], config["version"], watch=True)
-        runtime.load_all()
-        Logger.info("[AuthServer] DSL runtime ready (watching defs)")
-    except Exception as exc:
-        Logger.error(f"[AuthServer] Failed to init runtime with watch: {exc}")
+        # AuthServer: ingen JSON, ingen watcher — exakt som proxyn
         runtime = DslRuntime(config["program"], config["version"], watch=False)
-        runtime.load_all()
+        runtime.load_runtime_all()
+        Logger.info("[AuthServer] DSL runtime ready (runtime mode, no JSON)")
+    except Exception as exc:
+        Logger.error(f"[AuthServer] Runtime init failed (runtime mode): {exc}")
+        runtime = DslRuntime(config["program"], config["version"], watch=False)
+        runtime.load_runtime_all()
 
     Logger.info(
         f"{config['friendly_name']} "

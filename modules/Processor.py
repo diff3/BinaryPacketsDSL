@@ -8,10 +8,11 @@ from modules.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
 from utils.Logger import Logger
+from utils.OpcodesFilter import filter_opcode
 
 # GLOBALS
 config = ConfigLoader.load_config()
-ignored = config.get("IgnoredCases", [])
+
 def process_case(program: str, version: str, case: str, require_payload: bool = True) -> tuple[bool, list[str], bytes, object]:
     """
     Load and prepare a packet case for parsing and validation.
@@ -113,8 +114,10 @@ def load_all_cases(program: str, version: str, respect_ignored: bool = True) -> 
             Logger.error(f"Skipping: {case}")
             continue
 
-        if respect_ignored and case in ignored:
-            Logger.warning(f"[{case.upper()}] Skipped (ignored in config)")
+        opcode_name = case
+        opcode_int = None  # Processor.py arbetar ofta med cases utan numeriskt opcode
+
+        if not filter_opcode(opcode_name, opcode_int, config):
             continue
 
         loaded.append((case, def_lines, binary_data, expected))

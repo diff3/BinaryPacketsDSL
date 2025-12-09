@@ -1,10 +1,8 @@
 # CMSG_AUTH_SESSION - Done
 
-# Variable
-addon_data_start = 58
-
 endian: little
 header:
+    addon_data_start = 58
 data:
     randseq 58:
         digest: 14 52 27 12 13 43 44 49 45 28 53 19 29 50 11 51 42 48 10 24
@@ -14,7 +12,7 @@ data:
         addon_size: 54-58
     # Copy addon data
     addon_data_end = €addon_data_start + €addon_size
-    addon_data_raw = raw[€addon_data_start:€addon_data_end]
+    addon_data_raw = slice[€addon_data_start:€addon_data_end]
     addon_data: €addon_data_raw
     user_length: bits, 12BI
     user: €user_length's

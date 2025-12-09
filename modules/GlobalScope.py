@@ -2,15 +2,16 @@
 
 class GlobalScope:
     """
-    Minimal variabelhantering för DSL:
-    - global scope
-    - lokala scopes (stack)
-    - lookup med lokal → global resolution
+    Variabelhantering för DSL:
+    - global_vars: globala variabler
+    - scope_stack: lokala scopes (loop, if-block)
+    - loop_index: håller reda på aktuellt index per loopad lista
     """
 
     def __init__(self):
         self.global_vars = {}     # permanenta variabler
         self.scope_stack = []     # lokala scopes (loop, if-block)
+        self.loop_index = {}      # <-- NY: {"realm_bits": 0, "races": 3, ...}
 
     # -------------------------------------------------
     # GET VARIABLE
@@ -63,9 +64,30 @@ class GlobalScope:
         self.scope_stack.pop()
 
     # -------------------------------------------------
+    # RESET (viktigt inför varje decode)
+    # -------------------------------------------------
+    def reset(self):
+        """Nollställ allt state inför ny decoding."""
+        self.global_vars.clear()
+        self.scope_stack.clear()
+        self.loop_index.clear()     # <-- NYTT
+
+    # -------------------------------------------------
     # DEBUG
     # -------------------------------------------------
     def dump(self):
         print("GLOBAL:", self.global_vars)
         for i, scope in enumerate(self.scope_stack):
             print(f"LOCAL[{i}]:", scope)
+        print("LOOP_INDEX:", self.loop_index)
+
+    def get_all(self):
+        """Return a plain dict of all variables."""
+        return dict(self.global_vars)
+    
+    def set_all(self, mapping):
+        # Runtime-mode: accept and store but do not enforce DSL scoping rules
+        for k, v in mapping.items():
+            self._data[k] = v
+    
+    

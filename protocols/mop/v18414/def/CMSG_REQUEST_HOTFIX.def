@@ -1,0 +1,8 @@
+# CMSG_REQUEST_HOTFIX - Done
+endian: little
+header:
+data:
+    count: B
+    loop €count to €hotfixes
+        tablehash: I
+        recordid: I

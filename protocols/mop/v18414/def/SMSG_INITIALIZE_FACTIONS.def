@@ -4,5 +4,5 @@ header:
 data:
     count: I
 
-    loop 328 to €flag_list:
+    loop loop_until to €flag_list:
         flags: I

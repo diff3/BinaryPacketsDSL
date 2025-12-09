@@ -42,13 +42,15 @@ class AuthProxy:
         self.dumper = PacketDump(f"protocols/{self.program}/{self.version}")
 
         try:
-            self.runtime = DslRuntime(self.program, self.version, watch=True)
-            self.runtime.load_all()
-            Logger.info(f"[AuthProxy] DSL runtime ready (watching {self.program}/{self.version})")
-        except Exception as e:
-            Logger.error(f"[AuthProxy] Runtime init failed, disabling watch: {e}")
+            # Proxy-läge: ingen JSON, ingen watcher
             self.runtime = DslRuntime(self.program, self.version, watch=False)
-            self.runtime.load_all()
+            self.runtime.load_runtime_all()
+            Logger.info(f"[AuthProxy] DSL runtime ready (runtime mode, no JSON)")
+        except Exception as e:
+            Logger.error(f"[AuthProxy] Runtime init failed (runtime mode): {e}")
+            # Fallback – men fortfarande runtime-variant, utan JSON
+            self.runtime = DslRuntime(self.program, self.version, watch=False)
+            self.runtime.load_runtime_all()
 
     # ----------------------------------------------------------------------
 

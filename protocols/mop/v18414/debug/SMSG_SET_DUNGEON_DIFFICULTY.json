@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_SET_DUNGEON_DIFFICULTY",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "83 92 00 00",
+  "raw_opcode_int": 4739,
+  "raw_opcode_hex": "0x1283",
+  "raw_size_int": 4,
+  "raw_size_hex": "0x0004",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 4739,
+  "size_plain": 37507,
+  "size_packed": 4,
+  "payload_len": 4,
+  "size_matches_payload": true,
+  "raw_data_hex": "83 92 00 00 01 00 00 00",
+  "raw_data_bytes": "b'\\x83\\x92\\x00\\x00\\x01\\x00\\x00\\x00'",
+  "hex_spaced": "01 00 00 00",
+  "hex_compact": "01000000",
+  "hex_offsets": [
+    "0000: 01 00 00 00                                      ...."
+  ],
+  "ascii": "....",
+  "bits": "00000001 00000000 00000000 00000000",
+  "size_bytes": 4
+}

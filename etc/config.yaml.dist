@@ -1,11 +1,61 @@
 tool_name: BinaryPacketsDSL
 author: Magnus Pettersson
-version: 0.2.0
-program: custom
-version: 10000
-friendly_name: Custom,
+version: 0.5.0
+program: mop
+version: v18414
+friendly_name: Mist of Pandaria 5.4.8
 
 IgnoredCases:
+  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
+  - SMSG_ADDON_INFO
+
+IgnoredWorldOpcodes:
+  - SMSG_ADDON_INFO
+  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
+  - SMSG_SPLINE_MOVE_UNSET_FLYING
+  - SMSG_ON_MONSTER_MOVE
+  - SMSG_SPELL_GO
+
+authserver:
+  host: 0.0.0.0
+  port: 3722
+
+client:
+  build: 18414        
+  platform: "x86"     
+  os: "Win"          
+  country: "enGB"   
+  timezone: 60      
+  ip: "192.168.11.30"
+
+worldserver:
+  host: 0.0.0.0
+  port: 8085
+
+auth_proxy:
+  listen_host: "0.0.0.0"
+  listen_port: 3722
+  auth_host: "192.168.11.30"
+  auth_port: 3724
+
+world_proxy:
+  listen_host: "0.0.0.0"
+  listen_port: 8084
+  world_host: "192.168.11.30"
+  world_port: 8085
+  
+database:
+  host: 192.168.11.81
+  port: 3306
+  username: root 
+  password: pwd
+  auth_db: skyfire548_auth
+  world_db: skyfire548_world
+  characters_db: skyfire548_characters
+
+crypto:
+  N: 894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7
+  g: 7
 
 Logging:
   # Specify the logging levels as names (comma-separated) or use "All" for all levels.
@@ -22,8 +72,8 @@ Logging:
   # Example:
   #  logging_levels: Information, Success, Debug, Script, Error
   #  logging_levels: All
-  logging_levels:  All
-  logging_file_leves: All
+  logging_levels: All
+  logging_file_levels: All
   log_file: dsl.log
   log_file_unit_test: unit_test.log
 
@@ -36,4 +86,9 @@ Logging:
   se: &se " [%Y-%m-%d %H:%M:%S]"
   none: &none ""
 
-  date_format: *none
+  date_format: *se
+
+authserver:
+  host: "0.0.0.0"
+  port: 3722
+

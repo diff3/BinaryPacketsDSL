@@ -1,0 +1,7 @@
+# SMSG_SPELL_EXECUTE_LOG – MoP v18414 (Packed GUID version)
+endian: little
+header:
+data:
+    casterGUID: I
+    spellID: I
+    flags: B

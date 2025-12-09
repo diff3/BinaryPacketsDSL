@@ -1,1 +1,144 @@
-{}
+{
+  "auth_ok": 1,
+  "realm_count": 1,
+  "realm_meta_data": [
+    {
+      "name_len": 10,
+      "normalized_len": 10,
+      "is_home": 1,
+      "class_count": 11,
+      "unk21": 0,
+      "flag0": 0,
+      "flag1": 0,
+      "flag2": 0,
+      "flag3": 0,
+      "race_count": 15,
+      "empty_bit": 0,
+      "queued": 0
+    }
+  ],
+  "realm": [
+    {
+      "realm_id": 1,
+      "realm_name": "PyPandaria",
+      "normalized_name": "PyPandaria",
+      "races": [
+        {
+          "expansion": 0,
+          "race_id": 6
+        },
+        {
+          "expansion": 0,
+          "race_id": 5
+        },
+        {
+          "expansion": 0,
+          "race_id": 2
+        },
+        {
+          "expansion": 0,
+          "race_id": 7
+        },
+        {
+          "expansion": 3,
+          "race_id": 9
+        },
+        {
+          "expansion": 0,
+          "race_id": 1
+        },
+        {
+          "expansion": 0,
+          "race_id": 8
+        },
+        {
+          "expansion": 4,
+          "race_id": 24
+        },
+        {
+          "expansion": 1,
+          "race_id": 11
+        },
+        {
+          "expansion": 3,
+          "race_id": 22
+        },
+        {
+          "expansion": 1,
+          "race_id": 10
+        },
+        {
+          "expansion": 0,
+          "race_id": 4
+        },
+        {
+          "expansion": 0,
+          "race_id": 3
+        },
+        {
+          "expansion": 4,
+          "race_id": 25
+        },
+        {
+          "expansion": 4,
+          "race_id": 26
+        }
+      ],
+      "classes": [
+        {
+          "expansion": 4,
+          "class_id": 10
+        },
+        {
+          "expansion": 0,
+          "class_id": 1
+        },
+        {
+          "expansion": 0,
+          "class_id": 2
+        },
+        {
+          "expansion": 0,
+          "class_id": 3
+        },
+        {
+          "expansion": 0,
+          "class_id": 4
+        },
+        {
+          "expansion": 0,
+          "class_id": 5
+        },
+        {
+          "expansion": 0,
+          "class_id": 7
+        },
+        {
+          "expansion": 0,
+          "class_id": 8
+        },
+        {
+          "expansion": 0,
+          "class_id": 9
+        },
+        {
+          "expansion": 0,
+          "class_id": 11
+        },
+        {
+          "expansion": 2,
+          "class_id": 6
+        }
+      ],
+      "flag1_int": 0,
+      "expansion_active": 4,
+      "flag2_int": 0,
+      "flag3_int": 0,
+      "expansion_server": 4,
+      "flag4_int": 0,
+      "flag5_int": 0,
+      "flag6_int": 0,
+      "auth_result": 12
+    }
+  ]
+}

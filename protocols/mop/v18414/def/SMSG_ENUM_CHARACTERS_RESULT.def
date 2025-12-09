@@ -38,8 +38,8 @@ data:
         slot: B
         hair_style: B
 
-        if €chars_meta[i].guildguid_2_mask:
-            guildguid_2: B
+        # if €chars_meta[i].guildguid_2_mask:
+           # guildguid_2: B
 
         if €chars_meta[i].guildguid_0_mask:
             guildguid_0: B

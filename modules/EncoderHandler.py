@@ -12,6 +12,20 @@ from modules.Session import get_session
 from modules.ModifierMapping import ModifierInterPreter
 from utils.ConfigLoader import ConfigLoader
 
+def preprocess_condition(expr: str) -> str:
+    """
+    Minimal normalisering av DSL-villkor:
+    - tar bort '€'
+    - gör foo[i].bar → foo[i]["bar"]
+    """
+    if not isinstance(expr, str):
+        return expr
+
+    e = expr.replace("€", "")
+
+    e = re.sub(r"(\w+\[[^\]]+\])\.(\w+)", r'\1["\2"]', e)
+
+    return e
 
 class EncoderHandler:
     """
@@ -76,6 +90,11 @@ class EncoderHandler:
     # ------------------------------------------------------------------
     @staticmethod
     def _expand_loops(flat, fields):
+        """
+        Expand loop-noder till en sekvens av barn-noder, men:
+        - IfNode-barn behålls som struktur (de får bara loop-kontekst)
+        - övriga barn får sitt värde hämtat från respektive entry-dict
+        """
         expanded = []
 
         for n in flat:
@@ -83,10 +102,15 @@ class EncoderHandler:
                 expanded.append(n)
                 continue
 
-            count_key = n.count_from.lstrip("€")
-            count = fields.get(count_key, 0)
+            count_expr = getattr(n, "count_from", "0")
+            count = 0
+            if isinstance(count_expr, str):
+                key = count_expr.lstrip("€")
+                count = fields.get(key, 0)
+            else:
+                count = int(count_expr or 0)
 
-            list_name = n.target
+            list_name = getattr(n, "target", None)
             items = fields.get(list_name, [])
 
             if not isinstance(items, (list, tuple)):
@@ -97,7 +121,6 @@ class EncoderHandler:
                     f"Loop '{list_name}' expects {count} items, got {len(items)}"
                 )
 
-            # expand children into real nodes
             for i in range(count):
                 entry = items[i]
                 if not isinstance(entry, dict):
@@ -105,17 +128,27 @@ class EncoderHandler:
 
                 for child in n.children:
                     clone = copy.deepcopy(child)
-                    cname = clone.name
+
+                    # spara loop-kontekst på noden
+                    setattr(clone, "__loop_entry", entry)
+                    setattr(clone, "__loop_index", i)
+
+                    # IfNode ska INTE kräva value i entry – den styr bara vilka barn som ska encodas
+                    if getattr(clone, "interpreter", None) == "if":
+                        expanded.append(clone)
+                        continue
+
+                    cname = getattr(clone, "name", None)
+
                     if cname not in entry:
                         raise KeyError(f"Loop '{list_name}' item #{i} missing field '{cname}'")
 
+                    # för vanliga fält inside loop: bind värdet direkt
                     clone.value = entry[cname]
-                    # markera som loop-barn så encodern vet att den ska använda node.value
                     setattr(clone, "__is_loop_child", True)
                     expanded.append(clone)
 
         return expanded
-
     # ------------------------------------------------------------------
     # 3. CLEANUP
     # ------------------------------------------------------------------
@@ -129,82 +162,125 @@ class EncoderHandler:
             fmt = getattr(n, "format", None)
             interp = getattr(n, "interpreter", None)
 
-            if interp == "if":
-                # Evaluate condition against fields; include matching branch only.
-                context = context or {}
-                cond = getattr(n, "condition", "")
-                branch = None
-                if cond and EncoderHandler._eval_condition(cond, context):
-                    branch = getattr(n, "true_branch", [])
-                else:
-                    elifs = getattr(n, "elif_branches", None) or []
-                    for c, bnodes in elifs:
-                        if EncoderHandler._eval_condition(c, context):
-                            branch = bnodes
-                            break
-                    if branch is None:
-                        branch = getattr(n, "false_branch", []) or []
+            # ------------------------------
+            # Bygg lokalt context
+            # ------------------------------
+            local_ctx = dict(context or {})
 
-                # Propagate context to nested cleanup
-                branch = branch or []
-                cleaned.extend(EncoderHandler._cleanup(branch, context))
+            loop_entry = getattr(n, "__loop_entry", None)
+            loop_idx = getattr(n, "__loop_index", None)
+
+            if isinstance(loop_entry, dict):
+                local_ctx.update(loop_entry)
+
+            if loop_idx is not None:
+                local_ctx["i"] = loop_idx
+
+            # koppla värdet om det finns i contextet
+            if name and name in local_ctx:
+                n.value = local_ctx[name]
+                setattr(n, "__is_loop_child", True)
+
+            # ============================================================
+            #  IF-BLOCK – med stöd för loop-villkor
+            # ============================================================
+            if interp == "if":
+                cond_raw = getattr(n, "condition", "") or ""
+                cond = preprocess_condition(cond_raw)
+
+                # kan inte evalueras → skippa hela blocket
+                if ("chars_meta" in cond or "[i]" in cond) and "i" not in local_ctx:
+                    continue
+
+                branch = None
+                try:
+                    if cond and EncoderHandler._eval_condition(cond, local_ctx):
+                        branch = getattr(n, "true_branch", [])
+                    else:
+                        elifs = getattr(n, "elif_branches", None) or []
+                        for c_raw, bnodes in elifs:
+                            c = preprocess_condition(c_raw or "")
+                            try:
+                                if EncoderHandler._eval_condition(c, local_ctx):
+                                    branch = bnodes
+                                    break
+                            except Exception:
+                                continue
+                        if branch is None:
+                            branch = getattr(n, "false_branch", []) or []
+                except Exception:
+                    # kunde ej evalueras → skippa blocket helt
+                    continue
+
+                # recurse
+                cleaned.extend(EncoderHandler._cleanup(branch or [], local_ctx))
                 continue
+
+            # ============================================================
+            # SPECIALNODER
+            # ============================================================
             if interp == "bitmask":
                 cleaned.append((n, None, "__bitmask__"))
                 continue
+
             if interp == "padding":
                 cleaned.append((n, None, "__padding__"))
                 continue
+
             if interp == "seek":
                 cleaned.append((n, None, "__seek__"))
                 continue
+
             if interp == "bits" or ("bits" in (n.modifiers if hasattr(n, "modifiers") else [])):
                 cleaned.append((n, name, "__bits__"))
                 continue
 
-            # Släng rent DSL-skräp
             if name == "endian":
                 continue
+
             if interp in ("var", "slice", "append"):
                 continue
+
             if interp == "uncompress":
                 cleaned.append((n, None, "__uncompress__"))
                 continue
+
             if interp == "packed_guid":
                 cleaned.append((n, None, "__packed_guid__"))
                 continue
+
             if interp == "randseq":
                 cleaned.append((n, None, "__randseq__"))
                 continue
+
             if interp == "dynamic" and fmt and fmt.endswith("'s"):
                 cleaned.append((n, name, "__dyn_str__"))
                 continue
+
             if fmt == "R":
                 cleaned.append((n, name, "__rest__"))
                 continue
+
             if fmt is None:
                 continue
 
+            # ============================================================
+            # NORMALA STRUCT-FORMAT
+            # ============================================================
             base_fmt = fmt.split(",")[0].strip()
 
-            # Makron
             if base_fmt == "IH":
                 base_fmt = "I"
 
-            # dynamisk sträng-längd → "s" vid encode
             if base_fmt.startswith("€") and base_fmt.endswith("s"):
                 base_fmt = "s"
 
-            # helt dynamiska numeriska fält (t.ex. €size) skippar vi här
-            # men låt dem passera så att vi kan encoda om värdet finns i fields
             if base_fmt.startswith("€"):
                 base_fmt = base_fmt.lstrip("€")
 
-            # Ogiltiga formatsträngar hoppar vi över här
             if not re.match(r"^\d*[xcbB?hHiIlLqQnNefdspPS]$", base_fmt) and base_fmt not in ("R",):
                 continue
 
-            # "_" i .def → mappar till _1, _2, ... i fields
             if name == "_":
                 underscore_counter += 1
                 name = f"_{underscore_counter}"
@@ -470,11 +546,33 @@ class EncoderHandler:
 
                 bit_mode_lsb = direction == "b"
                 val = fields.get(name, getattr(node, "value", 0))
+
+                # DEFAULT: inga None-bits
+                if val is None:
+                    val = 0
+
+                # list → bit-int
                 if isinstance(val, list):
                     v_int = 0
                     for b in val:
-                        v_int = (v_int << 1) | int(b)
+                        try:
+                            v_int = (v_int << 1) | int(b)
+                        except Exception:
+                            v_int = (v_int << 1) | 0
                     val = v_int
+
+                # str → int
+                if isinstance(val, str):
+                    try:
+                        val = int(val, 0)
+                    except Exception:
+                        val = 0
+
+                # sista safeguard
+                try:
+                    val = int(val)
+                except Exception:
+                    val = 0
 
                 if bit_mode_lsb:
                     for i in range(bit_len):

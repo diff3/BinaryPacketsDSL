@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_SPELL_EXECUTE_LOG",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "D8 20 01 00",
+  "raw_opcode_int": 216,
+  "raw_opcode_hex": "0x00D8",
+  "raw_size_int": 9,
+  "raw_size_hex": "0x0009",
+  "header_mode": "packed",
+  "opcode_plain": 1,
+  "opcode_packed": 216,
+  "size_plain": 8408,
+  "size_packed": 9,
+  "payload_len": 9,
+  "size_matches_payload": true,
+  "raw_data_hex": "D8 20 01 00 80 00 00 00 44 03 00 00 03",
+  "raw_data_bytes": "b'\\xd8 \\x01\\x00\\x80\\x00\\x00\\x00D\\x03\\x00\\x00\\x03'",
+  "hex_spaced": "80 00 00 00 44 03 00 00 03",
+  "hex_compact": "800000004403000003",
+  "hex_offsets": [
+    "0000: 80 00 00 00 44 03 00 00 03                       ....D...."
+  ],
+  "ascii": "....D....",
+  "bits": "10000000 00000000 00000000 00000000 01000100 00000011 00000000 00000000 00000011",
+  "size_bytes": 9
+}

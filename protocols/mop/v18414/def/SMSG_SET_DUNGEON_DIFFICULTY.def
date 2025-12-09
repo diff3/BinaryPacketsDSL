@@ -1,0 +1,7 @@
+# SMSG_SET_DUNGEON_DIFFICULTY - Complete MoP v18414
+endian: little
+header:
+data:
+    difficultyID: I
+    raidDifficultyID: I
+    legacyDifficulty: I
