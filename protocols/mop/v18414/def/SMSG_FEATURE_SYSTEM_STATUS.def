@@ -1,5 +1,6 @@
+# SMSG_FEATURE_SYSTEM_STATUS - Partial, needs testing
 endian: little
-
+header:
 data:
     voice:        I
     browser:      I
@@ -11,4 +12,4 @@ data:
 
     flags1:       I
     flags2:       I
-    flags3:       I
+    flags3:       3B, I

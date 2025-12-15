@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 from utils.ConfigLoader import ConfigLoader
@@ -182,7 +183,10 @@ class PacketDump:
 
     # -----------------------------------------------------
     def dump_fixed(self, case_name: str, raw_header: bytes, payload: bytes, decoded: dict):
-        # bin (disabled: no longer writing bin files)
+        """
+        Write expected JSON/debug under protocols/... (no timestamps).
+        """
+        # bin (disabled)
         bin_path = None
 
         # json
@@ -239,8 +243,16 @@ class PacketDump:
 # CAPTURE DUMPER — always writes into ./captures/
 # ==============================================================
 
-def dump_capture(case_name: str, raw_header: bytes, payload: bytes, decoded: dict):
-    root = Path("misc") / "captures"
+def dump_capture(
+    case_name: str,
+    raw_header: bytes,
+    payload: bytes,
+    decoded: dict,
+    root: str | Path | None = None,
+    ts: int | None = None,
+    debug_only: bool = False,
+):
+    root = Path(root) if root else Path('misc') / 'captures'
     (root / "bin").mkdir(parents=True, exist_ok=True)
     (root / "json").mkdir(parents=True, exist_ok=True)
     (root / "debug").mkdir(parents=True, exist_ok=True)
@@ -258,11 +270,18 @@ def dump_capture(case_name: str, raw_header: bytes, payload: bytes, decoded: dic
     version = cfg.get("version")
 
     # bin (disabled: no longer writing bin files)
-    bin_path = None
-    json_path = root / "json" / f"{case_name}.json"
-    dbg_path = root / "debug" / f"{case_name}.json"
+    # Use timestamped names when provided (focus-dump), otherwise legacy name.
+    ts = ts if ts is not None else None
+    suffix = f"{case_name}.json" if ts is None else f"{case_name}_{ts}.json"
 
-    json_path.write_text(json.dumps(decoded, indent=2))
+    # bin (disabled: no longer writing bin files)
+    bin_path = None
+    json_path = root / "json" / suffix
+    dbg_path = root / "debug" / suffix
+
+    if not debug_only:
+        json_path.write_text(json.dumps(decoded, indent=2))
+
 
     dbg = {
         "name": case_name,

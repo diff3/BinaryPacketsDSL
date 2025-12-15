@@ -1,4 +1,4 @@
-# SMSG_SETUP_CURRENCY
+# SMSG_SETUP_CURRENCY - Partial, needs testing
 endian: little
 header:
     flags: B

@@ -23,14 +23,14 @@ Each binary packet is parsed into a list/tree of nodes.
 Each node contains:
 - `name`: str
 - `format`: str
-- `interpreter`: str (e.g. "struct", "loop", "randseq")
+- `interpreter`: str (e.g. "struct", "loop")
 - `modifiers`: list[str]
 - `offset`: int (filled by extractor)
 - `length`: int (filled by extractor)
 - `raw_data`: bytes
 - `value`: any
 
-Special interpreters like `loop` or `randseq` include:
+Special interpreters like `loop` include:
 - `fields`: list[BaseNode]
 - Additional fields: `count_from`, `source_offset`, etc.
 
@@ -77,7 +77,7 @@ Configuration includes:
 The extractor processes the node tree step-by-step:
 - Resolves variables
 - Reads byte slices
-- Applies interpreters (struct, S, randseq, etc.)
+- Applies interpreters (struct, S, etc.)
 - Applies modifiers in order
 - Fills offset, length, raw_data, value for each node
 

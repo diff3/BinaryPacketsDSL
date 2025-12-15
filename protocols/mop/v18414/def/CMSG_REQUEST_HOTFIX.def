@@ -1,8 +1,8 @@
-# CMSG_REQUEST_HOTFIX - Done
+# CMSG_REQUEST_HOTFIX - Partial (needs more samples)
 endian: little
 header:
 data:
-    count: B
-    loop €count to €hotfixes
-        tablehash: I
-        recordid: I
+    seed: Q
+    # _: 85B    # observed zero padding before IDs
+    loop until_end to ids_list:
+        ids: I

@@ -30,8 +30,8 @@ class ConfigLoader:
         
         if _config is None:
             try:
-                with open(filepath, 'r') as file:
-                    ConfigLoader._config = yaml.safe_load(file)
+                with open(filepath, 'r', encoding="utf-8") as file:
+                    _config = yaml.safe_load(file)
             except FileNotFoundError:
                 raise RuntimeError(f"Configuration file not found at {filepath}.")
             except yaml.YAMLError as e:

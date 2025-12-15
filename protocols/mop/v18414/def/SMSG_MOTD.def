@@ -2,4 +2,6 @@
 endian: little
 header:
 data:
+    meta1: B  
+    meta2: B  
     motd: R, r

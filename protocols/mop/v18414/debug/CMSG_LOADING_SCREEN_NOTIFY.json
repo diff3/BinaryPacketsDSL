@@ -2,8 +2,6 @@
   "name": "CMSG_LOADING_SCREEN_NOTIFY",
   "program": "mop",
   "version": "v18414",
-  "timestamp_ms": null,
-  "timestamp_iso": null,
   "raw_header_hex": "BD BD 00 00",
   "raw_opcode_int": 7613,
   "raw_opcode_hex": "0x1DBD",

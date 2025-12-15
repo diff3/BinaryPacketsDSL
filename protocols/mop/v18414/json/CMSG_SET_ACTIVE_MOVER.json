@@ -1,1 +1,5 @@
-{}
+{
+  "moverGUID": 0,
+  "moverGUID_mask": 32,
+  "ack": 3
+}

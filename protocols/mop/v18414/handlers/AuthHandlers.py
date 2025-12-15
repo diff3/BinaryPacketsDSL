@@ -41,24 +41,6 @@ AUTH_CLIENT_OPCODES, AUTH_SERVER_OPCODES, _ = load_auth_opcodes()
 AUTH_SERVER_OPCODE_BY_NAME = {name: code for code, name in AUTH_SERVER_OPCODES.items()}
 
 
-# ---- Server packet builders ---------------------------------------------
-
-
-
-
-def build_REALM_LIST_S(realm_entries) -> bytes:
-    fields = {
-        "cmd": 0x10,
-        "size": 48,
-        "unk1": 0,
-        "realm_list_size": len(realm_entries),
-        "realmlist": realm_entries,
-        "unk2": 0x10,
-        "unk3": 0x00,
-    }
-    return EncoderHandler.encode_packet("REALM_LIST_S", fields)
-
-
 # ---- DSL decoding ---------------------------------------------------------
 
 def dsl_decode(def_name: str, payload: bytes, silent: bool = False) -> dict:
@@ -76,14 +58,13 @@ def dsl_decode(def_name: str, payload: bytes, silent: bool = False) -> dict:
     return DecoderHandler.decode((name, lines, payload, expected), silent=silent)
 
 
-# ---- AUTH_LOGON_CHALLENGE_C ----------------------------------------------
+# ---- AUTH_LOGON_CHALLENGE ----------------------------------------------
 
-def handle_AUTH_LOGON_CHALLENGE(client_socket, opcode, data: bytes):
+def handle_AUTH_LOGON_CHALLENGE_C(client_socket, opcode, data: bytes):
     cfg = ConfigLoader.load_config()
 
     try:
         decoded = dsl_decode("AUTH_LOGON_CHALLENGE_C", data, silent=True)
-        # Logger.success("AUTH_LOGON_CHALLENGE_C\n" + json.dumps(decoded, indent=4))
     except Exception as exc:
         Logger.error(f"[AUTH_LOGON_CHALLENGE_C] Decode failed: {exc}")
         return 1, None
@@ -141,15 +122,23 @@ def handle_AUTH_LOGON_CHALLENGE(client_socket, opcode, data: bytes):
     }
 
     try:
-        return 0, EncoderHandler.encode_packet("AUTH_LOGON_CHALLENGE_S", fields)
+        return 0, build_AUTH_LOGON_CHALLENGE_S(fields)
     except Exception:
         srp6_sessions.pop(fd, None)
         return 1, None
 
 
-# ---- AUTH_LOGON_PROOF_C --------------------------------------------------
+def build_AUTH_LOGON_CHALLENGE_S(fields: dict) -> bytes:
+    """
+    Encode AUTH_LOGON_CHALLENGE_S using provided fields.
+    Keeps handling logic separate from encoding for reuse and clarity.
+    """
+    return EncoderHandler.encode_packet("AUTH_LOGON_CHALLENGE_S", fields)
 
-def handle_AUTH_LOGON_PROOF(client_socket, opcode, data: bytes):
+
+# ---- AUTH_LOGON_PROOF --------------------------------------------------
+
+def handle_AUTH_LOGON_PROOF_C(client_socket, opcode, data: bytes):
     try:
         decoded = dsl_decode("AUTH_LOGON_PROOF_C", data, silent=True)
         Logger.success("AUTH_LOGON_PROOF_C\n" + json.dumps(decoded, indent=4))
@@ -190,7 +179,7 @@ def handle_AUTH_LOGON_PROOF(client_socket, opcode, data: bytes):
     authenticated_users[fd] = session.username
 
     try:
-        out = EncoderHandler.encode_packet("AUTH_LOGON_PROOF_S", fields)
+        out = build_AUTH_LOGON_PROOF_S(fields)
     except Exception as exc:
         Logger.error(f"[AUTH_LOGON_PROOF_S] Encoding failed: {exc}")
         srp6_sessions.pop(fd, None)
@@ -198,6 +187,13 @@ def handle_AUTH_LOGON_PROOF(client_socket, opcode, data: bytes):
 
     srp6_sessions.pop(fd, None)
     return 0, out
+
+
+def build_AUTH_LOGON_PROOF_S(fields: dict) -> bytes:
+    """
+    Encode AUTH_LOGON_PROOF_S using provided fields.
+    """
+    return EncoderHandler.encode_packet("AUTH_LOGON_PROOF_S", fields)
 
 
 # ---- REALM LIST ----------------------------------------------------------
@@ -253,7 +249,6 @@ def build_realmlist_entries(realms, account_id):
 
     return entries
 
-
 def handle_REALM_LIST_C(client_socket, opcode, data: bytes):
     try:
         decoded = dsl_decode("REALM_LIST_C", data, silent=True)
@@ -286,6 +281,18 @@ def handle_REALM_LIST_C(client_socket, opcode, data: bytes):
         Logger.error(f"[REALM_LIST_S] Encoding failed: {exc}")
         Logger.error(traceback.format_exc())
         return 1, None
+
+def build_REALM_LIST_S(realm_entries) -> bytes:
+    fields = {
+        "cmd": 0x10,
+        "size": 48,
+        "unk1": 0,
+        "realm_list_size": len(realm_entries),
+        "realmlist": realm_entries,
+        "unk2": 0x10,
+        "unk3": 0x00,
+    }
+    return EncoderHandler.encode_packet("REALM_LIST_S", fields)
 
 
 # ---- AUTH_RECONNECT_CHALLENGE -----------------------------------------
@@ -326,10 +333,9 @@ def build_AUTH_RECONNECT_CHALLENGE_S() -> bytes:
 
 # ---- Opcode dispatch -----------------------------------------------------
 
-# Single opcode map; server builders are kept alongside for clarity.
 opcode_handlers = {
-    "AUTH_LOGON_CHALLENGE_C": handle_AUTH_LOGON_CHALLENGE,
-    "AUTH_LOGON_PROOF_C": handle_AUTH_LOGON_PROOF,
+    "AUTH_LOGON_CHALLENGE_C": handle_AUTH_LOGON_CHALLENGE_C,
+    "AUTH_LOGON_PROOF_C": handle_AUTH_LOGON_PROOF_C,
     "REALM_LIST_C": handle_REALM_LIST_C,
     "AUTH_RECONNECT_CHALLENGE_C": handle_AUTH_RECONNECT_CHALLENGE_C,
 }

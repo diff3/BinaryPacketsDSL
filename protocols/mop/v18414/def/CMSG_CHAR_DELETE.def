@@ -1,0 +1,5 @@
+# CMSG_CHAR_DELETE - Partial, needs testing
+endian: little
+header:
+data:
+    char_id: H   # payload 02 05 → 0x0502

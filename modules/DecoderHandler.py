@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.Session import get_session
+from modules.Session import BaseNode, get_session
 from modules.Session import VariableNode
 from modules.ModifierMapping import modifiers_operation_mapping
 import struct
@@ -10,11 +10,70 @@ from utils.Logger import Logger
 import re
 from modules.bitsHandler import BitState
 from utils.DebugHelper import DebugHelper
-from modules.RandseqHandler import handle_randseq, handle_randseq_bits
 import zlib
 
 
 session = get_session()
+
+
+class DecodeState:
+    """
+    Holds both the full decode context (including hidden/internal fields)
+    and the public result that should be returned.
+    """
+    def __init__(self):
+        self.all: dict = {}
+        self.public: dict = {}
+        self.buffer_visibility: dict[str, bool] = {}
+
+    def remember_buffer(self, field, value, public_value=None):
+        name = getattr(field, "name", None)
+        if not name:
+            return
+        self.buffer_visibility[name] = DecoderHandler.is_visible(field)
+        self.set_field(field, value, public_value=public_value)
+
+    def update_buffer(self, name: str, buf, *, force_visible=None):
+        if not name:
+            return
+        # Normalize to list of ints/None
+        if isinstance(buf, (bytes, bytearray)):
+            norm = [b for b in buf]
+        elif isinstance(buf, list):
+            norm = list(buf)
+        else:
+            try:
+                norm = list(buf)
+            except Exception:
+                norm = []
+        self.all[name] = norm
+        session.scope.set(name, norm)
+
+        visible = self.buffer_visibility.get(name, True)
+        if force_visible is not None:
+            visible = force_visible
+        self.buffer_visibility[name] = visible
+
+        if visible:
+            self.public[name] = DecoderHandler.present_buffer(norm)
+        else:
+            self.public.pop(name, None)
+
+    def set_field(self, field, value, *, public_value=None):
+        name = getattr(field, "name", None)
+        if not name or getattr(field, "ignore", False):
+            return
+
+        self.all[name] = value
+        session.scope.set(name, value)
+
+        if DecoderHandler.is_visible(field):
+            if public_value is not None:
+                self.public[name] = public_value
+            else:
+                self.public[name] = value
+        else:
+            self.public.pop(name, None)
 
 
 def preprocess_condition(cond: str):
@@ -23,6 +82,13 @@ def preprocess_condition(cond: str):
     cond = cond.replace("€", "")
     cond = re.sub(r'(\w+\[\w+\])\.(\w+)', r'\1["\2"]', cond)
     return cond
+
+def _lookup_scope_value(scope: dict, key: str):
+    """Lookup helper that prefers provided scope but falls back to session.scope."""
+    if scope and key in scope:
+        return scope.get(key)
+    return session.scope.get(key)
+
 
 def eval_expr(expr: str, scope: dict, raw=None):
     """
@@ -56,7 +122,8 @@ def eval_expr(expr: str, scope: dict, raw=None):
     # --- Replace €var with scope values ---
     def repl_var(m):
         v = m.group(1)
-        return str(scope.get(v, 0))
+        val = _lookup_scope_value(scope, v)
+        return str(val if val is not None else 0)
 
     expr_eval = re.sub(r"€([A-Za-z_]\w*)", repl_var, expr)
 
@@ -67,17 +134,41 @@ def eval_expr(expr: str, scope: dict, raw=None):
     return eval(expr_eval, {"__builtins__": None}, {})
 
 
+
+
 class DecoderHandler:
+
+    @staticmethod
+    def is_visible(field) -> bool:
+        return bool(getattr(field, "visible", True)) and not getattr(field, "ignore", False)
+
+    @staticmethod
+    def present_buffer(buf):
+        out = []
+        for b in buf:
+            if b is None:
+                out.append("??")
+            elif isinstance(b, int):
+                out.append(f"{b & 0xFF:02X}")
+            elif isinstance(b, (bytes, bytearray)) and len(b) > 0:
+                out.append(f"{b[0] & 0xFF:02X}")
+            else:
+                try:
+                    out.append(f"{int(b) & 0xFF:02X}")
+                except Exception:
+                    out.append("??")
+        return "".join(out)
 
     # ===================================================================
     # PROCESS FIELD
     # ===================================================================
     @staticmethod
-    def _process_field(field, raw_data, bitstate, endian, result, target_dict):
+    def _process_field(field, raw_data, bitstate, endian, state: DecodeState):
         """
         Shared logic for all field types.
         Always returns: (field, stored, endian)
         """
+        scope = state.all
 
         # ---------------------------------------------------------
         # Slice node
@@ -95,7 +186,7 @@ class DecoderHandler:
                     if not s:
                         return None
                     # använd DSL-eval här
-                    return eval_expr(s, result, raw_data)
+                    return eval_expr(s, scope, raw_data)
 
                 start = eval_part(parts[0])
                 end   = eval_part(parts[1]) if len(parts) >= 2 else None
@@ -117,7 +208,7 @@ class DecoderHandler:
                 field.raw_offset = start or 0
                 field.processed = True
 
-                result[field.name] = bytes_slice.hex()
+                state.set_field(field, bytes_slice, public_value=bytes_slice.hex())
 
                 # flytta läspositionen fram till end om det finns
                 if end is not None:
@@ -138,16 +229,22 @@ class DecoderHandler:
             raw_expr = field.raw_value
 
             try:
-                val = eval_expr(raw_expr, result, raw_data)
+                val = eval_expr(raw_expr, scope, raw_data)
             except Exception as e:
                 Logger.error(f"Failed evaluating variable '{field.name}' = {raw_expr}: {e}")
                 val = None
 
-            session.scope.set(field.name, val)
             field.value = val
-            result[field.name] = val
+            state.set_field(field, val)
             field.processed = True
 
+            return field, True, endian
+
+        # ---------------------------------------------------------
+        # Debug print (no IO / no result impact)
+        # ---------------------------------------------------------
+        if field.interpreter == "print":
+            field.processed = True
             return field, True, endian
 
         # ---------------------------------------------------------
@@ -165,14 +262,37 @@ class DecoderHandler:
 
             try:
                 # kör nya DSL-eval istället för gamla evaluate_expr
-                val = eval_expr(expr, result, raw_data)
+                val = eval_expr(expr, scope, raw_data)
             except Exception as e:
                 Logger.error(f"Failed evaluating expr for field '{field.name}' = {expr}: {e}")
                 val = None
 
+            for mod in getattr(field, "modifiers", []) or []:
+                func = modifiers_operation_mapping.get(mod)
+                if func is not None:
+                    try:
+                        val = func(val)
+                    except Exception:
+                        pass
+
             field.value = val
-            result[field.name] = val
+            state.set_field(field, val)
             field.processed = True
+            return field, True, endian
+
+        # ---------------------------------------------------------
+        # Buffer allocation / buffer IO
+        # ---------------------------------------------------------
+        if field.interpreter == "buffer_alloc":
+            field = DecoderHandler.handle_buffer_alloc(field, bitstate, state)
+            return field, True, endian
+
+        if field.interpreter == "buffer_io":
+            field = DecoderHandler.handle_buffer_io(field, raw_data, bitstate, state)
+            return field, True, endian
+
+        if field.interpreter == "buffer_assign":
+            field = DecoderHandler.handle_buffer_assign(field, raw_data, bitstate, state, endian)
             return field, True, endian
 
         # ---------------------------------------------------------
@@ -207,17 +327,17 @@ class DecoderHandler:
         # ---------------------------------------------------------
         if field.interpreter == "combine":
             mask_name = field.format
-            mask = DecoderHandler.resolve_variable(mask_name, result)
+            mask = DecoderHandler.resolve_variable(mask_name, scope)
 
             combined = DecoderHandler.combine_generic(
                 target_name=field.name,
                 mask=mask,
-                values=target_dict,
-                result=result
+                values=scope,
+                result=scope
             )
 
             field.value = combined
-            target_dict[field.name] = combined
+            state.set_field(field, combined)
             field.processed = True
             return field, True, endian
 
@@ -225,7 +345,7 @@ class DecoderHandler:
         # Dynamic → convert to struct
         # ---------------------------------------------------------
         if field.interpreter == 'dynamic':
-            length = DecoderHandler.resolve_variable(field.format, result)
+            length = DecoderHandler.resolve_variable(field.format, scope)
             if length is None:
                 Logger.warning(f"Failed to resolve dynamic field: {field.name}")
                 return field, True, endian
@@ -245,8 +365,7 @@ class DecoderHandler:
         if field.format == 'R':
             field = DecoderHandler.handle_read_rest(field, raw_data, bitstate)
             val = DecoderHandler.apply_modifiers(field)
-            if not getattr(field, "ignore", False):
-                target_dict[field.name] = val
+            state.set_field(field, val)
             return field, True, endian
 
         # ---------------------------------------------------------
@@ -254,23 +373,8 @@ class DecoderHandler:
         # ---------------------------------------------------------
         if field.interpreter == 'bits':
             field = DecoderHandler.decode_bits_field(field, raw_data, bitstate)
-            if not getattr(field, "ignore", False):
-                target_dict[field.name] = field.value
+            state.set_field(field, field.value)
             field.processed = True
-            return field, True, endian
-
-        # ---------------------------------------------------------
-        # randseq / randseq_bits
-        # ---------------------------------------------------------
-        if field.interpreter == 'randseq_bits':
-            field = handle_randseq_bits(field, raw_data, target_dict, bitstate)
-            return field, True, endian
-
-        if field.interpreter == 'randseq':
-            if field.name.startswith("randseq_bits"):
-                field = handle_randseq_bits(field, raw_data, target_dict, bitstate)
-            else:
-                field = handle_randseq(field, raw_data, target_dict, bitstate)
             return field, True, endian
 
         # ---------------------------------------------------------
@@ -278,7 +382,7 @@ class DecoderHandler:
         # ---------------------------------------------------------
         
         if field.interpreter == 'loop':
-            DecoderHandler.handle_loop(field, raw_data, bitstate, endian, result, target_dict)
+            DecoderHandler.handle_loop(field, raw_data, bitstate, endian, state)
             field.processed = True
             return field, True, endian
 
@@ -286,7 +390,7 @@ class DecoderHandler:
         # bitmask
         # ---------------------------------------------------------
         if field.interpreter == "bitmask":
-            DecoderHandler.handle_bitmask(field, raw_data, bitstate, endian, result, target_dict)
+            DecoderHandler.handle_bitmask(field, raw_data, bitstate, endian, state)
             field.processed = True
             return field, True, endian
 
@@ -294,7 +398,7 @@ class DecoderHandler:
         # if
         # ---------------------------------------------------------
         if field.interpreter == "if":
-            DecoderHandler.handle_if(field, raw_data, bitstate, endian, result, target_dict)
+            DecoderHandler.handle_if(field, raw_data, bitstate, endian, state)
             field.processed = True
             return field, True, endian
 
@@ -302,7 +406,7 @@ class DecoderHandler:
         # packed_guid
         # ---------------------------------------------------------
         if field.interpreter == "packed_guid":
-            DecoderHandler.handle_packed_guid(field, raw_data, bitstate, target_dict)
+            DecoderHandler.handle_packed_guid(field, raw_data, bitstate, state)
             field.processed = True
             return field, True, endian
 
@@ -310,7 +414,7 @@ class DecoderHandler:
         # uncompress block
         # ---------------------------------------------------------
         if field.interpreter == "uncompress":
-            DecoderHandler.handle_uncompress(field, raw_data, bitstate, endian, result, target_dict)
+            DecoderHandler.handle_uncompress(field, raw_data, bitstate, endian, state)
             field.processed = True
             return field, True, endian
 
@@ -321,14 +425,14 @@ class DecoderHandler:
             field, _, _ = DecoderHandler.decode_struct(field, raw_data, bitstate, endian)
             value = DecoderHandler.apply_modifiers(field)
 
-            prev = target_dict.get(field.name)
+            prev = state.all.get(field.name)
 
             if prev is None:
-                target_dict[field.name] = value
+                state.set_field(field, value)
             elif isinstance(prev, list):
                 prev.append(value)
             else:
-                target_dict[field.name] = [prev, value]
+                state.set_field(field, [prev, value])
 
             field.processed = True
             return field, True, endian
@@ -343,8 +447,7 @@ class DecoderHandler:
 
         field.value = value
 
-        if not getattr(field, "ignore", False):
-            target_dict[field.name] = value
+        state.set_field(field, value)
 
         field.processed = True
         return field, True, endian
@@ -358,7 +461,7 @@ class DecoderHandler:
         raw_data = case[2]
 
         bitstate = BitState()
-        result = {}
+        state = DecodeState()
         endian = '<'
         debug_msg = []
 
@@ -392,12 +495,13 @@ class DecoderHandler:
                 i += 1
                 continue
 
-            if bitstate.offset >= len(raw_data):
+            needs_io = getattr(field, "has_io", True)
+            if needs_io and bitstate.offset >= len(raw_data):
                 Logger.warning(f"Ran out of raw data before field '{getattr(field, 'name', '?')}'")
                 break
             
             field, _, endian = DecoderHandler._process_field(
-                field, raw_data, bitstate, endian, result, result
+                field, raw_data, bitstate, endian, state
             )
 
             fields[i] = field
@@ -406,7 +510,7 @@ class DecoderHandler:
             i += 1
 
         try:
-            json_output = json.dumps(result, indent=4)
+            json_output = json.dumps(state.public, indent=4)
             if not silent:
                 Logger.success(f"{case[0]}\n{json_output}")
         except TypeError:
@@ -436,16 +540,16 @@ class DecoderHandler:
             Logger.debug("Local Scopes: (empty)")
 
         # 3. Dump the RESULT dict (this is the real parsed data)
-        if result:
+        if state.public:
             Logger.debug("Result Fields:")
-            for k, v in result.items():
+            for k, v in state.public.items():
                 Logger.debug(f"    {k} = {v}")
         else:
             Logger.debug("Result Fields: (empty)")
 
         Logger.debug("===================================================")
 
-        return result
+        return state.public
 
     
 
@@ -659,6 +763,160 @@ class DecoderHandler:
             return None
     
     # ===================================================================
+    # BUFFER HELPERS
+    # ===================================================================
+    @staticmethod
+    def _resolve_length_expr(expr, scope):
+        if expr is None:
+            return None
+        cleaned = str(expr).strip()
+        if cleaned.endswith("B"):
+            cleaned = cleaned[:-1]
+        if not cleaned:
+            return None
+        try:
+            return int(cleaned)
+        except ValueError:
+            pass
+        try:
+            return DecoderHandler.resolve_variable(cleaned, scope)
+        except Exception:
+            return None
+
+    @staticmethod
+    def handle_buffer_alloc(field, bitstate, state: DecodeState):
+        raw_expr = getattr(field, "alloc_size_expr", None) or getattr(field, "format", "") or ""
+        size = DecoderHandler._resolve_length_expr(raw_expr, state.all)
+        try:
+            size = int(size or 0)
+        except Exception:
+            size = 0
+        size = max(0, size)
+
+        buf = [None] * size
+        field.value = buf
+        field.raw_offset = bitstate.offset
+        field.raw_length = 0
+        field.raw_data = b""
+        field.processed = True
+
+        state.remember_buffer(field, buf, public_value=DecoderHandler.present_buffer(buf))
+        return field
+
+    @staticmethod
+    def handle_buffer_io(field, raw_data, bitstate, state: DecodeState):
+        buffer_name = getattr(field, "buffer_name", getattr(field, "name", ""))
+        start_idx = getattr(field, "index_start", 0) or 0
+        end_idx = getattr(field, "index_end", start_idx) or start_idx
+        default_len = max(1, end_idx - start_idx + 1)
+
+        size_expr = getattr(field, "io_size_expr", None)
+        size = DecoderHandler._resolve_length_expr(size_expr, state.all)
+        try:
+            size = int(size) if size is not None else default_len
+        except Exception:
+            size = default_len
+
+        size = max(1, size)
+
+        bitstate.align_to_byte()
+        start = bitstate.offset
+        chunk = raw_data[start:start + size]
+        bitstate.advance_to(start + len(chunk), 0)
+
+        field.raw_offset = start
+        field.raw_length = len(chunk)
+        field.raw_data = chunk
+        val_int = chunk[0] if chunk else 0
+        val_mod = val_int
+        for mod in getattr(field, "modifiers", []) or []:
+            func = modifiers_operation_mapping.get(mod)
+            if func is not None:
+                try:
+                    val_mod = func(val_mod)
+                except Exception:
+                    pass
+        field.value = val_mod
+        field.processed = True
+
+        existing = state.all.get(buffer_name)
+        if isinstance(existing, list):
+            buf = existing
+        elif isinstance(existing, (bytes, bytearray)):
+            buf = [b for b in existing]
+        else:
+            buf = []
+
+        required_len = start_idx + 1
+        if required_len > len(buf):
+            buf.extend([None] * (required_len - len(buf)))
+        buf[start_idx] = val_mod
+
+        state.update_buffer(buffer_name, buf, force_visible=None)
+
+        # Optionally expose the IO operation itself
+        pub_val = val_mod if getattr(field, "visibility_prefix", None) == "+" else f"{val_int & 0xFF:02X}"
+        state.set_field(field, val_mod, public_value=pub_val)
+        return field
+
+    @staticmethod
+    def handle_buffer_assign(field, raw_data, bitstate, state: DecodeState, endian="<"):
+        buffer_name = getattr(field, "buffer_name", getattr(field, "name", ""))
+        start_idx = getattr(field, "index_start", 0) or 0
+        end_idx = getattr(field, "index_end", start_idx) or start_idx
+        default_len = max(1, end_idx - start_idx + 1)
+
+        size_expr = getattr(field, "io_size_expr", None)
+        size = DecoderHandler._resolve_length_expr(size_expr, state.all)
+        try:
+            size = int(size) if size is not None else default_len
+        except Exception:
+            size = default_len
+
+        size = max(1, size)
+
+        bitstate.align_to_byte()
+        start = bitstate.offset
+        chunk = raw_data[start:start + size]
+        bitstate.advance_to(start + len(chunk), 0)
+
+        field.raw_offset = start
+        field.raw_length = len(chunk)
+        field.raw_data = chunk
+        val_int = chunk[0] if chunk else 0
+        val_mod = val_int
+        for mod in getattr(field, "modifiers", []) or []:
+            func = modifiers_operation_mapping.get(mod)
+            if func is not None:
+                try:
+                    val_mod = func(val_mod)
+                except Exception:
+                    pass
+        field.value = val_mod
+        field.processed = True
+
+        existing = state.all.get(buffer_name)
+        if isinstance(existing, list):
+            buf = existing
+        elif isinstance(existing, (bytes, bytearray)):
+            buf = [b for b in existing]
+        else:
+            buf = []
+
+        required_len = start_idx + size
+        if required_len > len(buf):
+            buf.extend([None] * (required_len - len(buf)))
+        for i, b in enumerate(chunk):
+            buf[start_idx + i] = val_mod if i == 0 else b
+
+        state.update_buffer(buffer_name, buf, force_visible=None)
+
+        # Optionally expose the IO operation itself
+        pub_val = val_mod if getattr(field, "visibility_prefix", None) == "+" else f"{val_int & 0xFF:02X}"
+        state.set_field(field, val_mod, public_value=pub_val)
+        return field
+    
+    # ===================================================================
     # BITS
     # ===================================================================
     @staticmethod
@@ -697,7 +955,7 @@ class DecoderHandler:
     # ===================================================================
     # LOOP — robust implementation
     # ===================================================================
-    def handle_loop(field, raw_data, bitstate, endian, result, target_dict):
+    def handle_loop(field, raw_data, bitstate, endian, state: DecodeState):
         scope = session.scope
         target_name = field.name
 
@@ -705,26 +963,33 @@ class DecoderHandler:
         # MODE 1: loop until end-of-data
         # ================================================================
         if field.count_from == "until_end":
-            out_list = []
+            out_all = []
+            out_public = []
 
             while bitstate.offset < len(raw_data):
                 before_offset = bitstate.offset
                 before_bit = bitstate.bit_pos
 
-                entry = {}
+                entry_state = DecodeState()
                 success = True
 
-                # process children
-                for child_template in field.children:
-                    child = child_template.copy()
-                    child, _, _ = DecoderHandler._process_field(
-                        child, raw_data, bitstate, endian, result, entry
-                    )
+                scope.push()
+                scope.set("i", len(out_all))
 
-                    # if decode failed (None) → stop scanning
-                    if child.value is None:
-                        success = False
-                        break
+                try:
+                    # process children
+                    for child_template in field.children:
+                        child = child_template.copy()
+                        child, _, _ = DecoderHandler._process_field(
+                            child, raw_data, bitstate, endian, entry_state
+                        )
+
+                        # if decode failed (None) → stop scanning
+                        if child.value is None:
+                            success = False
+                            break
+                finally:
+                    scope.pop()
 
                 # did we fail?
                 if not success:
@@ -738,43 +1003,46 @@ class DecoderHandler:
                     # nothing consumed → infinite loop prevention
                     break
 
-                out_list.append(entry)
+                out_all.append(entry_state.all)
+                out_public.append(entry_state.public)
 
-            target_dict[target_name] = out_list
-            field.value = out_list
+            state.set_field(field, out_all, public_value=out_public)
+            field.value = out_all
             field.processed = True
             return field, True, endian
 
         # ================================================================
         # MODE 2: normal loop with count
         # ================================================================
-        loop_count = DecoderHandler.resolve_variable(field.count_from, result)
+        loop_count = DecoderHandler.resolve_variable(field.count_from, state.all)
 
         # SAFETY: default to 0 on None, invalid, negative, etc.
         if not isinstance(loop_count, int) or loop_count < 0:
             Logger.debug(f"[handle_loop] Invalid count '{field.count_from}' → using 0")
             loop_count = 0
 
-        out_list = []
+        out_all = []
+        out_public = []
         
         for idx in range(loop_count):
             scope.push()
             scope.set("i", idx)
 
-            item = {}
+            entry_state = DecodeState()
 
             for child_template in field.children:
                 child = child_template.copy()
 
                 child, _, _ = DecoderHandler._process_field(
-                    child, raw_data, bitstate, endian, result, item
+                    child, raw_data, bitstate, endian, entry_state
                 )
 
-            out_list.append(item)
+            out_all.append(entry_state.all)
+            out_public.append(entry_state.public)
             scope.pop()
 
-        target_dict[target_name] = out_list
-        field.value = out_list
+        state.set_field(field, out_all, public_value=out_public)
+        field.value = out_all
         field.processed = True
         return field, True, endian
 
@@ -782,7 +1050,7 @@ class DecoderHandler:
     # BITMASK
     # ===================================================================
     @staticmethod
-    def handle_bitmask(field, raw_data, bitstate, endian, result, target_dict):
+    def handle_bitmask(field, raw_data, bitstate, endian, state: DecodeState):
         start_off = bitstate.offset
         start_bit = bitstate.bit_pos
         total_bits = getattr(field, "size", 0)
@@ -795,10 +1063,10 @@ class DecoderHandler:
         child_state.offset = start_off
         child_state.bit_pos = start_bit
 
-        tmp = {}
+        tmp_state = DecodeState()
         for child_template in field.children:
             child = child_template.copy()
-            DecoderHandler._process_field(child, raw_data, child_state, endian, result, tmp)
+            DecoderHandler._process_field(child, raw_data, child_state, endian, tmp_state)
             DebugHelper.trace_field(field, bitstate, label_prefix=field.name)
 
         bitstate.advance_to(end_off, end_bit)
@@ -806,10 +1074,8 @@ class DecoderHandler:
         field.raw_offset = start_off
         field.raw_length = end_off - start_off + (1 if end_bit > 0 else 0)
         field.raw_data = raw_data[start_off:start_off + field.raw_length]
-        field.value = tmp
-
-        if not getattr(field, "ignore", False):
-            target_dict[field.name] = tmp
+        field.value = tmp_state.public
+        state.set_field(field, tmp_state.public)
 
         return field, True, endian
 
@@ -818,7 +1084,7 @@ class DecoderHandler:
     # ===================================================================
 
     @staticmethod
-    def _eval_condition_var(cond: str, result: dict) -> bool:
+    def _eval_condition_var(cond: str, state_data: dict) -> bool:
         """
         Enkel sanningskoll på ett '€var'-liknande uttryck, t.ex:
           €success
@@ -830,25 +1096,25 @@ class DecoderHandler:
         if not cond:
             return False
         # DSL villkor skrivs som '€var...' — låt resolve_variable göra all magi
-        val = DecoderHandler.resolve_variable(cond, result)
+        val = DecoderHandler.resolve_variable(cond, state_data)
 
         # Om resolve_variable inte hittar något → villkoret är falskt
         return bool(val)
 
     @staticmethod
-    def handle_if(field, raw_data, bitstate, endian, result, target_dict):
+    def handle_if(field, raw_data, bitstate, endian, state: DecodeState):
         scope = session.scope
 
         branch = None
 
         # huvud-villkoret
-        if DecoderHandler._eval_condition_var(field.condition, result):
+        if DecoderHandler._eval_condition_var(field.condition, state.all):
             branch = field.true_branch
         else:
             # ev. elif-grenar
             if field.elif_branches:
                 for cond, nodes in field.elif_branches:
-                    if DecoderHandler._eval_condition_var(cond, result):
+                    if DecoderHandler._eval_condition_var(cond, state.all):
                         branch = nodes
                         break
 
@@ -861,7 +1127,7 @@ class DecoderHandler:
             for child_template in (branch or []):
                 child = child_template.copy()
                 DecoderHandler._process_field(
-                    child, raw_data, bitstate, endian, result, target_dict
+                    child, raw_data, bitstate, endian, state
                 )
                 DebugHelper.trace_field(child, bitstate)
         finally:
@@ -914,7 +1180,7 @@ class DecoderHandler:
     # PACKED GUID
     # ===================================================================
     @staticmethod
-    def handle_packed_guid(field, raw_data, bitstate, target_dict):
+    def handle_packed_guid(field, raw_data, bitstate, state: DecodeState):
         bitstate.align_to_byte()
         start = bitstate.offset
         if start >= len(raw_data):
@@ -940,9 +1206,18 @@ class DecoderHandler:
         field.raw_offset = start
         field.raw_length = offset - start
         field.raw_data = raw_data[start:offset]
+        setattr(field, "mask", mask)
 
-        if not getattr(field, "ignore", False):
-            target_dict[field.name] = guid
+        state.set_field(field, guid)
+        mask_field = BaseNode(
+            name=f"{field.name}_mask",
+            format="B",
+            interpreter="struct",
+            ignore=getattr(field, "ignore", False),
+            visible=getattr(field, "visible", True),
+            payload=getattr(field, "payload", True),
+        )
+        state.set_field(mask_field, mask)
 
         return field, True, '<'
 
@@ -950,7 +1225,7 @@ class DecoderHandler:
     # UNCOMPRESS
     # ===================================================================
     @staticmethod
-    def handle_uncompress(field, raw_data, bitstate, endian, result, target_dict):
+    def handle_uncompress(field, raw_data, bitstate, endian, state: DecodeState):
         algo = (field.algo or "").lower()
         length_expr = field.length_expr
 
@@ -964,7 +1239,7 @@ class DecoderHandler:
             try:
                 length = int(expr)
             except ValueError:
-                length = DecoderHandler.resolve_variable(expr, result)
+                length = DecoderHandler.resolve_variable(expr, state.all)
 
         if length is None:
             length = len(raw_data) - bitstate.offset
@@ -985,7 +1260,7 @@ class DecoderHandler:
         child_state = BitState()
         for child_template in field.children:
             child = child_template.copy()
-            DecoderHandler._process_field(child, inflated, child_state, endian, result, target_dict)
+            DecoderHandler._process_field(child, inflated, child_state, endian, state)
             DebugHelper.trace_field(field, bitstate, label_prefix=field.name)
 
         field.raw_data = comp

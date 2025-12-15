@@ -6,6 +6,7 @@ import json
 import socket
 import threading
 import traceback
+import time
 
 from modules.DslRuntime import DslRuntime
 
@@ -25,7 +26,7 @@ class AuthProxy:
       • Dump/update: sparar EN fil per opcode, aldrig timestampade.
     """
 
-    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False):
+    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False, focus_dump=None):
         self.listen_host = listen_host
         self.listen_port = listen_port
         self.auth_host = auth_host
@@ -33,7 +34,7 @@ class AuthProxy:
 
         self.dump = dump       # dump → captures/<opcode>.*
         self.update = update   # update → protocols/<version>/<opcode>.*
-
+        self.focus_dump = focus_dump
         self.client_opcodes, self.server_opcodes, self.lookup = load_auth_opcodes()
         self.program = cfg["program"]
         self.version = cfg["version"]
@@ -124,34 +125,33 @@ class AuthProxy:
                     try:
                         case_name = name
                         decoded = self.runtime.decode(name, buf, silent=True)
-                        # Logga alltid DSL-resultat (även tomt)
                         Logger.success(f"[DSL] {case_name}\n{json.dumps(decoded, indent=2)}")
 
-                        # authpacket = opcode byte + payload
                         raw_header = buf[:1]
                         payload    = buf[1:]
 
-                        # -----------------------------------
-                        # UPDATE → protocols/<version>/
-                        # -----------------------------------
-                        if self.update:
+                        focus_ok = (self.focus_dump is None) or (case_name in self.focus_dump)
+
+                        if self.update and focus_ok:
                             bin_p, json_p, dbg_p = self.dumper.dump_fixed(
                                 case_name,
-                                raw_header,     # korrekt
-                                payload,        # korrekt
-                                decoded         # korrekt
+                                raw_header,
+                                payload,
+                                decoded
                             )
                             Logger.success(f"[UPDATE] {case_name}")
 
-                        # -----------------------------------
-                        # DUMP → captures/
-                        # -----------------------------------
-                        if self.dump:
+                        if self.dump and focus_ok:
+                            root = 'misc/captures/focus' if self.focus_dump else None
+                            ts = int(time.time()) if self.focus_dump else None
                             bin_p, json_p, dbg_p = dump_capture(
                                 case_name,
-                                raw_header,     # korrekt
-                                payload,        # korrekt
-                                decoded         # korrekt
+                                raw_header,
+                                payload,
+                                decoded,
+                                root=root,
+                                ts=ts,
+                                debug_only=bool(self.focus_dump)
                             )
                             Logger.success(f"[DUMP] {case_name}")
                         

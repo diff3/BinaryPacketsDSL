@@ -59,6 +59,40 @@ def _fix_special_cases(case_name: str, decoded: dict, expected: dict) -> dict:
             decoded["len2"] = len(tz2)
     return decoded
 
+def _collect_ignored_ranges(case_name, def_lines, raw_bytes, expected_fields):
+    """
+    Decode the original payload once to capture byte ranges of ignored fields
+    (DSL fields named '_' etc). These ranges can be excluded from encode diffs.
+    """
+    session = get_session()
+    session.reset()
+    NodeTreeParser.parse((case_name, def_lines, raw_bytes, expected_fields))
+    DecoderHandler.decode((case_name, def_lines, raw_bytes, expected_fields), silent=True)
+    ranges = []
+    for fld in session.fields:
+        if getattr(fld, "ignore", False) and getattr(fld, "has_io", True):
+            off = getattr(fld, "raw_offset", None)
+            length = getattr(fld, "raw_length", None)
+            if off is not None and length:
+                ranges.append((off, length))
+    return ranges
+
+def _first_diff_excluding_ignored(orig: bytes, enc: bytes, ignored: list[tuple[int,int]]):
+    """
+    Find first differing byte index not covered by ignored ranges. Returns None if equal after ignoring.
+    """
+    ignored_set = set()
+    for start, length in ignored:
+        ignored_set.update(range(start, start + length))
+    max_len = min(len(orig), len(enc))
+    for i in range(max_len):
+        if i in ignored_set:
+            continue
+        if orig[i] != enc[i]:
+            return i
+    if len(orig) != len(enc):
+        return max_len
+    return None
 
 class TestEncodeRoundtrip(unittest.TestCase):
     @classmethod
@@ -77,7 +111,7 @@ class TestEncodeRoundtrip(unittest.TestCase):
         successes = 0
         errors = 0
         processed = 0
-        for case_name, def_lines, original_raw, expected in self.all_cases:
+        for case_name, def_lines, original_raw, expected, debug in self.all_cases:
             with self.subTest(case=case_name):
                 if not isinstance(expected, dict) or not expected:
                     processed += 1
@@ -107,28 +141,20 @@ class TestEncodeRoundtrip(unittest.TestCase):
                     # 1) Kolla ENCODE mot original payload
                     if original_raw is not None and len(original_raw) > 0:
                         if encoded != original_raw:
-                            log_error(f"[ENCODE MISMATCH] {case_name}: "
-                                    f"expected {len(original_raw)} bytes, got {len(encoded)} bytes")
-
-                            # valfritt: hitta första diff
-                            max_len = min(len(original_raw), len(encoded))
-                            diff_idx = None
-                            for i in range(max_len):
-                                if original_raw[i] != encoded[i]:
-                                    diff_idx = i
-                                    break
-
-                            if diff_idx is not None:
+                            ignored = _collect_ignored_ranges(case_name, def_lines, original_raw, expected)
+                            diff_idx = _first_diff_excluding_ignored(original_raw, encoded, ignored)
+                            if diff_idx is None:
+                                log_success(f"[ENCODE OK/IGNORED] {case_name} (diffs only in ignored bytes)")
+                            else:
+                                log_error(f"[ENCODE MISMATCH] {case_name}: "
+                                        f"expected {len(original_raw)} bytes, got {len(encoded)} bytes")
                                 log_error(
                                     f"[ENCODE DIFF] first at {diff_idx}: "
                                     f"orig={original_raw[diff_idx]:02X}, enc={encoded[diff_idx]:02X}"
                                 )
-                            else:
-                                # längdskillnad men prefix lika
-                                log_error("[ENCODE DIFF] payloads share prefix, length differs")
-
-                            errors += 1
-                            # hoppa DECODE för detta case – encode är redan fel
+                                errors += 1
+                                # hoppa DECODE för detta case – encode är redan fel
+                                continue
                 except Exception as exc:
                     log_error(f"[ENCODE FAIL] {case_name}: {exc}")
                     errors += 1

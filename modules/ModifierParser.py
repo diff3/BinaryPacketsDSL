@@ -90,8 +90,11 @@ class ModifierUtils:
                                          f"Use '<n>B', '<n>BI', '<n>b', or '<n>bI'.")
             else:
                 # Non-bits mode: allow one-letter ops (s,M,I,H,U,u,t,W,...) and also glued strings like 'sM'.
+                # Named tokens with ':' or '=' (e.g. mask=0xEB) are kept intact.
                 # We do NOT allow plain 'B'/'b' as modifiers here; 'B' as a *format* is fine (fmt="B").
-                if len(seg) == 1:
+                if ":" in seg or "=" in seg:
+                    tokens.append(seg.replace(" ", ""))
+                elif len(seg) == 1:
                     tokens.append(seg)
                 else:
                     # If it's a bit token by mistake, let the caller error out in parse_modifiers.

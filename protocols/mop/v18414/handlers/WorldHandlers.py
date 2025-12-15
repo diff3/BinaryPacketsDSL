@@ -193,13 +193,17 @@ def handle_CMSG_AUTH_SESSION(sock, opcode: int, payload: bytes) -> Tuple[int, Op
     # Stage 1 → send full init stream for char screen
     server_packets = [
         "SMSG_AUTH_RESPONSE",
-        "SMSG_ACCOUNT_DATA_TIMES",
+        "SMSG_ADDON_INFO",
         "SMSG_CLIENTCACHE_VERSION",
+        "SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE",
+        "SMSG_TUTORIAL_FLAGS",
+        "SMSG_SET_TIME_ZONE_INFORMATION",
+        "SMSG_ACCOUNT_DATA_TIMES",
         "SMSG_FEATURE_SYSTEM_STATUS",
         "SMSG_MOTD",
-        "SMSG_TUTORIAL_FLAGS",
         "SMSG_TIME_SYNC_REQUEST",
     ]
+
     raw = _concat_raw(server_packets)
     return 0, raw
 

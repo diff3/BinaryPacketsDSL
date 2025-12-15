@@ -5,6 +5,7 @@ import socket
 import threading
 import importlib
 import json
+import time
 
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
@@ -127,7 +128,7 @@ class WorldProxy:
 
     HANDSHAKE = b"0\x00WORLD OF WARCRAFT CONNECTION"
 
-    def __init__(self, listen_host, listen_port, world_host, world_port, dump=False, update=False):
+    def __init__(self, listen_host, listen_port, world_host, world_port, dump=False, update=False, focus_dump=None):
         self.listen_host = listen_host
         self.listen_port = listen_port
         self.world_host = world_host
@@ -135,6 +136,7 @@ class WorldProxy:
 
         self.dump = dump
         self.update = update
+        self.focus_dump = set(focus_dump) if focus_dump else None
         self.cfg = cfg
 
         # WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, lookup-funktion
@@ -390,17 +392,19 @@ class WorldProxy:
 
         raw_full = raw_header + payload
 
-        # UPDATE → protocols/
-        if self.update:
+        focus_ok = (self.focus_dump is None) or (name in self.focus_dump)
+
+        if self.update and focus_ok:
             try:
                 self.dumper.dump_fixed(name, raw_header, payload, safe)
             except Exception as e:
                 Logger.error(f"[UPDATE ERROR] {name}: {e}")
 
-        # DUMP → captures/
-        if self.dump:
+        if self.dump and focus_ok:
             try:
-                dump_capture(name, raw_header, payload, safe)
+                root = 'misc/captures/focus' if self.focus_dump else None
+                ts = int(time.time()) if self.focus_dump else None
+                dump_capture(name, raw_header, payload, safe, root=root, ts=ts, debug_only=bool(self.focus_dump))
             except Exception as e:
                 Logger.error(f"[DUMP ERROR] {name}: {e}")
 
@@ -552,7 +556,7 @@ class WorldProxy:
                         Logger.success("[WorldProxy] CMSG_AUTH_SESSION detected")
 
                         decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=True)
-                        username = decoded_auth.get("user") or decoded_auth.get("username")
+                        username = decoded_auth.get("account") or decoded_auth.get("username")
 
                         if username:
                             acc = DatabaseConnection.get_user_by_username(username.upper())

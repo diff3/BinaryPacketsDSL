@@ -1,0 +1,7 @@
+# CMSG_MESSAGECHAT_SAY - Done
+endian: little
+header:
+data:
+    chat_type: I
+    msg_len: B
+    msg: €msg_len's

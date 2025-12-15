@@ -15,7 +15,7 @@
       "name": "comment.line.number-sign"
     },
     {
-      "match": "^\\s*(endian|header|data|variables|if|randseq)\\s*:",
+      "match": "^\\s*(endian|header|data|variables|if)\\s*:",
       "captures": {
         "1": {
           "name": "keyword.control"

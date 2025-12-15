@@ -1,4 +1,4 @@
-# SMSG_SPELL_EXECUTE_LOG – MoP v18414 (Packed GUID version)
+# SMSG_SPELL_EXECUTE_LOG – Partial, needs testing
 endian: little
 header:
 data:

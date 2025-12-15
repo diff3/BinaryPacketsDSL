@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_CHAR_DELETE",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "9F 2C 00 00",
+  "raw_opcode_int": 3231,
+  "raw_opcode_hex": "0x0C9F",
+  "raw_size_int": 1,
+  "raw_size_hex": "0x0001",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 3231,
+  "size_plain": 11423,
+  "size_packed": 1,
+  "payload_len": 1,
+  "size_matches_payload": true,
+  "raw_data_hex": "9F 2C 00 00 48",
+  "raw_data_bytes": "b'\\x9f,\\x00\\x00H'",
+  "hex_spaced": "48",
+  "hex_compact": "48",
+  "hex_offsets": [
+    "0000: 48                                               H"
+  ],
+  "ascii": "H",
+  "bits": "01001000",
+  "size_bytes": 1
+}

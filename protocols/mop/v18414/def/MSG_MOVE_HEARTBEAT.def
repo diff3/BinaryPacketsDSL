@@ -1,3 +1,5 @@
+# MSG_MOVE_HEARTBEAT - Need more data
 endian: little
 header:
 data:
+    cmd: B

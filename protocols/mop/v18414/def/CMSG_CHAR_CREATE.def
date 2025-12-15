@@ -1,0 +1,15 @@
+# - CMSG_CHAR_CREATE - Partial, needs testing
+endian: little
+header:
+data:
+    unk0:        B        # 0x00
+    race:        B        # 0x07 (Troll)
+    class:       B        # 0x04 (Rogue)
+    gender:      B        # 0x01
+    skin:        B        # 0x06
+    face:        B        # 0x01
+    hair_style:  B        # 0x05
+    hair_color:  B        # 0x00
+    facial_hair: B        # 0x01
+    outfit_id:   B        # 0x10
+    name:        R, r     # resterande bytes = “Thor”

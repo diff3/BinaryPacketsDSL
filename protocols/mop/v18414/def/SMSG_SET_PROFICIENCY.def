@@ -1,6 +1,6 @@
-# SMSG_SET_PROFICIENCY_A - Alternate MoP v18414
+# SMSG_SET_PROFICIENCY - Partial, needs testing 
 endian: little
 header:
 data:
-    subMask: B
     proficiencyMask: I
+    subMask: B

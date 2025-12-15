@@ -20,7 +20,7 @@ This project began as a way to better understand network traffic analysis and de
 
 ## Features
 
-- DSL for describing binary packet layouts (`.def` files)
+- DSL for describing binary packet layouts (`.def` files) with buffer allocations and visibility prefixes
 - Structured extraction to typed nodes
 - YAML-based configuration with overridable CLI parameters
 - Built-in test system using `.bin` and `.json` comparisons
@@ -94,6 +94,7 @@ workon bpdsl
 | -V, --version | Set the program version (e.g., 18414)                        |
 | -s, --silent  | Suppress all console output, still logs to file              |
 | -a, --add     | Create a new, empty packet definition set (requires --program, --version, --file, --bin) |
+| -P, --promote | In focus mode, write decoded output into `protocols/<program>/<version>/json` |
 
 
 
@@ -104,7 +105,7 @@ Each .def file consists of declarative sections:
 - variables: – optional definitions like AUTH_OK = 12
 - endian: – specifies byte order, e.g. little or big
 - header: / data: – the actual packet structure
-- Support for loop, block, if, and randseq control structures
+- Support for loop, block, and if control structures plus buffer IO helpers
 - Optional modifiers like s, M, W, C, B to transform or interpret values
 
 

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from modules.Session import (
-    PacketSession, BaseNode, IfNode, VariableNode, LoopNode,
-    BlockDefinition, get_session, RandSeqNode, BitmaskNode
+    PacketSession, BaseNode, IfNode, LoopNode,
+    BlockDefinition, BitmaskNode
 )
 from utils.Logger import Logger
 
@@ -89,6 +89,8 @@ class SessionPrint:
         fmt = getattr(node, "format", None)
         fmt_text = fmt if fmt is not None else "?"
 
+        flags = SessionPrint._format_flags(node)
+
         # common debug-info (value + raw span om de finns)
         value = getattr(node, "value", None)
         raw_off = getattr(node, "raw_offset", None)
@@ -123,7 +125,7 @@ class SessionPrint:
         # STANDARD NODE HEADER
         # -----------------------
         Logger.to_log(
-            f"{prefix}[{idx}] {name} : {fmt_text} ({interpreter}){mod_str}{span} value={value}"
+            f"{prefix}[{idx}] {name} : {fmt_text} ({interpreter}){mod_str}{span}{flags} value={value}"
         )
 
         # -----------------------
@@ -145,13 +147,6 @@ class SessionPrint:
         # BlockDefinition
         if isinstance(node, BlockDefinition):
             for cidx, child in enumerate(node.nodes, start=1):
-                SessionPrint._print_node(child, cidx, indent + 1)
-            return
-
-        # RandSeqNode
-        if isinstance(node, RandSeqNode):
-            Logger.to_log(f"{prefix}    (RandSeq count={node.count_from})")
-            for cidx, child in enumerate(node.children, start=1):
                 SessionPrint._print_node(child, cidx, indent + 1)
             return
 
@@ -212,3 +207,14 @@ class SessionPrint:
             i += 1
 
         return [len(block_lines), block_lines]
+
+    @staticmethod
+    def _format_flags(node: BaseNode) -> str:
+        """Show visibility/payload/IO flags to reflect new DSL semantics."""
+        vis = "vis" if getattr(node, "visible", True) and not getattr(node, "ignore", False) else "hidden"
+        pay = "payload" if getattr(node, "payload", True) else "no-payload"
+        io = "io" if getattr(node, "has_io", True) else "alloc"
+        prefix = getattr(node, "visibility_prefix", None)
+        if prefix:
+            vis = f"{vis} ({prefix})"
+        return f" [{vis}, {pay}, {io}]"

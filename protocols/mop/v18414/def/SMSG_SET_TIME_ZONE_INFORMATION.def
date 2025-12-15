@@ -2,7 +2,7 @@
 endian: little
 header:
 data:
-    len1: bits, 7BI
-    len2: bits, 7BI
-    time_zone1: €len1's
-    time_zone2: €len2's
+    len1: bits, 7BI | Q
+    len2: bits, 7BI | Q
+    time_zone1: €len1's | MQ
+    time_zone2: €len2's | MQ

@@ -4,3 +4,4 @@ header:
 data:
     cmd: B
     error: B
+    unk0: H 

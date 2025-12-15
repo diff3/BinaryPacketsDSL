@@ -19,7 +19,11 @@ class BaseNode:
         encode_modifiers=None,
         depends_on=None,
         dynamic=False,
-        ignore=False
+        ignore=False,
+        visible=True,
+        payload=True,
+        has_io=True,
+        visibility_prefix=None,
     ):
         self.name = name
         self.format = format
@@ -29,6 +33,10 @@ class BaseNode:
         self.depends_on = depends_on
         self.dynamic = dynamic
         self.ignore = ignore
+        self.visible = visible           # should field appear in decoded result
+        self.payload = payload           # should field be emitted when encoding
+        self.has_io = has_io             # does the field move offset/bitstate
+        self.visibility_prefix = visibility_prefix  # raw prefix '-', '+', or None
 
         # decoder-populated
         self.value = None
@@ -145,25 +153,6 @@ class BlockDefinition(BaseNode):
 
 
 # ============================================================
-# Randseq nodes
-# ============================================================
-class RandSeqNode(BaseNode):
-    def __init__(
-        self,
-        name,
-        format,
-        interpreter,
-        count_from,
-        children,
-        modifiers=None
-    ):
-        super().__init__(name=name, format=format, interpreter=interpreter, modifiers=modifiers)
-        self.count_from = count_from
-        self.children = children
-        self.processed = False
-
-
-# ============================================================
 # Bitmask node
 # ============================================================
 class BitmaskNode(BaseNode):
@@ -236,7 +225,6 @@ class SliceNode(BaseNode):
         self.slice_expr = slice_expr 
         self.processed = False
 
-
 # ============================================================
 # Singleton accessor
 # ============================================================
@@ -244,4 +232,3 @@ _singleton_session = PacketSession()
 
 def get_session():
     return _singleton_session
-

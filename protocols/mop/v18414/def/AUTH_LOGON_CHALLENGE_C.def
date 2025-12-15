@@ -14,6 +14,6 @@ data:
    os: 4s, sM | MQ
    country: 4s, sM | MQ
    timezone_bias: I
-   ip: 4s, W | W
+   ip: 4s, W
    I_len: B
    username: €I_len's

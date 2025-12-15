@@ -1,0 +1,27 @@
+{
+  "name": "SMSG_CHAR_CREATE",
+  "program": "mop",
+  "version": "v18414",
+  "raw_header_hex": "AA 3C 00 00",
+  "raw_opcode_int": 7338,
+  "raw_opcode_hex": "0x1CAA",
+  "raw_size_int": 1,
+  "raw_size_hex": "0x0001",
+  "header_mode": "packed",
+  "opcode_plain": 0,
+  "opcode_packed": 7338,
+  "size_plain": 15530,
+  "size_packed": 1,
+  "payload_len": 1,
+  "size_matches_payload": true,
+  "raw_data_hex": "AA 3C 00 00 2F",
+  "raw_data_bytes": "b'\\xaa<\\x00\\x00/'",
+  "hex_spaced": "2F",
+  "hex_compact": "2F",
+  "hex_offsets": [
+    "0000: 2F                                               /"
+  ],
+  "ascii": "/",
+  "bits": "00101111",
+  "size_bytes": 1
+}

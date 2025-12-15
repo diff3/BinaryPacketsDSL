@@ -9,8 +9,12 @@ from modules.proxy.auth_proxy import AuthProxy
 from modules.proxy.world_proxy import WorldProxy
 from utils.Logger import Logger
 
-def start_proxy(dump=False, update=False):
+def start_proxy(dump=False, update=False, focus_dump=None):
     cfg = ConfigLoader.load_config()
+
+    # Fokus → aktivera dump automatiskt
+    if focus_dump:
+        dump = True
 
     # AUTH PROXY
     auth = AuthProxy(
@@ -19,7 +23,8 @@ def start_proxy(dump=False, update=False):
         cfg["auth_proxy"]["auth_host"],
         cfg["auth_proxy"]["auth_port"],
         dump=dump,
-        update=update
+        update=update,
+        focus_dump=focus_dump
     )
 
     # WORLD PROXY
@@ -29,7 +34,8 @@ def start_proxy(dump=False, update=False):
         cfg["world_proxy"]["world_host"],
         cfg["world_proxy"]["world_port"],
         dump=dump,
-        update=update
+        update=update,
+        focus_dump=focus_dump
     )
 
     # Start AUTH i bakgrunden
@@ -46,6 +52,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--dump", action="store_true")
     ap.add_argument("--update", action="store_true")
+    ap.add_argument("--focus-dump", action="append", help="Dump/update endast dessa paket (kan anges flera gånger)")
     args = ap.parse_args()
 
-    start_proxy(dump=args.dump, update=args.update)
+    focus = set(args.focus_dump) if args.focus_dump else None
+    start_proxy(dump=args.dump, update=args.update, focus_dump=focus)

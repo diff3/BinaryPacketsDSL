@@ -1,4 +1,657 @@
 {
   "count": 2,
-  "flag_list": []
+  "factions": [
+    {
+      "flags": 16384,
+      "standing": 131072
+    },
+    {
+      "flags": 33554432,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 0
+    },
+    {
+      "flags": 131072,
+      "standing": 1073741824
+    },
+    {
+      "flags": 0,
+      "standing": 22
+    },
+    {
+      "flags": 16384,
+      "standing": 786432
+    },
+    {
+      "flags": 234881024,
+      "standing": 0
+    },
+    {
+      "flags": 25,
+      "standing": 0
+    },
+    {
+      "flags": 1114112,
+      "standing": 285212672
+    },
+    {
+      "flags": 0,
+      "standing": 17
+    },
+    {
+      "flags": 4352,
+      "standing": 393216
+    },
+    {
+      "flags": 100663296,
+      "standing": 0
+    },
+    {
+      "flags": 6,
+      "standing": 1536
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 4
+    },
+    {
+      "flags": 1024,
+      "standing": 262144
+    },
+    {
+      "flags": 100663296,
+      "standing": 0
+    },
+    {
+      "flags": 64,
+      "standing": 1024
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 4
+    },
+    {
+      "flags": 1024,
+      "standing": 262144
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 131072,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 6
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 402653184,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 1536
+    },
+    {
+      "flags": 1048576,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 24
+    },
+    {
+      "flags": 1536,
+      "standing": 1048576
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 512
+    },
+    {
+      "flags": 131072,
+      "standing": 285212672
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 5242880
+    },
+    {
+      "flags": 469762048,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 5242880,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 0,
+      "standing": 131072
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 20,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 393216
+    },
+    {
+      "flags": 2550136832,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 393216,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 131072
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 6144
+    },
+    {
+      "flags": 524288,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 6
+    },
+    {
+      "flags": 0,
+      "standing": 393216
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 201326592
+    },
+    {
+      "flags": 0,
+      "standing": 12
+    },
+    {
+      "flags": 512,
+      "standing": 1048576
+    },
+    {
+      "flags": 33554432,
+      "standing": 0
+    },
+    {
+      "flags": 4,
+      "standing": 1024
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4352,
+      "standing": 393216
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4,
+      "standing": 0
+    },
+    {
+      "flags": 1048576,
+      "standing": 134217728
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4096,
+      "standing": 1048576
+    },
+    {
+      "flags": 469762048,
+      "standing": 0
+    },
+    {
+      "flags": 66,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 100663296
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 393216
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 2
+    },
+    {
+      "flags": 2048,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 1048576
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 0
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 1048576
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 2550136832,
+      "standing": 0
+    },
+    {
+      "flags": 152,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 285212672,
+      "standing": 0
+    },
+    {
+      "flags": 6,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 9437184,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 144
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 335544320,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    }
+  ]
 }

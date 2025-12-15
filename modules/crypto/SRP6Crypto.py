@@ -65,9 +65,53 @@ class SRP6Crypto:
                 result.append(char)
         return "".join(result)
 
+
+    def compute_world_auth_digest(
+        self,
+        account: str,
+        client_seed_bytes: bytes,
+        server_seed_bytes: bytes,
+        session_key_bytes: bytes,
+    ) -> bytes:
+        """
+        SkyFire CMSG_AUTH_SESSION digest:
+
+        SHA1(
+            UPPER(account) +
+            4x 0x00 +
+            clientSeed (4 bytes LE) +
+            serverSeed (4 bytes LE) +
+            sessionKey (40 bytes)
+        )
+        """
+
+        if len(client_seed_bytes) != 4:
+            raise ValueError("client_seed_bytes must be 4 bytes")
+        if len(server_seed_bytes) != 4:
+            raise ValueError("server_seed_bytes must be 4 bytes")
+        if len(session_key_bytes) != 40:
+            raise ValueError("session_key_bytes must be 40 bytes")
+
+        acct_up = self.upper_skyfire(account)
+
+        return self.sha1(
+            acct_up.encode("ascii"),
+            b"\x00\x00\x00\x00",
+            client_seed_bytes,
+            server_seed_bytes,
+            session_key_bytes,
+        )
+
+
+
+
     # ======================================================================
     # Hash helpers
     # ======================================================================
+
+
+
+
 
     def sha1(self, *parts: bytes) -> bytes:
         """
@@ -343,12 +387,12 @@ class SRP6Crypto:
         b_public: bytes,
         a_public: bytes,
         m1_client: bytes,
-    ) -> tuple[bool, bytes | None]:
+    ) -> tuple[bool, bytes | None, bytes | None]:
         """
         Perform full server-side verification of the client's A + M1.
 
         Returns:
-            (True, M2_bytes) on success, (False, None) on failure.
+            (True, M2_bytes, K_bytes) on success, (False, None, None) on failure.
         """
         _config = None
 
@@ -367,7 +411,7 @@ class SRP6Crypto:
         m1_server = self.compute_M1(username_u, salt, a_public, b_public, k_bytes)
 
         if m1_server != m1_client:
-            return False, None
+            return False, None, None
 
         # --- compute M2 ------------------------------------------------
         m2 = self.compute_M2(a_public, m1_client, k_bytes)

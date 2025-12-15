@@ -48,7 +48,7 @@ Linux (Flatpak):
 | `variable.language`       | `#4EC9B0`  | 🟢 Green          | `€I_len's`, references/specials         |
 | `variable.other`          | `#FFFFFF`  | ⚪ White          | General variables                       |
 | `entity.name.function`    | `#DCDCAA`  | 🟡 Yellow         | Function names                          |
-| `entity.name.section`     | `#4EC9B0`  | 🟢 Green          | Block names like `randseq`              |
+| `entity.name.section`     | `#4EC9B0`  | 🟢 Green          | Block names                             |
 | `constant.numeric`        | `#B5CEA8`  | 🟢 Green          | `42`, `3.14`                            |
 | `constant.language`       | `#569CD6`  | 🔵 Blue           | `true`, `false`, `null`                 |
 | `string.quoted.double`    | `#CE9178`  | 🟠 Orange         | `"string"`                              |

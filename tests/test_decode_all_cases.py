@@ -78,7 +78,7 @@ class TestAllCases(unittest.TestCase):
         failed = 0
         success = 0
 
-        for case_name, def_lines, binary_data, expected in self.all_cases:
+        for case_name, def_lines, binary_data, expected, debug in self.all_cases:
             session.reset()
             num += 1
 

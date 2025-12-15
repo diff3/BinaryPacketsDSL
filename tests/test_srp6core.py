@@ -103,7 +103,7 @@ class TestSRP6Crypto(unittest.TestCase):
         M1_client = self.core.compute_M1(username_u, salt, A_bytes, B_bytes, K_client)
 
         # SERVER VERIFY
-        ok, M2_server = self.core.server_verify(
+        ok, M2_server, _ = self.core.server_verify(
             username=self.username,
             salt=salt,
             verifier=verifier,
@@ -129,7 +129,7 @@ class TestSRP6Crypto(unittest.TestCase):
         bad_M1 = os.urandom(20)
         b_value, B_bytes = self.core.server_make_B(verifier)
 
-        ok, M2_server = self.core.server_verify(
+        ok, M2_server, _ = self.core.server_verify(
             username=self.username,
             salt=salt,
             verifier=verifier,

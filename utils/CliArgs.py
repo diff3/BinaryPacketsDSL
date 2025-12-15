@@ -3,7 +3,10 @@
 
 import argparse
 from utils.ConfigLoader import ConfigLoader
-import argcomplete 
+try:
+    import argcomplete
+except ImportError:
+    argcomplete = None
 from pathlib import Path
 
 # GLOBALS
@@ -25,13 +28,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description="BinaryPacketsDSL CLI")
     parser.add_argument("-u", "--update", action="store_true", help="Update .json output from .bin + .def")
     parser.add_argument("-a", "--add", action="store_true", help="Create new empty packet definition set")
+    parser.add_argument("-P", "--promote", action="store_true", help="In focus mode, promote decoded output into protocols expected JSON")
     parser.add_argument("-f", "--file", type=str, help="Specify the packet file name (without extension)").completer = DefFileNameCompleter()
     parser.add_argument("-p", "--program", type=str, help="Program name")
     parser.add_argument("-V", "--version", type=str, help="Program version")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging output")
     parser.add_argument("-b", "--bin", type=str, help="Path to binary file to add")
     parser.add_argument("-s", "--silent", action="store_true", help="Run silently (no logs)")
+    parser.add_argument("--focus", action="store_true", help="Use focus captures (misc/captures/focus)")
 
-    argcomplete.autocomplete(parser)
+    if argcomplete is not None:
+        argcomplete.autocomplete(parser)
     return parser.parse_args()
-

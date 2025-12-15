@@ -1,7 +1,7 @@
-# CMSG_LOG_STREAMING_ERROR – Minimal working version
+# CMSG_LOG_STREAMING_ERROR – Partial, needs testing
 endian: little
 header:
 data:
-    errorType: I
-    errorCode: I
-    msg: R, r
+    unk1: B
+    unk2: B
+    msg: R
