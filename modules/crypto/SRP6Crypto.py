@@ -95,23 +95,17 @@ class SRP6Crypto:
         acct_up = self.upper_skyfire(account)
 
         return self.sha1(
-            acct_up.encode("ascii"),
+            acct_up.encode("latin-1"),
             b"\x00\x00\x00\x00",
             client_seed_bytes,
             server_seed_bytes,
             session_key_bytes,
         )
-
-
-
+    
 
     # ======================================================================
     # Hash helpers
     # ======================================================================
-
-
-
-
 
     def sha1(self, *parts: bytes) -> bytes:
         """

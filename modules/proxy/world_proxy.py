@@ -1,134 +1,49 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""World proxy: relays world traffic and handles ARC4 header parsing."""
 
-import socket
-import threading
 import importlib
 import json
-import time
+import socket
+import threading
+from typing import Any, Dict
 
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
 from utils.OpcodeLoader import load_world_opcodes
-from modules.crypto.ARC4Crypto import Arc4CryptoHandler
-from modules.DslRuntime import DslRuntime
-
 from utils.OpcodesFilter import filter_opcode
-from utils.PacketDump import PacketDump, dump_capture
+from utils.PacketDump import PacketDump
+from modules.crypto.ARC4Crypto import Arc4CryptoHandler
+from modules.interpretation.EncryptedWorldStream import EncryptedWorldStream
+from modules.interpretation.OpcodeResolver import OpcodeResolver
+from modules.interpretation.PacketInterpreter import (
+    DumpPolicy,
+    DslDecoder,
+    JsonNormalizer,
+    PacketDumper,
+    PacketInterpreter,
+)
+from modules.interpretation.utils import dsl_decode
+from modules.interpretation.parser import parse_plain_packets
 
 
 cfg = ConfigLoader.load_config()
 cfg["Logging"]["logging_levels"] = "Information, Success, Script, Error"
 
-program = cfg['program']
-version = cfg['version']
+program = cfg["program"]
+version = cfg["version"]
 
 mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
 DatabaseConnection = getattr(mod, "DatabaseConnection")
 
 
-# ----------------------------------------------------------------------
-# JSON helper – gör DSL-output loggvänlig
-# ----------------------------------------------------------------------
-
-def to_safe_json(value, key=None):
-    """
-    Convert DSL-returned structures to JSON-safe types.
-    - GUID-int → "0xDEADBEEF..."
-    - bytes/bytearray → hexstr
-    """
-    if isinstance(value, int):
-        if key and ("guid" in key.lower()):
-            hexstr = hex(value)[2:]
-            if len(hexstr) % 2 == 1:
-                hexstr = "0" + hexstr
-            return "0x" + hexstr.upper()
-        return value
-
-    if isinstance(value, bytearray):
-        return value.hex()
-
-    if isinstance(value, bytes):
-        return value.hex()
-
-    if isinstance(value, dict):
-        return {k: to_safe_json(v, k) for k, v in value.items()}
-
-    if isinstance(value, (list, tuple)):
-        return [to_safe_json(v, key) for v in value]
-
-    return value
-
-
-_dsl_runtime = None
-
-
-def _get_dsl_runtime():
-    """Lazy init of DSL runtime with cached ASTs + watchdog reload."""
-    global _dsl_runtime
-    if _dsl_runtime is None:
-        cfg_local = ConfigLoader.load_config()
-        program_local = cfg_local["program"]
-        version_local = cfg_local["version"]
-        try:
-            rt = DslRuntime(program_local, version_local, watch=True)
-            rt.load_runtime_all()          # <-- ändrat här
-            _dsl_runtime = rt
-            Logger.info(f"[DSL] Runtime ready (watching {program_local}/{version_local})")
-        except Exception as e:
-            Logger.error(f"[DSL] Failed to init runtime (watch disabled): {e}")
-            rt = DslRuntime(program_local, version_local, watch=False)
-            rt.load_runtime_all()          # <-- och här
-            _dsl_runtime = rt
-    return _dsl_runtime
-
-def dsl_decode(def_name, payload, silent=False):
-    """
-    Safe DSL decoder; expect payload WITHOUT world header (size/opcode).
-    Returns {} on failure.
-    """
-    try:
-        rt = _get_dsl_runtime()
-        return rt.decode(def_name, payload, silent=silent)
-    except Exception as e:
-        if not silent:
-            Logger.error(f"[DSL] decode {def_name} failed: {e}")
-        return {}
-
-
-# ---- Plain world header parser -----------------------------------------
-
-def parse_header(header: bytes):
-    """
-    WoW world header: ALWAYS 4 bytes
-        uint16 size (little-endian)
-        uint16 opcode (little-endian)
-    """
-    if len(header) < 4:
-        return None, None, None
-    size   = int.from_bytes(header[0:2], "little")
-    opcode = int.from_bytes(header[2:4], "little")
-    return size, opcode, f"0x{opcode:04X}"
-
-
-# ========================================================================
-# WORLD PROXY (hybrid: gammal före AUTH, stream efter AUTH)
-# ========================================================================
-
 class WorldProxy:
-    """
-    Hybrid-proxy:
-      - Före CMSG_AUTH_SESSION:
-          * Batch-parsning per recv()-chunk (som gamla proxyn).
-      - Efter CMSG_AUTH_SESSION:
-          * Riktig stream-parser med ARC4-header-decrypt
-            och pending header per riktning.
-      - Kan dumpa world-paket (bin/json/debug) via PacketDump.
-    """
+    """Hybrid world proxy: plain pre-AUTH, ARC4 stream post-AUTH."""
 
     HANDSHAKE = b"0\x00WORLD OF WARCRAFT CONNECTION"
 
-    def __init__(self, listen_host, listen_port, world_host, world_port, dump=False, update=False, focus_dump=None):
+    def __init__(self, listen_host: str, listen_port: int, world_host: str, world_port: int, dump: bool = False, update: bool = False, focus_dump=None) -> None:
+        """Initialize proxy configuration and helpers."""
         self.listen_host = listen_host
         self.listen_port = listen_port
         self.world_host = world_host
@@ -139,8 +54,13 @@ class WorldProxy:
         self.focus_dump = set(focus_dump) if focus_dump else None
         self.cfg = cfg
 
-        # WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, lookup-funktion
         self.client_opcodes, self.server_opcodes, self.world_lookup = load_world_opcodes()
+
+        self.opcode_resolver = OpcodeResolver(
+            self.client_opcodes,
+            self.server_opcodes,
+            self.world_lookup,
+        )
 
         try:
             self.AUTH_SESSION_OPCODE = (
@@ -149,36 +69,25 @@ class WorldProxy:
         except Exception:
             self.AUTH_SESSION_OPCODE = 0x00B2  # MoP fallback
 
-        # Pending headers – för att undvika RC4-desync i stream-läge
-        self._pending_headers = {
-            "C": None,   # C → S
-            "S": None,   # S → C
-        }
+        self.stream = EncryptedWorldStream()
 
-        # Packet dumper – samma layout som AuthProxy
+        # Packet dumper – same layout as AuthProxy
         self.dumper = PacketDump(f"protocols/{cfg['program']}/{cfg['version']}")
 
-    # ---- opcode decode ---------------------------------------------------
-
-    def decode_opcode(self, opcode: int, direction: str) -> str:
-        if direction == "C":
-            if self.client_opcodes and opcode in self.client_opcodes:
-                return self.client_opcodes[opcode]
-            try:
-                return self.world_lookup.WorldOpcodes.getClientOpCodeName(opcode)
-            except Exception:
-                return f"UNKNOWN_CMSG_0x{opcode:04X}"
-        else:
-            if self.server_opcodes and opcode in self.server_opcodes:
-                return self.server_opcodes[opcode]
-            try:
-                return self.world_lookup.WorldOpcodes.getServerOpCodeName(opcode)
-            except Exception:
-                return f"UNKNOWN_SMSG_0x{opcode:04X}"
-
+        self.interpreter = PacketInterpreter(
+            decoder=DslDecoder(),
+            normalizer=JsonNormalizer(),
+            policy=DumpPolicy(
+                dump=self.dump,
+                update=self.update,
+                focus_dump=self.focus_dump,
+            ),
+            dumper=PacketDumper(self.dumper),
+        )
+  
     # ---- start -----------------------------------------------------------
 
-    def start(self):
+    def start(self) -> None:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((self.listen_host, self.listen_port))
@@ -202,7 +111,7 @@ class WorldProxy:
 
     # ---- per connection --------------------------------------------------
 
-    def handle_client(self, client_sock):
+    def handle_client(self, client_sock: socket.socket) -> None:
         server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
@@ -214,16 +123,15 @@ class WorldProxy:
 
         crypto = Arc4CryptoHandler()
 
-        session = {
+        session: Dict[str, Any] = {
             "username": None,
             "key": None,
             "initialized": False,
         }
 
-        # Delad state: före/efter AUTH
-        state = {"encrypted": False}
+        state: Dict[str, bool] = {"encrypted": False}
 
-        # Buffertar används endast efter AUTH (stream-läge)
+        # Buffers are only used after AUTH (stream mode)
         buffer_s2c = bytearray()
         buffer_c2s = bytearray()
 
@@ -239,241 +147,69 @@ class WorldProxy:
         server_sock.close()
         Logger.info("[WorldProxy] Connection closed")
 
-    # ============================================================
-    # Plain / pre-AUTH parser (gammal stil)
-    # ============================================================
-
-    def parse_plain_packets(self, raw_data: bytes, direction: str):
-        """
-        Motsvarar gamla parse_multi_header_payloads i okrypterat läge.
-        - Ingen persistent buffert.
-        - Tillåter att payload är kortare än size.
-        - Returnerar lista (orig_header, header_obj, payload).
-        """
-        packets = []
-
-        while raw_data:
-            if len(raw_data) < 4:
-                break
-
-            header = raw_data[:4]
-            orig = header
-
-            # Handshake specialfall – hela buffern som ett "paket"
-            if b"WORLD OF WARCRAFT" in raw_data:
-                class H:
-                    pass
-                h = H()
-                h.size = len(raw_data)
-                h.cmd = -1
-                h.hex = "HANDSHAKE"
-                h.header_raw = header
-                packets.append((orig, h, raw_data))
-                break
-
-            size, cmd, hexop = parse_header(header)
-            if size is None:
-                break
-
-            # -----------------------------------------------------------
-            # SPECIALFALL (MoP): SMSG_AUTH_RESPONSE (opcode 0x01F6)
-            # innehåller header i storleken → payload = size - 4 bytes
-            # -----------------------------------------------------------
-            adj_size = size
-            if cmd == 0x01F6:
-                adj_size = max(0, size - 4)
-
-            payload = raw_data[4:4 + adj_size]  # kan vara kort
-            raw_data = raw_data[4 + adj_size:]
-
-            class H:
-                pass
-
-            h = H()
-            h.size = adj_size
-            h.cmd = cmd
-            h.hex = hexop
-            h.header_raw = header
-
-            packets.append((orig, h, payload))
-
-        return packets
-
-    # ============================================================
-    # Encrypted / post-AUTH stream parser
-    # ============================================================
-
-    def feed_buffer(self, raw_buf: bytearray, crypto, encrypted: bool, direction: str):
-        """
-        Används ENDAST efter att state['encrypted'] blivit True.
-        Stream-parser:
-        - 4 bytes header per gång
-        - header dekrypteras med ARC4
-        - header packad som (size << 13) | (opcode & 0x1FFF)
-        - payload läses när tillräckligt många bytes finns
-        """
-        packets = []
-
-        if not encrypted:
-            return packets
-
-        while True:
-            pending = self._pending_headers[direction]
-
-            # Ingen pending header? Försök läsa en ny.
-            if pending is None:
-                if len(raw_buf) < 4:
-                    break
-
-                enc_header = raw_buf[:4]
-                del raw_buf[:4]
-
-                if direction == "C":
-                    dec_header = crypto.decrypt_recv(enc_header)
-                else:
-                    # följer existerande design: S→C använder encrypt_send-streamen
-                    dec_header = crypto.encrypt_send(enc_header)
-
-                h_dec = crypto.unpack_data(dec_header)
-
-                size = h_dec.size
-                cmd = h_dec.cmd
-
-                # -----------------------------------------------------------
-                # SPECIALFALL (MoP): SMSG_AUTH_RESPONSE inkluderar headern
-                # Opcode 0x01F6
-                # -----------------------------------------------------------
-                if cmd == 0x01F6:
-                    size = max(0, size - 4)
-
-                pending = {
-                    "size": size,
-                    "opcode": cmd,
-                    "hex": f"0x{cmd:04X}",
-                    "header_raw": dec_header,
-                }
-                self._pending_headers[direction] = pending
-
-            size = pending["size"]
-
-            if len(raw_buf) < size:
-                break  # väntar på mer payload
-
-            payload = raw_buf[:size]
-            del raw_buf[:size]
-
-            class H:
-                pass
-
-            h = H()
-            h.size = pending["size"]
-            h.cmd = pending["opcode"]
-            h.hex = pending["hex"]
-            h.header_raw = pending["header_raw"]
-
-            packets.append((h.header_raw, h, payload))
-            self._pending_headers[direction] = None
-
-        return packets
-
-    # ============================================================
-    # DSL + dump helper
-    # ============================================================
-
-    def handle_dsl_and_dump(self, direction: str, name: str, raw_header: bytes, payload: bytes):
-        """
-        Decode DSL once, then:
-        - return decoded (för loggning i forward)
-        - handle dump/update (men ingen vanlig Logger-utskrift)
-        """
-
-        decoded = dsl_decode(name, payload, silent=True)
-        safe = to_safe_json(decoded if decoded else {})
-
-        raw_full = raw_header + payload
-
-        focus_ok = (self.focus_dump is None) or (name in self.focus_dump)
-
-        if self.update and focus_ok:
-            try:
-                self.dumper.dump_fixed(name, raw_header, payload, safe)
-            except Exception as e:
-                Logger.error(f"[UPDATE ERROR] {name}: {e}")
-
-        if self.dump and focus_ok:
-            try:
-                root = 'misc/captures/focus' if self.focus_dump else None
-                ts = int(time.time()) if self.focus_dump else None
-                dump_capture(name, raw_header, payload, safe, root=root, ts=ts, debug_only=bool(self.focus_dump))
-            except Exception as e:
-                Logger.error(f"[DUMP ERROR] {name}: {e}")
-
-        return safe
 
     # ---- S→C -------------------------------------------------------------
 
-    def forward_s2c(self, server, client, crypto, session, state, buffer):
+    def forward_s2c(self, server: socket.socket, client: socket.socket, crypto: Arc4CryptoHandler, session: Dict[str, Any], state: Dict[str, bool], buffer: bytearray) -> None:
         try:
             while True:
                 data = server.recv(4096)
-                # print("forward_s2c")
-                
+
                 if not data:
                     break
 
-                # Handshake (okrypterad)
+                # Handshake (plaintext)
                 if data.startswith(self.HANDSHAKE):
                     Logger.info("[WorldProxy Server → Client] HANDSHAKE")
                     client.sendall(data)
                     continue
 
                 if not state["encrypted"]:
-                    # Pre-AUTH: gammal stil, per recv-chunk
-                    packets = self.parse_plain_packets(data, "S")
+                    # Pre-AUTH: per recv-chunk, plaintext header
+                    packets = parse_plain_packets(data, "S")
                 else:
-                    # Post-AUTH: stream-läge med buffer
+                    # Post-AUTH: stream mode with ARC4 headers
                     buffer.extend(data)
-                    packets = self.feed_buffer(buffer, crypto, state["encrypted"], "S")
+                    packets = self.stream.feed(
+                        buffer,
+                        crypto=crypto,
+                        direction="S",
+                    )
 
                 for raw_header, h, payload in packets:
-                    name = self.decode_opcode(h.cmd, "S")
+                    name = self.opcode_resolver.decode_opcode(h.cmd, "S")
                     opcode_int = h.cmd
 
-                    decoded_safe = self.handle_dsl_and_dump("S", name, raw_header, payload)
+                    decoded_safe = self.interpreter.interpret(name, raw_header, payload)
 
-                    # Specialfall: handshake/raw utan opcode
+                    # Handshake/raw without opcode
                     if opcode_int < 0:
                         Logger.success(f"[WorldProxy Server → Client] RAW ({h.hex}), size={h.size}")
                         Logger.success(f"\n{payload.hex(' ')}")
                         continue
 
-                    # Filtrering: vilka opkoder får detaljer?
+                    # Filter: which opcodes get details?
                     show_details = filter_opcode(name, opcode_int, self.cfg)
 
-                    # RAW-flagga: global toggle
+                    # RAW flag: global toggle
                     show_raw = bool(self.cfg.get("ShowRawData", False))
 
-                    # Decode once (och dumpa om --dump/--update)
-            
-                    
+                    # Decode once (and dump if --dump/--update)
                     if show_details:
-                        # Logger.success(json.dumps(decoded_safe, indent=2))
                         decoded_json = json.dumps(decoded_safe, indent=2)
-                        
                         if decoded_json == "{}":
                             decoded_json = ""
-
                     else:
                         decoded_json = ""
 
                     view_json = decoded_json
 
                     blacklist = cfg.get("BlackListedOpcodes", [])
-                    
+
                     if name not in blacklist:
                         Logger.info(f"[WorldProxy Server → Client] {name} ({h.hex}), size={h.size}{view_json}")
 
-                    # RAW-data?
+                    # RAW data dump
                     if show_details and show_raw:
                         Logger.info(f"[RAW]\n{payload}")
 
@@ -487,7 +223,7 @@ class WorldProxy:
 
     # ---- C→S -------------------------------------------------------------
 
-    def forward_c2s(self, client, server, crypto, session, state, buffer):
+    def forward_c2s(self, client: socket.socket, server: socket.socket, crypto: Arc4CryptoHandler, session: Dict[str, Any], state: Dict[str, bool], buffer: bytearray) -> None:
         try:
             while True:
                 data = client.recv(4096)
@@ -501,79 +237,85 @@ class WorldProxy:
                     continue
 
                 if not state["encrypted"]:
-                    # Pre-AUTH: gammal stil, per recv-chunk
-                    packets = self.parse_plain_packets(data, "C")
+                    # Pre-AUTH: per recv-chunk
+                    packets = parse_plain_packets(data, "C")
                 else:
-                    # Post-AUTH: stream-läge
+                    # Post-AUTH: stream mode
                     buffer.extend(data)
-                    packets = self.feed_buffer(buffer, crypto, state["encrypted"], "C")
+                    packets = self.stream.feed(
+                        buffer,
+                        crypto=crypto,
+                        direction="C",
+                    )
 
                 for raw_header, h, payload in packets:
-                    name = self.decode_opcode(h.cmd, "C")
+                    name = self.opcode_resolver.decode_opcode(h.cmd, "C")
+
                     opcode_int = h.cmd
-                    decoded_safe = self.handle_dsl_and_dump("C", name, raw_header, payload)
-                    # Specialfall: handshake/raw utan opcode
+                    decoded_safe = self.interpreter.interpret(name, raw_header, payload)
+
+                    # Handshake/raw without opcode
                     if opcode_int < 0:
                         Logger.success(f"[WorldProxy Client → Server] RAW ({h.hex}), size={h.size}")
                         Logger.success(f"\n{payload.hex(' ')}")
                         continue
 
-                    # Filtrering: vilka opkoder får detaljer?
+                    # Filter: which opcodes get details?
                     show_details = filter_opcode(name, opcode_int, self.cfg)
 
-                    # RAW-flagga: global toggle
+                    # RAW flag: global toggle
                     show_raw = bool(self.cfg.get("ShowRawData", False))
 
-                    # Decode once (och dumpa om --dump/--update)
-                    
-                    
+                    # Decode once (and dump if --dump/--update)
                     if show_details:
-                        # Logger.success(json.dumps(decoded_safe, indent=2))
                         decoded_json = json.dumps(decoded_safe, indent=2)
-                        
                         if decoded_json == "{}":
                             decoded_json = ""
-
                     else:
                         decoded_json = ""
 
                     view_json = decoded_json
 
                     blacklist = cfg.get("BlackListedOpcodes", [])
-                    
+
                     if name not in blacklist:
                         Logger.info(f"[WorldProxy Client → Server] {name} ({h.hex}), size={h.size}{view_json}")
 
-                    # RAW-data?
+                    # RAW data dump
                     if show_details and show_raw:
                         Logger.info(f"[RAW]\n{payload}")
 
 
-                    # ------------------------------
-                    #    C M S G _ A U T H _ S E S S I O N
-                    # ------------------------------
+                    # CMSG_AUTH_SESSION → initialize ARC4 and switch to encrypted mode
                     if not state["encrypted"] and h.cmd == self.AUTH_SESSION_OPCODE:
                         Logger.success("[WorldProxy] CMSG_AUTH_SESSION detected")
 
-                        decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=True)
-                        username = decoded_auth.get("account") or decoded_auth.get("username")
+                        decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=False)
+                        account = decoded_auth.get("account") or decoded_auth.get("account")
 
-                        if username:
-                            acc = DatabaseConnection.get_user_by_username(username.upper())
-                            if acc and acc.session_key:
-                                K = acc.session_key
-                                if isinstance(K, (bytes, bytearray)):
-                                    K = K.hex()
+                        if not account:
+                            Logger.error("[WorldProxy] AUTH_SESSION without username")
+                            continue
 
-                                Logger.success("[WorldProxy] ARC4 init (via DSL + DB)")
-                                crypto.init_arc4(K)
-                                session["username"] = username
-                                session["key"] = K
-                                session["initialized"] = True
-                                state["encrypted"] = True
-                                continue
+                        acc = DatabaseConnection.get_user_by_username(account.upper())
+                        if not acc or not acc.session_key:
+                            Logger.error("[WorldProxy] No session key for account")
+                            continue
 
-                        Logger.error("[WorldProxy] FAILED to init ARC4")
+                        K = acc.session_key
+                        if isinstance(K, (bytes, bytearray)):
+                            K = K.hex()
+
+                        crypto.init_arc4(K)
+
+                        session["account"] = account
+                        session["key"] = K
+                        session["initialized"] = True
+                        state["encrypted"] = True
+
+                        Logger.success("[WorldProxy] ARC4 initialized — switching to encrypted mode")
+
+                        continue
 
                 # Transparent forward
                 server.sendall(data)
