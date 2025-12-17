@@ -1,25 +1,26 @@
-# Python cache
-*.pyc
 __pycache__/
+*.pyc
 
-# Logs and temp files
 *.log
-*.txt
+captures/
+misc/
 
-# Binary test files and YAML
-**.bin
+protocols/**/debug/
+protocols/**/json/
+
+*.bin
 *.yaml
 !config.yaml.dist
 
-# Keep marker files for empty directories
-!.keep
-!requirements.txt
-
-# Ignore misc folder
-misc/
-
-# Ingore syntax highlither build files
 node_modules/
 package-lock.json
 .qodo/
-captures
+
+protocols/**/*
+!protocols/**/def/
+!protocols/**/handlers/
+!protocols/**/opcodes/
+!protocols/**/database/
+
+!.keep
+!requirements.txt

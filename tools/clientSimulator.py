@@ -14,6 +14,8 @@ import os
 import socket
 import struct
 import time
+import select
+import sys
 
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
@@ -380,6 +382,74 @@ class ClientSimulator:
         decoded = self.decoder.decode(name, payload) if name.startswith("SMSG_") else {}
         return name, decoded, payload, packets[1:]
 
+    def _extract_guid(self, ch: dict) -> int | None:
+        """
+        Extract a GUID from a character entry, handling multiple formats.
+        """
+        candidates = [
+            ch.get("guid"),
+            ch.get("player_guid"),
+            ch.get("char_guid"),
+        ]
+
+        for cand in candidates:
+            if cand is None or cand is True or cand is False:
+                continue
+
+            if isinstance(cand, int):
+                return cand
+
+            if isinstance(cand, bytes):
+                return int.from_bytes(cand, "little")
+
+            if isinstance(cand, str):
+                txt = cand.strip()
+                for base in (0, 16, 10):
+                    try:
+                        return int(txt, base)
+                    except ValueError:
+                        continue
+
+        # Fallback: rebuild from guid_N bytes if present
+        parts = []
+        for idx in range(8):
+            try:
+                val = ch.get(f"guid_{idx}")
+                if val is None:
+                    continue
+                parts.append((idx, int(val) & 0xFF))
+            except (TypeError, ValueError):
+                continue
+
+        if parts:
+            guid = 0
+            for idx, byte_val in parts:
+                guid |= byte_val << (idx * 8)
+            return guid
+
+        return None
+
+    def _enter_world(self, ws, crypto, guid: int):
+        Logger.info(f"[WORLD] Entering world with GUID {guid} (0x{guid:016X})")
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_PLAYER_LOGIN",
+            {"guid": guid}
+        )
+
+        plain_header = crypto.pack_data(
+            WorldClientOpcodes.CMSG_PLAYER_LOGIN,
+            len(payload)
+        )
+
+        enc_header = crypto.decrypt_recv(plain_header)
+
+        # C→S: headers använder decrypt_recv-streamen
+        ws.sendall(enc_header + payload)
+        Logger.info(
+            f"[SEND] CMSG_PLAYER_LOGIN (header={enc_header.hex()} payload={len(payload)} bytes)"
+        )
+
     def _post_auth(self, ws, crypto, initial_packets=None):
         """
         Handle post-auth initial server packets and respond with
@@ -404,6 +474,7 @@ class ClientSimulator:
             for _, h, payload in packets:
                 name = self.opcode_resolver.decode_opcode(h.cmd, "S")
                 Logger.info(f"[RECV] {name} (cmd=0x{h.cmd:04X} size={h.size})")
+                self._handle_server_autorespond(ws, crypto, name, payload)
 
                 if name == "SMSG_SET_TIME_ZONE_INFORMATION":
                     # Send ready_for_account_data_times after server TZ info
@@ -431,22 +502,185 @@ class ClientSimulator:
                         or []
                     )
 
-                    print("\nCHARACTERS\n")
                     if not chars:
-                        print("[no characters decoded]")
-                        Logger.info(f"[WORLD] Decoded ENUM payload keys: {list(decoded.keys())}")
+                        Logger.error("No characters returned by server")
+                        return
+
+                    print("\nCHARACTERS\n")
+                    for i, ch in enumerate(chars, 1):
+                        cname = ch.get("name", "Unknown")
+                        clevel = ch.get("level", ch.get("lvl", "?"))
+                        cclass = ch.get("class", ch.get("cls", "?"))
+                        print(f"{i}. {cname} (level {clevel}, class {cclass})")
+
+                    choice = input(f"\nSelect character [1-{len(chars)}] (default 1): ").strip()
+                    try:
+                        idx = int(choice) - 1 if choice else 0
+                    except ValueError:
+                        idx = 0
+
+                    idx = max(0, min(idx, len(chars) - 1))
+                    ch = chars[idx]
+
+                    extracted_guid = self._extract_guid(ch)
+                    if extracted_guid is not None:
+                        Logger.info(f"[WORLD] Extracted GUID {extracted_guid} (0x{extracted_guid:016X})")
                     else:
-                        for i, ch in enumerate(chars, 1):
-                            cname = ch.get("name", "Unknown")
-                            clevel = ch.get("level", ch.get("lvl", "?"))
-                            cclass = ch.get("class", ch.get("cls", "?"))
-                            print(f"{i}. {cname} (level {clevel}, class {cclass})")
+                        Logger.info(f"[WORLD] Failed to extract GUID; character keys: {list(ch.keys())}")
 
-                    Logger.info("[WORLD] Received character list; post-auth flow complete")
+                    # Använd hårdkodat GUID för enkelhet enligt önskemål
+                    guid_override = "3303978696704"
+                    Logger.info(f"[WORLD] Using GUID override {guid_override}")
+                    guid = int(guid_override)
+
+                    Logger.success(f"[WORLD] Logging in as {ch.get('name', '<unknown>')}")
+
+                    self._enter_world(ws, crypto, guid)
+                    self._world_idle(ws, crypto)
                     return
-
             # No terminal packet yet; continue loop
             Logger.info("[WORLD] Still waiting for account data/enum packets…")
+
+    def _handle_server_autorespond(self, ws, crypto, name: str, payload: bytes):
+        """
+        Minimal post-login reflexes (no game logic).
+        """
+        if name == "SMSG_TIME_SYNC_REQUEST":
+            decoded = self.decoder.decode(name, payload) or {}
+
+            seq = (
+                decoded.get("sequence_id")
+                or decoded.get("sequence")
+                or decoded.get("seq")
+                or decoded.get("I")
+            )
+
+            if seq is None:
+                Logger.error("[WORLD] Missing sequence_id in SMSG_TIME_SYNC_REQUEST")
+                return
+
+            # FIX 1: uint16
+            seq = int(seq) & 0xFFFF
+
+            # FIX 2: uint32 wraparound
+            client_ticks = int(time.time() * 1000) & 0xFFFFFFFF
+
+            resp_payload = EncoderHandler.encode_packet(
+                "CMSG_TIME_SYNC_RESPONSE",
+                {
+                    "sequence_id": seq,
+                    "client_ticks": client_ticks,
+                },
+            )
+
+            resp_header = crypto.pack_data(
+                WorldClientOpcodes.CMSG_TIME_SYNC_RESPONSE,
+                len(resp_payload),
+            )
+
+            ws.sendall(crypto.decrypt_recv(resp_header) + resp_payload)
+            # Logger.info(f"[SEND] CMSG_TIME_SYNC_RESPONSE seq={seq} ticks={client_ticks}")
+            return
+        elif name == "SMSG_PING":
+            decoded = self.decoder.decode(name, payload) or {}
+            ping = decoded.get("ping") or decoded.get("I")
+
+            if ping is None:
+                Logger.error("[WORLD] Missing ping value in SMSG_PING")
+                return
+
+            ping = int(ping) & 0xFFFFFFFF
+
+            resp_payload = EncoderHandler.encode_packet(
+                "CMSG_PONG",
+                {"ping": ping},
+            )
+
+            hdr = crypto.pack_data(
+                WorldClientOpcodes.CMSG_PONG,
+                len(resp_payload),
+            )
+
+            ws.sendall(crypto.decrypt_recv(hdr) + resp_payload)
+            Logger.info(f"[SEND] CMSG_PONG ping={ping}")
+            return
+        elif name == "SMSG_LOGIN_VERIFY_WORLD":
+            Logger.info("[WORLD] World verified, sending loading screen notify")
+
+            payload = EncoderHandler.encode_packet(
+                "CMSG_LOADING_SCREEN_NOTIFY",
+                {"is_loading": 0}
+            )
+
+            hdr = crypto.pack_data(
+                WorldClientOpcodes.CMSG_LOADING_SCREEN_NOTIFY,
+                len(payload),
+            )
+
+            ws.sendall(crypto.decrypt_recv(hdr) + payload)
+            Logger.info("[SEND] CMSG_LOADING_SCREEN_NOTIFY")
+
+            self._world_idle(ws, crypto)
+            return
+
+    def _send_chat(self, ws, crypto, text: str):
+        msg = text.encode("utf-8")  # or latin-1 if server expects that
+        fields = {
+            "chat_type": 0,         # SAY
+            "msg_len": len(msg),
+            "msg": msg,
+        }
+
+        payload = EncoderHandler.encode_packet("CMSG_MESSAGECHAT_SAY", fields)
+        hdr = crypto.pack_data(WorldClientOpcodes.CMSG_MESSAGECHAT_SAY, len(payload))
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CMSG_MESSAGECHAT_SAY len={len(msg)}")
+
+    def _world_idle(self, ws, crypto):
+        """
+        Keep the world socket alive after login and allow simple chat input.
+        """
+        Logger.info("[WORLD] Entering idle loop (breathing)")
+        Logger.info("Type chat messages and press Enter to speak.")
+
+        QUIET_OPCODES = {
+            "SMSG_SPLINE_MOVE_UNSET_FLYING",
+            "SMSG_ON_MONSTER_MOVE",
+            "SMSG_SPELL_EXECUTE_LOG",
+            "SMSG_TIME_SYNC_REQUEST",
+            "CMSG_TIME_SYNC_RESPONSE"
+            "SMSG_UPDATE_WORLD_STATE",
+            "SMSG_SET_PROFICIENCY"
+        }
+
+        while True:
+            # ---------- 1) Poll stdin (non-blocking) ----------
+            try:
+                rlist, _, _ = select.select([sys.stdin], [], [], 0)
+                if rlist:
+                    line = sys.stdin.readline().strip()
+                    if line:
+                        self._send_chat(ws, crypto, line)
+            except Exception:
+                pass
+
+            # ---------- 2) Read world packets ----------
+            try:
+                packets = self._recv_world_packets(ws, crypto)
+            except ConnectionError as e:
+                Logger.error(f"[WORLD] Connection closed: {e}")
+                return
+            except Exception as e:
+                Logger.error(f"[WORLD] Error while reading world socket: {e}")
+                continue
+
+            for _, h, payload in packets:
+                name = self.opcode_resolver.decode_opcode(h.cmd, "S")
+
+                if name not in QUIET_OPCODES:
+                    Logger.info(f"[RECV] {name} (cmd=0x{h.cmd:04X} size={h.size})")
+
+                self._handle_server_autorespond(ws, crypto, name, payload)
 
 # ----------------------------------------------------------------------
 

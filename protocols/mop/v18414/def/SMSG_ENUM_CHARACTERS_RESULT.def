@@ -88,7 +88,7 @@ data:
 
         level: B
 
-        if €chars_meta[0].guid_0_mask:
+        if €chars_meta[i].guid_0_mask:
             guid_0:     B
     
         if €chars_meta[i].guid_2_mask:

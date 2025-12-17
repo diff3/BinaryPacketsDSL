@@ -5,16 +5,17 @@ program: mop
 version: v18414
 friendly_name: Mist of Pandaria 5.4.8
 
-IgnoredCases:
-  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
-  - SMSG_ADDON_INFO
 
-IgnoredWorldOpcodes:
+WhiteListedOpcodes:  all
+
+BlackListedOpcodes:
   - SMSG_ADDON_INFO
   - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
   - SMSG_SPLINE_MOVE_UNSET_FLYING
   - SMSG_ON_MONSTER_MOVE
   - SMSG_SPELL_GO
+
+ShowRawData: False
 
 authserver:
   host: 0.0.0.0

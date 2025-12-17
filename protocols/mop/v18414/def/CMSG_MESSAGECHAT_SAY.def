@@ -2,6 +2,6 @@
 endian: little
 header:
 data:
-    chat_type: I
+    chat_type: B
     msg_len: B
     msg: €msg_len's
