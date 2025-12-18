@@ -5,33 +5,13 @@ program: mop
 version: v18414
 friendly_name: Mist of Pandaria 5.4.8
 
-
-WhiteListedOpcodes:  all
-
-BlackListedOpcodes:
-  - SMSG_ADDON_INFO
-  - SMSG_BATTLE_PAY_DISTRIBUTION_UPDATE
-  - SMSG_SPLINE_MOVE_UNSET_FLYING
-  - SMSG_ON_MONSTER_MOVE
-  - SMSG_SPELL_GO
-
-ShowRawData: False
-
 authserver:
   host: 0.0.0.0
   port: 3722
 
-client:
-  build: 18414        
-  platform: "x86"     
-  os: "Win"          
-  country: "enGB"   
-  timezone: 60      
-  ip: "192.168.11.30"
-
 worldserver:
   host: 0.0.0.0
-  port: 8085
+  port: 8086
 
 auth_proxy:
   listen_host: "0.0.0.0"
@@ -44,6 +24,21 @@ world_proxy:
   listen_port: 8084
   world_host: "192.168.11.30"
   world_port: 8085
+
+control_server:
+  enabled: true
+  host: "127.0.0.1"
+  port: 1337
+  username: ""
+  password: ""
+
+client:
+  build: 18414        
+  platform: "x86"     
+  os: "Win"          
+  country: "enGB"   
+  timezone: 60      
+  ip: "192.168.11.30"
   
 database:
   host: 192.168.11.81
@@ -88,8 +83,3 @@ Logging:
   none: &none ""
 
   date_format: *se
-
-authserver:
-  host: "0.0.0.0"
-  port: 3722
-

@@ -117,11 +117,6 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     continue
                 else:
                     return None
-            if ch == b"\x1b":  # ESC → clear current line and re-prompt
-                buf = []
-                cursor = 0
-                self._render(buf, cursor)
-                continue
 
             if ch in (b"\r", b"\n"):
                 self._write(b"\r\n")
@@ -137,8 +132,13 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     self._render(buf, cursor)
                 continue
 
-            if ch == b"\x1b":  # escape sequences for arrows
+            if ch == b"\x1b":  # ESC sequences (arrows/delete) or lone ESC to clear
                 seq = self.rfile.read(2)
+                if not seq:
+                    buf = []
+                    cursor = 0
+                    self._render(buf, cursor)
+                    continue
                 if seq == b"[A":  # up
                     buf = self._history_prev(buf)
                     cursor = len(buf)
@@ -160,6 +160,11 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     if trailing == b"~" and cursor < len(buf):
                         del buf[cursor]
                         self._render(buf, cursor)
+                else:
+                    # lone ESC or unhandled sequence → clear line
+                    buf = []
+                    cursor = 0
+                    self._render(buf, cursor)
                 continue
             if ch == b"\t":
                 buf, cursor = self._handle_tab(buf, cursor)
@@ -384,7 +389,7 @@ class _ControlHandler(socketserver.StreamRequestHandler):
         else:
             if cmd == "protocol":
                 if pos == 2:
-                    candidates, prefix = choose(["add", "rm", "list", "view"], sub)
+                    candidates, prefix = choose(["add", "rm", "list", "view", "sync"], sub)
                 elif pos == 3 and sub in ("add", "rm"):
                     candidates, prefix = choose(self.server.opcodes_capture, arg)
                 elif pos == 3 and sub == "view":
@@ -393,10 +398,16 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     candidates, prefix = choose(self.server.opcodes_defs, tokens[3])
             elif cmd == "promot":
                 if pos == 2:
-                    candidates, prefix = choose(["this", "delete", "sync"], sub)
+                    candidates, prefix = choose(["this", "delete"], sub)
                 elif pos == 3 and sub in ("this", "delete"):
                     candidates, prefix = choose(self.server.opcodes_capture if sub == "this" else self.server.opcodes_defs, arg)
-            elif cmd in ("dump", "update"):
+            elif cmd == "dump":
+                if pos == 2:
+                    candidates, prefix = choose(["on", "off"], sub)
+            elif cmd == "raw":
+                if pos == 2:
+                    candidates, prefix = choose(["on", "off"], sub)
+            elif cmd == "debug":
                 if pos == 2:
                     candidates, prefix = choose(["on", "off"], sub)
             elif cmd == "focus":
@@ -406,7 +417,21 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     candidates, prefix = choose(self.server.opcodes_all, arg)
             elif cmd == "filter":
                 if pos == 2:
-                    candidates, prefix = choose(["add", "remove", "rm", "del", "clear", "list"], sub)
+                    candidates, prefix = choose(["add", "remove", "rm", "del", "clear", "list", "ignore", "whitelist"], sub)
+                elif pos == 3 and sub in ("add", "remove", "rm", "del"):
+                    candidates, prefix = choose(self.server.opcodes_all, arg)
+                elif pos >= 3 and sub in ("ignore", "whitelist"):
+                    action = arg if pos == 3 else tokens[2]
+                    if action in ("add", "rm", "remove", "del"):
+                        target_prefix = tokens[3] if pos >= 4 else ""
+                        candidates, prefix = choose(self.server.opcodes_all, target_prefix)
+                    elif action in ("clear", "list"):
+                        candidates, prefix = choose([action], action)
+            elif cmd == "capture":
+                if pos == 2:
+                    candidates, prefix = choose(["delete"], sub)
+                elif pos == 3 and sub == "delete":
+                    candidates, prefix = choose(["all"], arg)
                 elif pos == 3 and sub in ("add", "remove", "rm", "del"):
                     candidates, prefix = choose(self.server.opcodes_all, arg)
 
@@ -475,19 +500,59 @@ class _ControlHandler(socketserver.StreamRequestHandler):
             return True
 
         self.wfile.write(b"Username: ")
-        uline = self.rfile.readline()
-        if not uline:
+        try:
+            self.wfile.flush()
+        except Exception:
+            pass
+        u = self._read_auth_line(echo=True)
+        if u is None:
             return False
-        u = uline.decode(errors="ignore").strip()
-        self.wfile.write(b"Password: ")
-        pline = self.rfile.readline()
-        if not pline:
+        self.wfile.write(b"\r\nPassword: ")
+        try:
+            self.wfile.flush()
+        except Exception:
+            pass
+        p = self._read_auth_line(echo=False)
+        if p is None:
             return False
-        p = pline.decode(errors="ignore").strip()
         if (username and u != username) or (password and p != password):
             self.wfile.write(b"Authentication failed\r\n")
             return False
         return True
+
+    def _read_auth_line(self, *, echo: bool = False) -> str | None:
+        """
+        Read a line for authentication, skipping telnet IAC sequences.
+        If echo is True, characters are echoed back; otherwise input stays hidden.
+        """
+        buf: List[str] = []
+        while True:
+            ch = self.rfile.read(1)
+            if not ch:
+                return None
+            if ch == b"\xff":  # IAC
+                if not self._handle_iac():
+                    return None
+                continue
+            if ch in (b"\r", b"\n"):
+                # consume trailing LF/NUL if CRLF or CRNUL
+                if ch == b"\r":
+                    nxt = self.rfile.peek(1) if hasattr(self.rfile, "peek") else b""
+                    if nxt and nxt[:1] in (b"\n", b"\x00"):
+                        self.rfile.read(1)
+                return "".join(buf).strip()
+            try:
+                c = ch.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            if c.isprintable():
+                buf.append(c)
+                if echo:
+                    try:
+                        self.wfile.write(ch)
+                        self.wfile.flush()
+                    except Exception:
+                        pass
 
 
 class ControlServer:
@@ -575,10 +640,12 @@ class ControlServer:
             "clear",
             "status",
             "dump",
-            "update",
+            "raw",
+            "debug",
             "focus",
             "filter",
             "protocol",
+            "capture",
             "promot",
             "help",
             "quit",
@@ -650,15 +717,25 @@ class ControlServer:
                 return ["dump: off"], False
             return ["usage: dump on|off"], False
 
-        if op == "update" and len(args) == 1:
+        if op == "raw" and len(args) == 1:
             val = args[0].lower()
             if val in ("on", "1", "true"):
-                self.control_state.set_update(True)
-                return ["update: on"], False
+                self.control_state.set_show_raw(True)
+                return ["raw: on"], False
             if val in ("off", "0", "false"):
-                self.control_state.set_update(False)
-                return ["update: off"], False
-            return ["usage: update on|off"], False
+                self.control_state.set_show_raw(False)
+                return ["raw: off"], False
+            return ["usage: raw on|off"], False
+
+        if op == "debug" and len(args) == 1:
+            val = args[0].lower()
+            if val in ("on", "1", "true"):
+                self.control_state.set_show_debug(True)
+                return ["debug: on"], False
+            if val in ("off", "0", "false"):
+                self.control_state.set_show_debug(False)
+                return ["debug: off"], False
+            return ["usage: debug on|off"], False
 
         if op == "focus":
             return self._handle_focus(args), False
@@ -672,6 +749,13 @@ class ControlServer:
 
         if op == "protocol":
             return self._handle_protocol(args), False
+
+        if op == "capture":
+            return self._handle_capture(args), False
+
+        if op == "reset":
+            self.control_state.reset_defaults()
+            return ["state reset to defaults"], False
 
         return [f"unknown command: {op}", "type 'help' for a list"], False
 
@@ -710,7 +794,7 @@ class ControlServer:
     # ------------------------------------------------------------------ #
     def _handle_filter(self, args: List[str]) -> List[str]:
         if not args:
-            return ["usage: filter add <pattern> | filter remove <pattern> | filter clear | filter list"]
+            return ["usage: filter add <pattern> | filter remove <pattern> | filter clear | filter list | filter ignore add|rm|clear|list <opcode> | filter whitelist add|rm|clear|list <opcode>"]
 
         sub = args[0].lower()
         if sub == "add" and len(args) >= 2:
@@ -727,10 +811,54 @@ class ControlServer:
         if sub == "list":
             snap = self.control_state.snapshot()
             if not snap.filters:
-                return ["filters: off (show all)"]
-            return ["filters:"] + [f" - {p}" for p in sorted(snap.filters)]
+                lines = ["filters: off (show all)"]
+            else:
+                lines = ["filters:"] + [f" - {p}" for p in sorted(snap.filters)]
+            lines += ["ignore:"] + ([f" - {o}" for o in sorted(snap.ignore)] or [" - none"])
+            lines += ["whitelist:"] + ([f" - {o}" for o in sorted(snap.whitelist)] or [" - inherit/config"])
+            return lines
 
-        return ["usage: filter add <pattern> | filter remove <pattern> | filter clear | filter list"]
+        if sub == "ignore":
+            if len(args) < 2:
+                return ["usage: filter ignore add|rm|clear|list <opcode>"]
+            action = args[1].lower()
+            if action == "add" and len(args) >= 3:
+                op = " ".join(args[2:])
+                self.control_state.ignore_add(op)
+                return [f"ignore added: {op}"]
+            if action in ("rm", "del", "remove") and len(args) >= 3:
+                op = " ".join(args[2:])
+                self.control_state.ignore_remove(op)
+                return [f"ignore removed: {op}"]
+            if action == "clear":
+                self.control_state.ignore_clear()
+                return ["ignore cleared"]
+            if action == "list":
+                snap = self.control_state.snapshot()
+                return ["ignore:"] + ([f" - {o}" for o in sorted(snap.ignore)] or [" - none"])
+            return ["usage: filter ignore add|rm|clear|list <opcode>"]
+
+        if sub == "whitelist":
+            if len(args) < 2:
+                return ["usage: filter whitelist add|rm|clear|list <opcode>"]
+            action = args[1].lower()
+            if action == "add" and len(args) >= 3:
+                op = " ".join(args[2:])
+                self.control_state.whitelist_add(op)
+                return [f"whitelist added: {op}"]
+            if action in ("rm", "del", "remove") and len(args) >= 3:
+                op = " ".join(args[2:])
+                self.control_state.whitelist_remove(op)
+                return [f"whitelist removed: {op}"]
+            if action == "clear":
+                self.control_state.whitelist_clear()
+                return ["whitelist cleared"]
+            if action == "list":
+                snap = self.control_state.snapshot()
+                return ["whitelist:"] + ([f" - {o}" for o in sorted(snap.whitelist)] or [" - none"])
+            return ["usage: filter whitelist add|rm|clear|list <opcode>"]
+
+        return ["usage: filter add <pattern> | filter remove <pattern> | filter clear | filter list | filter ignore add|rm|clear|list <opcode> | filter whitelist add|rm|clear|list <opcode>"]
 
     # ------------------------------------------------------------------ #
     def _help(self) -> List[str]:
@@ -739,7 +867,8 @@ class ControlServer:
             "  clear             clear screen",
             "  status            show current state",
             "  dump on|off       toggle dumping",
-            "  update on|off     toggle update mode",
+            "  raw on|off        toggle raw payload logging",
+            "  debug on|off      toggle decoded JSON logging",
             "  focus on|off      enable/disable focus filtering",
             "  focus add <op>    add opcode name to focus",
             "  focus rm <op>     remove opcode name from focus",
@@ -749,12 +878,17 @@ class ControlServer:
             "  filter remove <pat> remove a filter pattern",
             "  filter clear      remove all filters (show all)",
             "  filter list       list active filters",
+            "  filter ignore add|rm|clear|list <op>  blacklist opcodes at runtime",
+            "  filter whitelist add|rm|clear|list <op> override whitelist at runtime",
             "  protocol add <op> promote capture into protocols",
             "  protocol rm <op>  remove promoted files for opcode",
+            "  protocol sync     sync protocol debug/json from captures",
             "  protocol list     list promoted protocols (DEF)",
             "  protocol view def|debug|json <op> view a promoted artifact",
             "  promot <op>       (legacy) promote capture into protocols",
             "  promot delete <op> (legacy) remove promoted files for opcode",
+            "  capture delete all remove all captures and recreate folders",
+            "  reset             reset runtime state to defaults",
             "  help              show this help",
             "  quit              close connection",
         ]
@@ -779,13 +913,15 @@ class ControlServer:
     # ------------------------------------------------------------------ #
     def _handle_protocol(self, args: List[str]) -> List[str]:
         if not args:
-            return ["usage: protocol add <op> | protocol rm <op> | protocol list | protocol view def|debug|json <op>"]
+            return ["usage: protocol add <op> | protocol rm <op> | protocol list | protocol view def|debug|json <op> | protocol sync"]
 
         sub = args[0].lower()
         if sub == "add" and len(args) >= 2:
             return promoter.promote_opcode(" ".join(args[1:]))
         if sub == "rm" and len(args) >= 2:
             return promoter.delete_opcode(" ".join(args[1:]))
+        if sub == "sync":
+            return promoter.sync_protocols_from_captures()
         if sub == "list":
             search = " ".join(args[1:]) if len(args) > 1 else None
             return promoter.list_protocols(search=search)
@@ -795,6 +931,12 @@ class ControlServer:
             return promoter.view_protocol(kind, name)
 
         return ["usage: protocol add <op> | protocol rm <op> | protocol list | protocol view def|debug|json <op>"]
+
+    # ------------------------------------------------------------------ #
+    def _handle_capture(self, args: List[str]) -> List[str]:
+        if len(args) >= 2 and args[0].lower() == "delete" and args[1].lower() == "all":
+            return promoter.delete_all_captures()
+        return ["usage: capture delete all"]
 
 
 __all__ = ["ControlServer"]

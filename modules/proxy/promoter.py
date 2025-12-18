@@ -116,6 +116,86 @@ def sync_done() -> List[str]:
     return [f"sync complete, removed {removed} capture files"] if removed else ["no capture files removed"]
 
 
+def sync_protocols_from_captures() -> List[str]:
+    """
+    For each protocol debug file, if a capture exists, copy capture debug/json into protocols.
+    Intended to refresh expected results from latest captures.
+    """
+    lines: List[str] = []
+    try:
+        cfg = ConfigLoader.load_config()
+        program = cfg["program"]
+        version = cfg["version"]
+    except Exception as exc:
+        return [f"config error: {exc}"]
+
+    base = Path("protocols") / program / version
+    proto_debug = base / "debug"
+    proto_json = base / "json"
+
+    cap_debug = Path("misc/captures/debug")
+    cap_json = Path("misc/captures/json")
+
+    if not proto_debug.is_dir():
+        return [f"protocol debug dir missing: {proto_debug}"]
+
+    updated = 0
+    for dbg_file in proto_debug.glob("*.json"):
+        name = dbg_file.stem
+        src_dbg = cap_debug / f"{name}.json"
+        src_json = cap_json / f"{name}.json"
+
+        if not src_dbg.exists():
+            lines.append(f"[SKIP] no capture for {name}")
+            continue
+
+        try:
+            dbg_file.write_bytes(src_dbg.read_bytes())
+            updated += 1
+            lines.append(f"[OK] synced debug for {name}")
+        except Exception as exc:
+            lines.append(f"[ERR] {name}: {exc}")
+            continue
+
+        if src_json.exists():
+            try:
+                (proto_json / f"{name}.json").write_bytes(src_json.read_bytes())
+                lines.append(f"[OK] synced json for {name}")
+            except Exception as exc:
+                lines.append(f"[ERR] json {name}: {exc}")
+        else:
+            lines.append(f"[SKIP] no capture json for {name}")
+
+    if updated == 0:
+        lines.append("no protocol files were updated (no matching captures)")
+    else:
+        lines.append(f"sync complete, updated {updated} protocol debug file(s)")
+    return lines
+
+
+def delete_all_captures() -> List[str]:
+    """
+    Delete the misc/captures directory and recreate empty structure.
+    """
+    root = Path("misc/captures")
+    if not root.exists():
+        return [f"{root} not found"]
+
+    try:
+        import shutil
+
+        shutil.rmtree(root)
+    except Exception as exc:
+        return [f"failed to remove {root}: {exc}"]
+
+    try:
+        for sub in ("debug", "json", "bin", "focus"):
+            (root / sub).mkdir(parents=True, exist_ok=True)
+        return [f"removed and recreated {root}"]
+    except Exception as exc:
+        return [f"removed {root} but failed to recreate structure: {exc}"]
+
+
 def list_protocols(limit: int = 200, search: str | None = None) -> List[str]:
     """List promoted opcodes (DEF files) under protocols. Optional case-insensitive substring search."""
     cfg = ConfigLoader.load_config()
@@ -166,6 +246,8 @@ __all__ = [
     "promote_opcode",
     "delete_opcode",
     "sync_done",
+    "sync_protocols_from_captures",
+    "delete_all_captures",
     "list_protocols",
     "view_protocol",
 ]

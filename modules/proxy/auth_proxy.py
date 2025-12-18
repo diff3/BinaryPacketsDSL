@@ -35,7 +35,8 @@ class AuthProxy:
         self.auth_port = auth_port
 
         self.dump = dump       # dump → captures/<opcode>.*
-        self.update = update   # update → protocols/<version>/<opcode>.*
+        # update mode removed; keep attr for compatibility but keep disabled
+        self.update = False
         self.focus_dump = focus_dump
         self.control_state = control_state
         self.client_opcodes, self.server_opcodes, self.lookup = load_auth_opcodes()
@@ -184,5 +185,5 @@ class AuthProxy:
             snap = self.control_state.snapshot()
             focus_set = set(snap.focus) if snap.focus is not None else None
             filters = set(snap.filters) if snap.filters else None
-            return snap.dump, snap.update, focus_set, filters
-        return self.dump, self.update, set(self.focus_dump) if self.focus_dump else None, None
+            return snap.dump, False, focus_set, filters
+        return self.dump, False, set(self.focus_dump) if self.focus_dump else None, None
