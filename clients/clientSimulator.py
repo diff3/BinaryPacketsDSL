@@ -21,12 +21,13 @@ from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
 from utils.OpcodeLoader import load_world_opcodes
 
-from modules.EncoderHandler import EncoderHandler
+from modules.dsl.EncoderHandler import EncoderHandler
 from modules.crypto.ARC4Crypto import Arc4CryptoHandler
 from modules.crypto.SRP6Client import SRP6Client, H
 from modules.crypto.SRP6Crypto import SRP6Crypto
 
-from protocols.mop.v18414.opcodes.WorldOpcodes import WorldClientOpcodes
+world_opcode_module = f"protocols.{ConfigLoader.load_config()['program']}.{ConfigLoader.load_config()['version']}.modules.opcodes.WorldOpcodes"
+WorldClientOpcodes = __import__(world_opcode_module, fromlist=["WorldClientOpcodes"]).WorldClientOpcodes
 
 # interpretation layer
 from modules.interpretation.PacketInterpreter import DslDecoder
@@ -35,7 +36,8 @@ from modules.interpretation.EncryptedWorldStream import ClientWorldStream
 from modules.interpretation.parser import parse_header
 from modules.interpretation.utils import build_world_header, build_world_header_plain
 
-from protocols.mop.v18414.data.text_emotes import TEXT_EMOTES
+text_emotes_module = f"protocols.{ConfigLoader.load_config()['program']}.{ConfigLoader.load_config()['version']}.modules.shared.text_emotes"
+TEXT_EMOTES = __import__(text_emotes_module, fromlist=["TEXT_EMOTES"]).TEXT_EMOTES
 
 
 # ----------------------------------------------------------------------

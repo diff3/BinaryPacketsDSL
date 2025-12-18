@@ -34,7 +34,7 @@ class FileHandler():
         Load payload bytes for a case.
         Requires debug json; raises if missing.
         """
-        debug_path = f"protocols/{program}/{version}/debug/{case}.json"
+        debug_path = f"protocols/{program}/{version}/data/debug/{case}.json"
 
         if os.path.exists(debug_path):
             data = FileHandler.load_json_file(debug_path)
@@ -62,7 +62,7 @@ class FileHandler():
 
     @staticmethod
     def list_def_files(program: str, version: str) -> list[str]:
-        folder = f"protocols/{program}/{version}/def"
+        folder = f"protocols/{program}/{version}/data/def"
         if not os.path.exists(folder):
             return []
 

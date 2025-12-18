@@ -33,7 +33,7 @@ config["Logging"]["logging_levels"] = "Information, Success, Error"
 program = config["program"]
 version = config["version"]
 
-mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
+mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
 DatabaseConnection = getattr(mod, "DatabaseConnection")
 DatabaseConnection.initialize()
 
@@ -56,7 +56,7 @@ AUTH_RESPONSE_OPCODE = EncryptedWorldStream.AUTH_RESPONSE_OPCODE
 
 try:
     handlers_mod = importlib.import_module(
-        f"protocols.{program}.{version}.handlers.WorldHandlers"
+        f"protocols.{program}.{version}.modules.handlers.WorldHandlers"
     )
     opcode_handlers = getattr(handlers_mod, "opcode_handlers", {})
     get_auth_challenge = getattr(handlers_mod, "get_auth_challenge", None)
@@ -71,7 +71,7 @@ except Exception:
 
 # ---- Interpretation helpers --------------------------------------------
 
-packet_dumper = PacketDump(f"protocols/{program}/{version}")
+packet_dumper = PacketDump(f"protocols/{program}/{version}/data")
 interpreter = PacketInterpreter(
     decoder=DslDecoder(),
     normalizer=JsonNormalizer(),

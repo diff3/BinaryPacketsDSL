@@ -5,13 +5,27 @@ import socket
 import signal
 import traceback
 import threading
+import importlib
+import sys
+from pathlib import Path
 
-from modules.DslRuntime import DslRuntime
+# Ensure project root on sys.path when running as a script
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from modules.dsl.DslRuntime import DslRuntime
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
 from utils.AutoRewrite import resolve_import
 
-from protocols.mop.v18414.database.DatabaseConnection import DatabaseConnection
+config = ConfigLoader.load_config()
+config["Logging"]["logging_levels"] = "Information, Success, Error"
+program = config["program"]
+version = config["version"]
+
+mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
+DatabaseConnection = getattr(mod, "DatabaseConnection")
 DatabaseConnection.initialize()
 
 
@@ -25,13 +39,8 @@ AUTH_SERVER_OPCODES = opcode_pack["AUTH_SERVER_OPCODES"]
 lookup = opcode_pack["lookup"]
 
 
-# ---- Configuration ------------------------------------------------------
-
-config = ConfigLoader.load_config()
-config["Logging"]["logging_levels"] = "Information, Success, Error"
-
 HOST = config["authserver"]["host"]
-PORT = 3724
+PORT = config["authserver"]["port"]
 running = True
 runtime = None
 

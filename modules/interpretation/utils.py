@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
 from utils.PacketDump import dump_capture
-from modules.DslRuntime import DslRuntime
+from modules.dsl.DslRuntime import DslRuntime
 
 
 cfg = ConfigLoader.load_config()
@@ -19,7 +19,7 @@ cfg["Logging"]["logging_levels"] = "Information, Success, Script, Error"
 program = cfg["program"]
 version = cfg["version"]
 
-mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
+mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
 DatabaseConnection = getattr(mod, "DatabaseConnection")
 
 _dsl_runtime: Optional[DslRuntime] = None

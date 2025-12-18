@@ -36,7 +36,7 @@ def resolve_import(request: str):
     # AUTH HANDLERS
     # ------------------------------------------------------
     if "handlers.AuthHandler" in request:
-        module_path = f"protocols.{program}.{version}.handlers.AuthHandlers"
+        module_path = f"protocols.{program}.{version}.modules.handlers.AuthHandlers"
         handlers_module = importlib.import_module(module_path)
         return handlers_module.opcode_handlers
 

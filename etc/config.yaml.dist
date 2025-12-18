@@ -7,7 +7,7 @@ friendly_name: Mist of Pandaria 5.4.8
 
 authserver:
   host: 0.0.0.0
-  port: 3722
+  port: 3720
 
 worldserver:
   host: 0.0.0.0
@@ -29,8 +29,8 @@ control_server:
   enabled: true
   host: "127.0.0.1"
   port: 1337
-  username: ""
-  password: ""
+  username: "admin"
+  password: "admin"
 
 client:
   build: 18414        
@@ -48,10 +48,6 @@ database:
   auth_db: skyfire548_auth
   world_db: skyfire548_world
   characters_db: skyfire548_characters
-
-crypto:
-  N: 894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7
-  g: 7
 
 Logging:
   # Specify the logging levels as names (comma-separated) or use "All" for all levels.

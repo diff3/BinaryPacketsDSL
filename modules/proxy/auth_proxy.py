@@ -9,7 +9,7 @@ import threading
 import traceback
 import time
 
-from modules.DslRuntime import DslRuntime
+from modules.dsl.DslRuntime import DslRuntime
 from modules.proxy.control_state import ControlState
 
 from utils.PacketDump import PacketDump, dump_capture
@@ -44,7 +44,7 @@ class AuthProxy:
         self.version = cfg["version"]
 
         # Update-läge använder denna dumper
-        self.dumper = PacketDump(f"protocols/{self.program}/{self.version}")
+        self.dumper = PacketDump(f"protocols/{self.program}/{self.version}/data")
 
         try:
             # Proxy-läge: ingen JSON, ingen watcher

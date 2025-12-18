@@ -4,10 +4,10 @@
 import unittest
 import json
 import sys
-from modules.DecoderHandler import DecoderHandler
-from modules.NodeTreeParser import NodeTreeParser
-from modules.Processor import load_all_cases
-from modules.Session import get_session
+from modules.dsl.DecoderHandler import DecoderHandler
+from modules.dsl.NodeTreeParser import NodeTreeParser
+from modules.dsl.Processor import load_all_cases
+from modules.dsl.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
 

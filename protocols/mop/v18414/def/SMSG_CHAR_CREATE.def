@@ -1,6 +1,0 @@
-# SMSG_CHAR_CREATE - Partial, needs testing 
-endian: little
-header:
-data:
-    #result: B   # 0x2F i din capture
-    raw: R

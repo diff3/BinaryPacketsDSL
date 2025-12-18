@@ -1,7 +1,0 @@
-# CMSG_SET_ACTIVE_MOVER - Partial, needs testing
-endian: little
-header:
-data:
-    # raw: R
-    moverGUID: packed_guid
-    ack: B

@@ -34,7 +34,7 @@ cfg["Logging"]["logging_levels"] = "Information, Success, Script, Error"
 program = cfg["program"]
 version = cfg["version"]
 
-mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
+mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
 DatabaseConnection = getattr(mod, "DatabaseConnection")
 
 
@@ -75,7 +75,7 @@ class WorldProxy:
         self.stream = EncryptedWorldStream()
 
         # Packet dumper – same layout as AuthProxy
-        self.dumper = PacketDump(f"protocols/{cfg['program']}/{cfg['version']}")
+        self.dumper = PacketDump(f"protocols/{cfg['program']}/{cfg['version']}/data")
 
         self.interpreter = PacketInterpreter(
             decoder=DslDecoder(),

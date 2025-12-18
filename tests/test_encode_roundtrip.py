@@ -4,11 +4,11 @@ import sys
 from pathlib import Path
 import unittest
 
-from modules.DecoderHandler import DecoderHandler
-from modules.EncoderHandler import EncoderHandler
-from modules.NodeTreeParser import NodeTreeParser
-from modules.Processor import load_all_cases
-from modules.Session import get_session
+from modules.dsl.DecoderHandler import DecoderHandler
+from modules.dsl.EncoderHandler import EncoderHandler
+from modules.dsl.NodeTreeParser import NodeTreeParser
+from modules.dsl.Processor import load_all_cases
+from modules.dsl.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
 
@@ -115,7 +115,7 @@ class TestEncodeRoundtrip(unittest.TestCase):
             with self.subTest(case=case_name):
                 if not isinstance(expected, dict) or not expected:
                     processed += 1
-                    debug_path = Path(f"protocols/{self.program}/{self.version}/debug/{case_name}.json")
+                    debug_path = Path(f"protocols/{self.program}/{self.version}/data/debug/{case_name}.json")
                     debug_ok = False
                     if debug_path.exists():
                         try:

@@ -11,9 +11,12 @@ Verifies:
 
 import unittest
 
-from modules.EncoderHandler import EncoderHandler
+from modules.dsl.EncoderHandler import EncoderHandler
 from modules.crypto.ARC4Crypto import Arc4CryptoHandler
-from protocols.mop.v18414.opcodes.WorldOpcodes import WorldClientOpcodes
+from utils.ConfigLoader import ConfigLoader
+cfg = ConfigLoader.load_config()
+world_opcode_module = f"protocols.{cfg['program']}.{cfg['version']}.modules.opcodes.WorldOpcodes"
+WorldClientOpcodes = __import__(world_opcode_module, fromlist=["WorldClientOpcodes"]).WorldClientOpcodes
 
 
 class ReadyForAccountDataTimesTest(unittest.TestCase):

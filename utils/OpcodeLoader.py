@@ -12,7 +12,7 @@ def load_opcode_module():
     program = config["program"]
     version = config["version"]
 
-    module_path = f"protocols.{program}.{version}.opcodes.AuthOpcodes"
+    module_path = f"protocols.{program}.{version}.modules.opcodes.AuthOpcodes"
     return importlib.import_module(module_path)
 
 
@@ -34,7 +34,7 @@ def load_world_opcodes():
     program = config["program"]
     version = config["version"]
 
-    module_path = f"protocols.{program}.{version}.opcodes.WorldOpcodes"
+    module_path = f"protocols.{program}.{version}.modules.opcodes.WorldOpcodes"
     mod = importlib.import_module(module_path)
 
     return (

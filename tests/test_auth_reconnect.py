@@ -22,7 +22,7 @@ class TestAuthReconnect(unittest.TestCase):
 
         def read_raw(name: str) -> bytes | None:
             path = (
-                Path("protocols") / cls.program / cls.version / "debug" / f"{name}.json"
+                Path("protocols") / cls.program / cls.version / "data" / "debug" / f"{name}.json"
             )
             if not path.exists():
                 return None
@@ -44,6 +44,7 @@ class TestAuthReconnect(unittest.TestCase):
             Path("protocols")
             / cls.program
             / cls.version
+            / "data"
             / "debug"
             / "AUTH_RECONNECT_CHALLENGE_C.json"
         )
@@ -55,7 +56,8 @@ class TestAuthReconnect(unittest.TestCase):
             raise unittest.SkipTest("Missing debug fixtures for auth reconnect challenge")
 
         try:
-            import protocols.mop.v18414.handlers.AuthHandlers as AH
+            module_path = f"protocols.{cls.program}.{cls.version}.modules.handlers.AuthHandlers"
+            AH = __import__(module_path, fromlist=["opcode_handlers"])
         except ImportError as exc:
             raise unittest.SkipTest(f"AuthHandlers import failed: {exc}")
 

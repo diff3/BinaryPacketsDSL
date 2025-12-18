@@ -11,7 +11,7 @@ def get_db():
     version = cfg["version"]
 
     mod = importlib.import_module(
-        f"protocols.{program}.{version}.database.DatabaseConnection"
+        f"protocols.{program}.{version}.modules.database.DatabaseConnection"
     )
     DB = getattr(mod, "DatabaseConnection")
     DB.initialize()

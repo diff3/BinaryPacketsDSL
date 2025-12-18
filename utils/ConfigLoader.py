@@ -2,9 +2,24 @@
 # -*- coding: utf-8 -*-
 
 import yaml
+from pathlib import Path
+from copy import deepcopy
 
 # GLOBALS
-_config = None 
+_config = None
+
+
+def _merge_dicts(base: dict, override: dict) -> dict:
+    """
+    Shallow+nested merge: values in override win; dict values are merged recursively.
+    """
+    result = deepcopy(base)
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(result.get(k), dict):
+            result[k] = _merge_dicts(result[k], v)
+        else:
+            result[k] = deepcopy(v)
+    return result
 
 
 class ConfigLoader:
@@ -12,35 +27,52 @@ class ConfigLoader:
         """
         Retrieves a value from the loaded configuration.
         """
-
         global _config
-
         if _config is None:
-            with open("etc/config.yaml", "r", encoding="utf-8") as f:
-                _config = yaml.safe_load(f)
-                
+            _config = ConfigLoader.load_config()
         return _config
 
     @staticmethod
-    def load_config(filepath:str = "etc/config.yaml") -> dict:
+    def load_config(filepath: str = "etc/config.yaml") -> dict:
         """
         Loads the configuration file if not already cached.
+        Also overlays optional program-specific config at protocols/<program>/config.yaml.
         """
         global _config
-        
+
         if _config is None:
             try:
-                with open(filepath, 'r', encoding="utf-8") as file:
-                    _config = yaml.safe_load(file)
+                with open(filepath, "r", encoding="utf-8") as file:
+                    base_cfg = yaml.safe_load(file) or {}
             except FileNotFoundError:
                 raise RuntimeError(f"Configuration file not found at {filepath}.")
             except yaml.YAMLError as e:
                 raise RuntimeError(f"Error parsing YAML file: {e}")
-        
+
+            # Optional program-specific overlay
+            try:
+                program = base_cfg.get("program")
+                version = base_cfg.get("version")
+                if program:
+                    # Prefer program+version-specific config
+                    paths = []
+                    if version:
+                        paths.append(Path("protocols") / program / version / "config.yaml")
+                    paths.append(Path("protocols") / program / "config.yaml")
+                    for program_cfg_path in paths:
+                        if program_cfg_path.is_file():
+                            overlay = yaml.safe_load(program_cfg_path.read_text(encoding="utf-8")) or {}
+                            base_cfg = _merge_dicts(base_cfg, overlay)
+                            break
+            except Exception:
+                # best-effort overlay; ignore if missing or malformed
+                pass
+
+            _config = base_cfg
+
         return _config
 
     @staticmethod
-    
     def reload_config(filepath: str = "etc/config.yaml"):
         """
         Reload the configuration from disk.
@@ -51,5 +83,5 @@ class ConfigLoader:
 
         global _config
         _config = None
-        
+
         return ConfigLoader.load_config(filepath)

@@ -1,6 +1,0 @@
-# SMSG_MESSAGECHAT – raw passthrough
-endian: little
-header:
-data:
-    _: 12B
-    raw: R, r
