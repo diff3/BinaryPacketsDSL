@@ -1,259 +1,311 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Minimal world server för debug:
-  - Lyssnar på world-porten
-  - Dekodar world-paket via DSL-runtime (watch när möjligt)
-  - Handler-stöd (protocols/<program>/<version>/handlers/WorldHandlers.py)
-  - Rå fallback: kan svara med sparade raw_data för ofärdiga paket
-  - Initierar ARC4 vid CMSG_AUTH_SESSION via DB-session_key (samma som world_proxy)
-"""
 
 import importlib
-import json
 import socket
 import signal
 import threading
 import traceback
 
-from modules.DslRuntime import DslRuntime
-from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
+from utils.ConfigLoader import ConfigLoader
 from utils.OpcodeLoader import load_world_opcodes
+from utils.PacketDump import PacketDump
 from modules.crypto.ARC4Crypto import Arc4CryptoHandler
-from protocols.mop.v18414.database.DatabaseConnection import DatabaseConnection
+from modules.interpretation.EncryptedWorldStream import EncryptedWorldStream
+from modules.interpretation.OpcodeResolver import OpcodeResolver
+from modules.interpretation.PacketInterpreter import (
+    DumpPolicy,
+    DslDecoder,
+    JsonNormalizer,
+    PacketDumper,
+    PacketInterpreter,
+)
+from modules.interpretation.parser import parse_plain_packets
+from modules.interpretation.utils import dsl_decode
 
-# Map client opcodes → server response opcode to send as raw_data.
-RAW_RESPONSE_FALLBACKS: dict[str, str] = {}
+
+# ---- Configuration ------------------------------------------------------
 
 config = ConfigLoader.load_config()
 config["Logging"]["logging_levels"] = "Information, Success, Error"
 
+program = config["program"]
+version = config["version"]
+
+mod = importlib.import_module(f"protocols.{program}.{version}.database.DatabaseConnection")
+DatabaseConnection = getattr(mod, "DatabaseConnection")
+DatabaseConnection.initialize()
+
 HOST = config["worldserver"]["host"]
 PORT = config["worldserver"]["port"]
+running = True
 
-runtime: DslRuntime | None = None
-HANDSHAKE_SERVER = b"0\x00WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT\x00"
-HANDSHAKE_CLIENT = b"0\x00WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER\x00"
 
-WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, _world_lookup = load_world_opcodes()
+# ---- Opcodes/handlers ---------------------------------------------------
+
+WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, world_lookup = load_world_opcodes()
+opcode_resolver = OpcodeResolver(WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, world_lookup)
+
+try:
+    AUTH_SESSION_OPCODE = world_lookup.WorldClientOpcodes.CMSG_AUTH_SESSION.value
+except Exception:
+    AUTH_SESSION_OPCODE = 0x00B2  # MoP fallback
+
+AUTH_RESPONSE_OPCODE = EncryptedWorldStream.AUTH_RESPONSE_OPCODE
 
 try:
     handlers_mod = importlib.import_module(
-        f"protocols.{config['program']}.{config['version']}.handlers.WorldHandlers"
+        f"protocols.{program}.{version}.handlers.WorldHandlers"
     )
     opcode_handlers = getattr(handlers_mod, "opcode_handlers", {})
+    get_auth_challenge = getattr(handlers_mod, "get_auth_challenge", None)
+    reset_handler_state = getattr(handlers_mod, "reset_state", None)
     Logger.info("[WorldServer] Loaded world opcode handlers")
 except Exception:
     opcode_handlers = {}
+    get_auth_challenge = None
+    reset_handler_state = None
     Logger.warning("[WorldServer] No WorldHandlers found, raw fallback only")
 
 
-# ---- Helpers -----------------------------------------------------------
+# ---- Interpretation helpers --------------------------------------------
 
-def recv_exact(sock: socket.socket, length: int) -> bytes | None:
-    buf = b""
-    while len(buf) < length:
-        chunk = sock.recv(length - len(buf))
-        if not chunk:
-            return None
-        buf += chunk
-    return buf
-
-
-def parse_header(header: bytes) -> tuple[int | None, int | None, str]:
-    if len(header) < 4:
-        return None, None, "0x????"
-    size = int.from_bytes(header[0:2], "little")
-    opcode = int.from_bytes(header[2:4], "little")
-    return size, opcode, f"0x{opcode:04X}"
+packet_dumper = PacketDump(f"protocols/{program}/{version}")
+interpreter = PacketInterpreter(
+    decoder=DslDecoder(),
+    normalizer=JsonNormalizer(),
+    policy=DumpPolicy(dump=False, update=False),
+    dumper=PacketDumper(packet_dumper),
+)
 
 
-def opcode_name(direction: str, opcode: int) -> str | None:
-    return WORLD_CLIENT_OPCODES.get(opcode) if direction == "C" else WORLD_SERVER_OPCODES.get(opcode)
+# ---- Constants ----------------------------------------------------------
+
+HANDSHAKE_SERVER = b"0\x00WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT\x00"
+HANDSHAKE_CLIENT = b"0\x00WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER\x00"
 
 
-def load_saved_raw(opcode: str) -> bytes | None:
-    base_proto = f"protocols/{config['program']}/{config['version']}/debug/{opcode}.json"
-    base_cap = f"misc/captures/debug/{opcode}.json"
+# ---- Signal handling ----------------------------------------------------
 
-    for path in (base_proto, base_cap):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            continue
-        except Exception as exc:
-            Logger.error(f"[WorldServer] Failed to read raw for {opcode} from {path}: {exc}")
-            continue
-
-        raw_hex = data.get("raw_data_hex")
-        if raw_hex:
-            try:
-                return bytes.fromhex(raw_hex.replace(" ", ""))
-            except Exception:
-                Logger.error(f"[WorldServer] Invalid raw_data_hex in {path}")
-                continue
-
-        raw_header = data.get("raw_header_hex")
-        payload = data.get("hex_compact") or data.get("hex_spaced")
-        if raw_header and payload:
-            try:
-                header_bytes = bytes.fromhex(raw_header.replace(" ", ""))
-                payload_bytes = bytes.fromhex(payload.replace(" ", ""))
-                return header_bytes + payload_bytes
-            except Exception:
-                Logger.error(f"[WorldServer] Invalid hex fields in {path}")
-                continue
-    return None
+def sigint(sig, frame):
+    """Gracefully stop worldserver on Ctrl+C."""
+    global running
+    Logger.info("Shutting down WorldServer (Ctrl+C)…")
+    running = False
 
 
-def send_raw_response(sock: socket.socket, opcode: str) -> bool:
-    raw = load_saved_raw(opcode)
-    if not raw:
-        Logger.warning(f"[WorldServer] No saved raw_data for {opcode}")
-        return False
+# ---- Utility helpers ----------------------------------------------------
+
+def safe_decode(direction: str, name: str, raw_header: bytes, payload: bytes) -> None:
+    """Decode DSL packets via interpretation without crashing handlers."""
     try:
-        Logger.success(f"[WorldServer] → client {opcode} ({len(raw)} bytes)")
-        Logger.success(raw.hex().upper())
-        sock.sendall(raw)
-        Logger.success(f"[WorldServer] Sent saved raw packet for {opcode} ({len(raw)} bytes)")
-        return True
+        interpreter.interpret(name, raw_header, payload)
     except Exception as exc:
-        Logger.error(f"[WorldServer] Failed to send raw {opcode}: {exc}")
-        return False
+        Logger.error(f"[{direction}] decode failed for {name}: {exc}")
+        Logger.error(traceback.format_exc())
 
 
-# ---- Client handling ---------------------------------------------------
+def parse_client_packets(data: bytes, encrypted: bool, stream: EncryptedWorldStream, buffer: bytearray, crypto: Arc4CryptoHandler):
+    """Parse incoming client data based on encryption state."""
+    if not encrypted:
+        return parse_plain_packets(data, "C")
+
+    buffer.extend(data)
+    return stream.feed(buffer, crypto=crypto, direction="C")
+
+
+def build_encrypted_response(packets, crypto: Arc4CryptoHandler) -> bytes:
+    """Encrypt only the headers for server responses."""
+    out = bytearray()
+
+    for raw_header, h, payload in packets:
+        if h.cmd < 0:
+            out.extend(raw_header)
+            out.extend(payload)
+            continue
+
+        size_field = len(payload)
+        if h.cmd == AUTH_RESPONSE_OPCODE:
+            size_field += 4
+
+        packed = crypto.pack_data(h.cmd, size_field)
+        if packed is None:
+            Logger.error("[WorldServer] Failed to pack world header")
+            continue
+
+        enc_header = crypto.encrypt_send(packed)
+        out.extend(enc_header)
+        out.extend(payload)
+
+    return bytes(out)
+
+
+def parse_server_packets(raw: bytes):
+    """
+    Parse server packets that already contain packed world headers (size<<13 | opcode).
+    Keeps payloads plaintext; used for logging/DSL decode before header encryption.
+    """
+    buf = bytearray(raw)
+    packets = []
+
+    while len(buf) >= 4:
+        header = bytes(buf[:4])
+        del buf[:4]
+
+        hdr = Arc4CryptoHandler().unpack_data(header)
+        size = hdr.size
+        cmd = hdr.cmd
+
+        if len(buf) < size:
+            break
+
+        payload = bytes(buf[:size])
+        del buf[:size]
+
+        class Header:
+            pass
+
+        h = Header()
+        h.size = size
+        h.cmd = cmd
+        h.hex = f"0x{cmd:04X}"
+        h.header_raw = header
+
+        packets.append((header, h, payload))
+
+    return packets
+
+
+# ---- Client session handler ---------------------------------------------
 
 def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
+    """Handle a single world client connection."""
     Logger.info(f"[WorldServer] New connection from {addr}")
+
+    if reset_handler_state:
+        try:
+            reset_handler_state()
+        except Exception as exc:
+            Logger.error(f"[WorldServer] Failed to reset handler state: {exc}")
+
     crypto = Arc4CryptoHandler()
+    stream = EncryptedWorldStream()
     encrypted = False
+    buffer = bytearray()
+    auth_challenge_sent = False
 
     try:
         sock.sendall(HANDSHAKE_SERVER)
         Logger.success(f"[WorldServer] → client HANDSHAKE ({len(HANDSHAKE_SERVER)} bytes)")
-        Logger.success(HANDSHAKE_SERVER.hex().upper())
     except Exception as exc:
         Logger.error(f"[WorldServer] Failed to send handshake: {exc}")
+        sock.close()
         return
 
     try:
-        while True:
-            try:
-                peek = sock.recv(len(HANDSHAKE_CLIENT), socket.MSG_PEEK)
-            except Exception:
-                peek = b""
+        while running:
+            data = sock.recv(4096)
+            if not data:
+                Logger.info(f"[WorldServer] {addr}: disconnected")
+                break
 
-            if peek.startswith(HANDSHAKE_CLIENT):
-                _ = recv_exact(sock, len(HANDSHAKE_CLIENT))
-                Logger.info(f"[WorldServer] {addr}: received client HANDSHAKE")
-                continue
+            packets = parse_client_packets(data, encrypted, stream, buffer, crypto)
 
-            # ----- Header decode (plain vs encrypted) -----
-            if not encrypted:
-                header = recv_exact(sock, 4)
-                if not header:
-                    Logger.info(f"[WorldServer] {addr}: disconnected")
-                    break
-                size, opcode, hexop = parse_header(header)
-                if size is None or opcode is None:
-                    Logger.warning(f"[WorldServer] {addr}: invalid header {header.hex()}")
-                    break
-                payload_len = max(0, size - 4) if opcode == 0x01F6 else size
-                payload = recv_exact(sock, payload_len) or b""
-                raw_header = header
-            else:
-                enc_header = recv_exact(sock, 4)
-                if not enc_header:
-                    Logger.info(f"[WorldServer] {addr}: disconnected")
-                    break
-                dec_header = crypto.decrypt_recv(enc_header)
-                hdr = crypto.unpack_data(dec_header)
-                opcode = hdr.cmd
-                hexop = f"0x{opcode:04X}"
-                payload_len = max(0, hdr.size - 4) if opcode == 0x01F6 else hdr.size
-                enc_payload = recv_exact(sock, payload_len) or b""
-                payload = crypto.decrypt_recv(enc_payload)
-                raw_header = dec_header
+            for raw_header, h, payload in packets:
+                opcode_int = h.cmd
 
-            name = opcode_name("C", opcode) or f"UNKNOWN_CMSG_{hexop}"
+                if opcode_int < 0:
+                    Logger.info(f"[WorldServer] {addr}: handshake/raw payload ({h.size} bytes)")
+                    if (not encrypted) and (not auth_challenge_sent) and get_auth_challenge:
+                        try:
+                            challenge = get_auth_challenge()
+                            if challenge:
+                                Logger.info("[WorldServer] Sending SMSG_AUTH_CHALLENGE after handshake")
+                                sock.sendall(challenge)
+                                auth_challenge_sent = True
+                            else:
+                                Logger.warning("[WorldServer] No SMSG_AUTH_CHALLENGE raw available")
+                        except Exception as exc:
+                            Logger.error(f"[WorldServer] Failed to send auth challenge: {exc}")
+                    continue
 
-            Logger.info(f"[WorldServer] C→S {name} ({hexop}) size={payload_len}")
-            Logger.info(f"[WorldServer] Raw: {(raw_header + payload).hex().upper()}")
+                name = opcode_resolver.decode_opcode(opcode_int, "C")
+                Logger.info(f"[WorldServer] C→S {name} ({h.hex}) size={len(payload)}")
+                Logger.info(f"[WorldServer] Raw: {(raw_header + payload).hex().upper()}")
 
-            # Initiera ARC4 när CMSG_AUTH_SESSION dyker upp
-            if not encrypted and name == "CMSG_AUTH_SESSION":
+                # ARC4 init on first AUTH_SESSION
+                if not encrypted and opcode_int == AUTH_SESSION_OPCODE:
+                    decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=False)
+                    account = (
+                        decoded_auth.get("account")
+                        or decoded_auth.get("username")
+                        or decoded_auth.get("user")
+                        or decoded_auth.get("I")
+                    )
+
+                    if not account:
+                        Logger.error("[WorldServer] AUTH_SESSION missing account")
+                        break
+
+                    acc = DatabaseConnection.get_user_by_username(account.upper())
+                    key = acc.session_key if acc else None
+
+                    if isinstance(key, (bytes, bytearray)):
+                        key = key.hex()
+
+                    if not isinstance(key, str):
+                        Logger.error("[WorldServer] No session key found for user")
+                        break
+
+                    crypto.init_arc4(key)
+                    encrypted = True
+                    Logger.success(f"[WorldServer] ARC4 initialized for {account}")
+
+                safe_decode("Client", name, raw_header, payload)
+
+                handler = opcode_handlers.get(name)
+                if handler is None:
+                    Logger.warning(f"[WorldServer] No handler for {name}")
+                    continue
+
                 try:
-                    decoded = runtime.decode(name, payload, silent=True) or {}
-                    username = decoded.get("user") or decoded.get("username")
-                    if username:
-                        acc = DatabaseConnection.get_user_by_username(username.upper())
-                        K = acc.session_key if acc else None
-                        if isinstance(K, (bytes, bytearray)):
-                            K = K.hex()
-                        if isinstance(K, str):
-                            crypto.init_arc4(K)
-                            encrypted = True
-                            Logger.success(f"[WorldServer] ARC4 initialized for {username}")
-                        else:
-                            Logger.error("[WorldServer] No session key found for user")
-                except Exception as exc:
-                    Logger.error(f"[WorldServer] Failed to init ARC4: {exc}")
-
-            try:
-                runtime.decode(name, payload, silent=True)
-            except Exception as exc:
-                Logger.error(f"[WorldServer] DSL decode failed for {name}: {exc}")
-                Logger.error(traceback.format_exc())
-
-            handler = opcode_handlers.get(name)
-            response = None
-            err = 0
-
-            if handler:
-                try:
-                    err, response = handler(sock, opcode, payload)
+                    err, response = handler(sock, opcode_int, payload)
                 except Exception as exc:
                     Logger.error(f"[WorldServer] Handler crash for {name}: {exc}")
                     Logger.error(traceback.format_exc())
-                    err = 1
-
-            if err != 0:
-                Logger.warning(f"[WorldServer] Handler error for {name}, closing connection")
-                break
-
-            sent = False
-            if response:
-                try:
-                    if encrypted:
-                        opcode_int = int.from_bytes(response[2:4], "little")
-                        payload_only = response[4:]
-                        size = len(payload_only)
-                        if opcode_int == 0x01F6:  # MoP: size inkluderar header
-                            size += 4
-                        enc_header = crypto.encrypt_send(crypto.pack_data(opcode_int, size))
-                        enc_payload = crypto.encrypt_send(payload_only)
-                        out = enc_header + enc_payload
-                    else:
-                        out = response
-
-                    Logger.success(f"[WorldServer] → client ({len(out)} bytes)")
-                    Logger.success(out.hex().upper())
-                    sock.sendall(out)
-                    sent = True
-                    Logger.info(f"[WorldServer] Sent handler response ({len(response)} bytes)")
-                except Exception as exc:
-                    Logger.error(f"[WorldServer] Failed to send handler response: {exc}")
                     break
 
-            # Raw fallback endast i okrypterat läge
-            if not sent and (not encrypted) and name in RAW_RESPONSE_FALLBACKS:
-                target = RAW_RESPONSE_FALLBACKS[name]
-                sent = send_raw_response(sock, target)
-                if not sent:
-                    Logger.warning(f"[WorldServer] Missing raw fallback for {target}")
+                if err != 0:
+                    Logger.warning(f"[WorldServer] Handler error for {name}, closing connection")
+                    break
+
+                if not response:
+                    Logger.info(f"[WorldServer] Handler returned no response for {name}")
+                    continue
+
+                response_packets = parse_server_packets(response)
+
+                for resp_header, resp_h, resp_payload in response_packets:
+                    if resp_h.cmd < 0:
+                        continue
+                    server_name = opcode_resolver.decode_opcode(resp_h.cmd, "S")
+                    Logger.info(f"[WorldServer] S→C {server_name} ({resp_h.hex}) size={len(resp_payload)}")
+                    Logger.info(f"[WorldServer] Raw: {(resp_header + resp_payload).hex().upper()}")
+                    safe_decode("Server", server_name, resp_header, resp_payload)
+
+                out = response if not encrypted else build_encrypted_response(response_packets, crypto)
+
+                try:
+                    sock.sendall(out)
+                except Exception as exc:
+                    Logger.error(f"[WorldServer] Failed to send response: {exc}")
+                    break
+
+            else:
+                continue
+
+            break
 
     except Exception as exc:
         Logger.error(f"[WorldServer] {addr}: unexpected error {exc}")
@@ -266,51 +318,39 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
         Logger.info(f"[WorldServer] Closed connection from {addr}")
 
 
-# ---- Server loop ------------------------------------------------------
+# ---- Server loop --------------------------------------------------------
 
 def start_server() -> None:
-    ensure_runtime()
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind((HOST, PORT))
     srv.listen(5)
+
     Logger.info(f"[WorldServer] Listening on {HOST}:{PORT}")
-    while True:
-        sock, addr = srv.accept()
-        threading.Thread(target=handle_client, args=(sock, addr), daemon=True).start()
+
+    while running:
+        try:
+            srv.settimeout(1.0)
+            sock, addr = srv.accept()
+            threading.Thread(target=handle_client, args=(sock, addr), daemon=True).start()
+        except socket.timeout:
+            continue
+        except Exception as exc:
+            Logger.error(f"[WorldServer] Server error: {exc}")
+            Logger.error(traceback.format_exc())
+
+    Logger.info("WorldServer stopping…")
+    srv.close()
 
 
-# ---- Main --------------------------------------------------------------
-
-def _init_runtime() -> DslRuntime:
-    try:
-        rt = DslRuntime(config["program"], config["version"], watch=True)
-        rt.load_all()
-        Logger.info("[WorldServer] DSL runtime ready (watching defs)")
-        return rt
-    except Exception as exc:
-        Logger.error(f"[WorldServer] Failed to init runtime with watch: {exc}")
-        rt = DslRuntime(config["program"], config["version"], watch=False)
-        rt.load_all()
-        return rt
-
-
-def ensure_runtime() -> None:
-    global runtime
-    if runtime is None:
-        runtime = _init_runtime()
-
-
-def sigint(sig, frame):
-    Logger.info("Shutting down WorldServer (Ctrl+C)…")
-    raise SystemExit
-
+# ---- Main entry ---------------------------------------------------------
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint)
-    ensure_runtime()
+
     Logger.info(
         f"{config['friendly_name']} "
         f"({config['program']}:{config['version']}) WorldServer (Minimal Mode)"
     )
+
     start_server()

@@ -7,29 +7,10 @@ from utils.ConfigLoader import ConfigLoader
 
 from modules.proxy.auth_proxy import AuthProxy
 from modules.proxy.world_proxy import WorldProxy
-from modules.proxy.control_server import ControlServer
-from modules.proxy.control_state import ControlState
 from utils.Logger import Logger
 
 def start_proxy(dump=False, update=False, focus_dump=None):
     cfg = ConfigLoader.load_config()
-
-    control_cfg = cfg.get("control_server", {}) if isinstance(cfg, dict) else {}
-    control_enabled = bool(control_cfg.get("enabled", True))
-    control_host = control_cfg.get("host", "127.0.0.1")
-    control_port = int(control_cfg.get("port", 1337))
-    control_user = control_cfg.get("username") or None
-    control_pass = control_cfg.get("password") or None
-
-    control_state = ControlState(dump=dump, update=update, focus=focus_dump)
-    ControlServer(
-        control_state,
-        host=control_host,
-        port=control_port,
-        enabled=control_enabled,
-        username=control_user,
-        password=control_pass,
-    ).start()
 
     # Fokus → aktivera dump automatiskt
     if focus_dump:
@@ -43,8 +24,7 @@ def start_proxy(dump=False, update=False, focus_dump=None):
         cfg["auth_proxy"]["auth_port"],
         dump=dump,
         update=update,
-        focus_dump=focus_dump,
-        control_state=control_state,
+        focus_dump=focus_dump
     )
 
     # WORLD PROXY
@@ -55,8 +35,7 @@ def start_proxy(dump=False, update=False, focus_dump=None):
         cfg["world_proxy"]["world_port"],
         dump=dump,
         update=update,
-        focus_dump=focus_dump,
-        control_state=control_state,
+        focus_dump=focus_dump
     )
 
     # Start AUTH i bakgrunden

@@ -1,15 +1,15 @@
-# - CMSG_CHAR_CREATE - Partial, needs testing
+# CMSG_CHAR_CREATE – SkyFire MoP 5.4.8
 endian: little
 header:
 data:
-    unk0:        B        # 0x00
-    race:        B        # 0x07 (Troll)
-    class:       B        # 0x04 (Rogue)
-    gender:      B        # 0x01
-    skin:        B        # 0x06
-    face:        B        # 0x01
-    hair_style:  B        # 0x05
-    hair_color:  B        # 0x00
-    facial_hair: B        # 0x01
-    outfit_id:   B        # 0x10
-    name:        R, r     # resterande bytes = “Thor”
+    outfit_id:    B
+    hair_style:   B
+    class:        B
+    skin:         B
+    face:         B
+    race:         B
+    facial_hair:  B
+    gender:       B
+    hair_color:   B
+    test: B
+    name: R

@@ -3,6 +3,7 @@
 
 """Packet interpretation helpers: decode, normalize, and dump."""
 
+import time
 from typing import Any, Iterable, Optional
 
 from modules.interpretation.utils import dump_capture, to_safe_json, dsl_decode
@@ -18,7 +19,7 @@ class PacketInterpreter:
         self.policy = policy
         self.dumper = dumper
 
-    def interpret(self, name: str, raw_header: bytes, payload: bytes) -> dict:
+    def interpret(self, name: str, raw_header: bytes, payload: bytes, policy: "DumpPolicy" = None) -> dict:
         """
         Decode and normalize a packet, then dump/update if policy allows.
 
@@ -30,14 +31,19 @@ class PacketInterpreter:
         Returns:
             JSON-safe decoded structure.
         """
+        active_policy = policy or self.policy
         decoded = self.decoder.decode(name, payload)
         safe = self.normalizer.normalize(decoded)
 
-        if self.policy.allows(name):
-            if self.policy.update:
+        if active_policy.allows(name):
+            if active_policy.update:
                 self.dumper.update(name, raw_header, payload, safe)
-            if self.policy.dump:
-                self.dumper.dump(name, raw_header, payload, safe)
+            if active_policy.dump:
+                # Focus mode: dump into misc/captures/focus with timestamp and debug-only JSON.
+                root = "misc/captures/focus" if active_policy.focus_dump is not None else None
+                ts = active_policy.timestamp() if active_policy.focus_dump is not None else None
+                debug_only = active_policy.focus_dump is not None
+                self.dumper.dump(name, raw_header, payload, safe, root=root, ts=ts, debug_only=debug_only)
 
         return safe
 
@@ -48,8 +54,8 @@ class PacketDumper:
     def __init__(self, dumper: Any) -> None:
         self.dumper = dumper
 
-    def dump(self, name: str, raw_header: bytes, payload: bytes, safe: dict) -> None:
-        dump_capture(name, raw_header, payload, safe)
+    def dump(self, name: str, raw_header: bytes, payload: bytes, safe: dict, *, root=None, ts=None, debug_only: bool = False) -> None:
+        dump_capture(name, raw_header, payload, safe, root=root, ts=ts, debug_only=debug_only)
 
     def update(self, name: str, raw_header: bytes, payload: bytes, safe: dict) -> None:
         self.dumper.dump_fixed(name, raw_header, payload, safe)
@@ -65,6 +71,10 @@ class DumpPolicy:
 
     def allows(self, name: str) -> bool:
         return self.focus_dump is None or name in self.focus_dump
+
+    def timestamp(self) -> int:
+        """Return a timestamp for focus dumps."""
+        return int(time.time())
 
 
 class JsonNormalizer:

@@ -4,11 +4,13 @@ from utils.OpcodeLoader import load_auth_opcodes
 
 import json
 import socket
+from typing import Optional, Set, Tuple
 import threading
 import traceback
 import time
 
 from modules.DslRuntime import DslRuntime
+from modules.proxy.control_state import ControlState
 
 from utils.PacketDump import PacketDump, dump_capture
 
@@ -26,7 +28,7 @@ class AuthProxy:
       • Dump/update: sparar EN fil per opcode, aldrig timestampade.
     """
 
-    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False, focus_dump=None):
+    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False, focus_dump=None, control_state: Optional[ControlState] = None):
         self.listen_host = listen_host
         self.listen_port = listen_port
         self.auth_host = auth_host
@@ -35,6 +37,7 @@ class AuthProxy:
         self.dump = dump       # dump → captures/<opcode>.*
         self.update = update   # update → protocols/<version>/<opcode>.*
         self.focus_dump = focus_dump
+        self.control_state = control_state
         self.client_opcodes, self.server_opcodes, self.lookup = load_auth_opcodes()
         self.program = cfg["program"]
         self.version = cfg["version"]
@@ -111,6 +114,8 @@ class AuthProxy:
                 if not buf:
                     break
 
+                dump_enabled, update_enabled, focus, filters = self._current_flags()
+
                 # Endast 1 byte opcode i auth
                 op = buf[0]
                 name = (
@@ -120,19 +125,22 @@ class AuthProxy:
                 )
 
                 if name:
-                    Logger.info(f"{direction} {name} (0x{op:02X})")
+                    display = ControlState.matches_filters(name, filters)
+                    if display:
+                        Logger.info(f"{direction} {name} (0x{op:02X})")
 
                     try:
                         case_name = name
                         decoded = self.runtime.decode(name, buf, silent=True)
-                        Logger.success(f"[DSL] {case_name}\n{json.dumps(decoded, indent=2)}")
+                        if display:
+                            Logger.success(f"[DSL] {case_name}\n{json.dumps(decoded, indent=2)}")
 
                         raw_header = buf[:1]
                         payload    = buf[1:]
 
-                        focus_ok = (self.focus_dump is None) or (case_name in self.focus_dump)
+                        focus_ok = (focus is None) or (case_name in focus)
 
-                        if self.update and focus_ok:
+                        if update_enabled and focus_ok:
                             bin_p, json_p, dbg_p = self.dumper.dump_fixed(
                                 case_name,
                                 raw_header,
@@ -141,9 +149,9 @@ class AuthProxy:
                             )
                             Logger.success(f"[UPDATE] {case_name}")
 
-                        if self.dump and focus_ok:
-                            root = 'misc/captures/focus' if self.focus_dump else None
-                            ts = int(time.time()) if self.focus_dump else None
+                        if dump_enabled and focus_ok:
+                            root = 'misc/captures/focus' if focus else None
+                            ts = int(time.time()) if focus else None
                             bin_p, json_p, dbg_p = dump_capture(
                                 case_name,
                                 raw_header,
@@ -151,7 +159,7 @@ class AuthProxy:
                                 decoded,
                                 root=root,
                                 ts=ts,
-                                debug_only=bool(self.focus_dump)
+                                debug_only=bool(focus)
                             )
                             Logger.success(f"[DUMP] {case_name}")
                         
@@ -165,3 +173,16 @@ class AuthProxy:
         except Exception as exc:
             Logger.error(f"[AuthProxy {direction}] Error: {exc}")
             Logger.error(traceback.format_exc())
+
+    # ----------------------------------------------------------------------
+    def _current_flags(self) -> Tuple[bool, bool, Optional[Set[str]], Optional[Set[str]]]:
+        """
+        Snapshot control flags once per recv iteration to avoid locking often.
+        Returns (dump, update, focus_set_or_none, filters_or_none).
+        """
+        if self.control_state:
+            snap = self.control_state.snapshot()
+            focus_set = set(snap.focus) if snap.focus is not None else None
+            filters = set(snap.filters) if snap.filters else None
+            return snap.dump, snap.update, focus_set, filters
+        return self.dump, self.update, set(self.focus_dump) if self.focus_dump else None, None

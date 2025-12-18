@@ -35,6 +35,8 @@ from modules.interpretation.EncryptedWorldStream import ClientWorldStream
 from modules.interpretation.parser import parse_header
 from modules.interpretation.utils import build_world_header, build_world_header_plain
 
+from protocols.mop.v18414.data.text_emotes import TEXT_EMOTES
+
 
 # ----------------------------------------------------------------------
 # Helpers
@@ -540,6 +542,85 @@ class ClientSimulator:
                     return
             # No terminal packet yet; continue loop
             Logger.info("[WORLD] Still waiting for account data/enum packets…")
+    def _join_channel(self, ws, crypto, name: str):
+        payload = EncoderHandler.encode_packet(
+            "CMSG_CHAT_JOIN_CHANNEL",
+            {
+                "channel_id": 0,
+                "channel_name": name,
+                "password": "",
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_CHAT_JOIN_CHANNEL,
+            len(payload),
+        )
+
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CMSG_CHAT_JOIN_CHANNEL {name}") 
+
+    def _send_channel_chat(self, ws, crypto, channel: str, text: str):
+        msg = text.encode("utf-8")
+        chan = channel.encode("utf-8")
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_MESSAGECHAT_CHANNEL",
+            {
+                "channel_len": len(chan),
+                "channel": chan,
+                "msg_len": len(msg),
+                "msg": msg,
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_MESSAGECHAT_CHANNEL,
+            len(payload),
+        )
+
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CHANNEL({channel}): {text}")
+
+    def _send_yell(self, ws, crypto, text: str):
+        msg = text.encode("utf-8")
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_MESSAGECHAT_YELL",
+            {
+                "language": 0,   # LANG_UNIVERSAL
+                "msg_len": len(msg),
+                "msg": msg,
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_MESSAGECHAT_YELL,
+            len(payload),
+        )
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+
+    def _send_whisper(self, ws, crypto, target: str, text: str):
+        msg = text.encode("utf-8")
+        tgt = target.encode("utf-8")
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_MESSAGECHAT_WHISPER",
+            {
+                "language": 0,                # LANG_UNIVERSAL
+                "msg_len": len(msg),          # 8-bit length
+                "target_len": len(tgt),       # 9-bit length
+                "msg": msg,
+                "target": tgt,
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_MESSAGECHAT_WHISPER,
+            len(payload),
+        )
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+
 
     def _handle_server_autorespond(self, ws, crypto, name: str, payload: bytes):
         """
@@ -620,22 +701,91 @@ class ClientSimulator:
             ws.sendall(crypto.decrypt_recv(hdr) + payload)
             Logger.info("[SEND] CMSG_LOADING_SCREEN_NOTIFY")
 
-            self._world_idle(ws, crypto)
+            self._join_channel(ws, crypto, "General")
             return
+        elif name == "SMSG_MESSAGECHAT":
+            Logger.info(payload.hex())
+        elif name == "SMSG_EMOTE":
+            decoded = self.decoder.decode(name, payload) or {}
+            emote_id = decoded.get("emote_id")
+            guid = decoded.get("guid")
+
+            Logger.info(f"[EMOTE] guid={guid} emote_id={emote_id}")
+        elif name == "SMSG_TEXT_EMOTE":
+            raw = self.decoder.decode(name, payload).get("raw")
+            print(raw)
 
     def _send_chat(self, ws, crypto, text: str):
-        msg = text.encode("utf-8")  # or latin-1 if server expects that
-        fields = {
-            "chat_type": 0,         # SAY
-            "msg_len": len(msg),
-            "msg": msg,
-        }
+        text = text.strip()
+        if not text:
+            return
 
-        payload = EncoderHandler.encode_packet("CMSG_MESSAGECHAT_SAY", fields)
-        hdr = crypto.pack_data(WorldClientOpcodes.CMSG_MESSAGECHAT_SAY, len(payload))
+        # -------- /yell --------
+        if text.startswith("/y "):
+            self._send_yell(ws, crypto, text[3:])
+            return
+
+        # -------- /whisper --------
+        if text.startswith("/w "):
+            try:
+                target, msg = text[3:].split(" ", 1)
+            except ValueError:
+                Logger.error("Usage: /w <name> <message>")
+                return
+            self._send_whisper(ws, crypto, target, msg)
+            return
+
+        # -------- /emote --------
+        if text.startswith("/"):
+            self._send_emote_id(ws, crypto, text[1:])
+            return
+
+        # -------- normal SAY --------
+        msg = text.encode("utf-8")
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_MESSAGECHAT_SAY",
+            {
+                "language": 0,  # LANG_UNIVERSAL
+                "msg_len": len(msg),
+                "msg": msg,
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_MESSAGECHAT_SAY,
+            len(payload),
+        )
+
         ws.sendall(crypto.decrypt_recv(hdr) + payload)
-        Logger.info(f"[SEND] CMSG_MESSAGECHAT_SAY len={len(msg)}")
+        Logger.info(f"[SEND] CMSG_MESSAGECHAT_SAY '{text}'")
 
+
+
+    def _send_emote_id(self, ws, crypto, emote_name: str):
+        emote_name = emote_name.lower()
+
+        if emote_name not in TEXT_EMOTES:
+            Logger.error(f"[EMOTE] Unknown emote '{emote_name}'")
+            return
+
+        emote_id = TEXT_EMOTES[emote_name]
+
+        payload = EncoderHandler.encode_packet(
+            "CMSG_SEND_TEXT_EMOTE",
+            {
+                "emote_id": emote_id,
+                "target_guid": 0,
+            },
+        )
+
+        hdr = crypto.pack_data(
+            WorldClientOpcodes.CMSG_SEND_TEXT_EMOTE,
+            len(payload),
+        )
+
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CMSG_SEND_TEXT_EMOTE {emote_name} ({emote_id})")
     def _world_idle(self, ws, crypto):
         """
         Keep the world socket alive after login and allow simple chat input.
@@ -650,38 +800,45 @@ class ClientSimulator:
             "SMSG_TIME_SYNC_REQUEST",
             "CMSG_TIME_SYNC_RESPONSE"
             "SMSG_UPDATE_WORLD_STATE",
-            "SMSG_SET_PROFICIENCY"
+            "SMSG_SET_PROFICIENCY",
         }
 
         while True:
-            # ---------- 1) Poll stdin (non-blocking) ----------
             try:
-                rlist, _, _ = select.select([sys.stdin], [], [], 0)
-                if rlist:
-                    line = sys.stdin.readline().strip()
-                    if line:
-                        self._send_chat(ws, crypto, line)
-            except Exception:
-                pass
-
-            # ---------- 2) Read world packets ----------
-            try:
-                packets = self._recv_world_packets(ws, crypto)
-            except ConnectionError as e:
-                Logger.error(f"[WORLD] Connection closed: {e}")
-                return
+                rlist, _, _ = select.select(
+                    [ws, sys.stdin],
+                    [],
+                    [],
+                    0.1,  # tick
+                )
             except Exception as e:
-                Logger.error(f"[WORLD] Error while reading world socket: {e}")
-                continue
+                Logger.error(f"[WORLD] select() failed: {e}")
+                return
 
-            for _, h, payload in packets:
-                name = self.opcode_resolver.decode_opcode(h.cmd, "S")
+            # ---------- stdin ----------
+            if sys.stdin in rlist:
+                line = sys.stdin.readline().strip()
+                if line:
+                    self._send_chat(ws, crypto, line)
 
-                if name not in QUIET_OPCODES:
-                    Logger.info(f"[RECV] {name} (cmd=0x{h.cmd:04X} size={h.size})")
+            # ---------- socket ----------
+            if ws in rlist:
+                try:
+                    packets = self._recv_world_packets(ws, crypto)
+                except ConnectionError as e:
+                    Logger.error(f"[WORLD] Connection closed: {e}")
+                    return
+                except Exception as e:
+                    Logger.error(f"[WORLD] Error while reading world socket: {e}")
+                    continue
 
-                self._handle_server_autorespond(ws, crypto, name, payload)
+                for _, h, payload in packets:
+                    name = self.opcode_resolver.decode_opcode(h.cmd, "S")
 
+                    if name not in QUIET_OPCODES:
+                        Logger.info(f"[RECV] {name} (cmd=0x{h.cmd:04X} size={h.size})")
+
+                    self._handle_server_autorespond(ws, crypto, name, payload)
 # ----------------------------------------------------------------------
 
 if __name__ == "__main__":

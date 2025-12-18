@@ -6,7 +6,7 @@ import importlib
 import json
 import socket
 import threading
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Set, Tuple
 
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
@@ -25,6 +25,7 @@ from modules.interpretation.PacketInterpreter import (
 )
 from modules.interpretation.utils import dsl_decode
 from modules.interpretation.parser import parse_plain_packets
+from modules.proxy.control_state import ControlState
 
 
 cfg = ConfigLoader.load_config()
@@ -42,7 +43,7 @@ class WorldProxy:
 
     HANDSHAKE = b"0\x00WORLD OF WARCRAFT CONNECTION"
 
-    def __init__(self, listen_host: str, listen_port: int, world_host: str, world_port: int, dump: bool = False, update: bool = False, focus_dump=None) -> None:
+    def __init__(self, listen_host: str, listen_port: int, world_host: str, world_port: int, dump: bool = False, update: bool = False, focus_dump=None, control_state: Optional[ControlState] = None) -> None:
         """Initialize proxy configuration and helpers."""
         self.listen_host = listen_host
         self.listen_port = listen_port
@@ -53,6 +54,7 @@ class WorldProxy:
         self.update = update
         self.focus_dump = set(focus_dump) if focus_dump else None
         self.cfg = cfg
+        self.control_state = control_state
 
         self.client_opcodes, self.server_opcodes, self.world_lookup = load_world_opcodes()
 
@@ -180,7 +182,8 @@ class WorldProxy:
                     name = self.opcode_resolver.decode_opcode(h.cmd, "S")
                     opcode_int = h.cmd
 
-                    decoded_safe = self.interpreter.interpret(name, raw_header, payload)
+                    policy, filters = self._state_snapshot()
+                    decoded_safe = self.interpreter.interpret(name, raw_header, payload, policy=policy)
 
                     # Handshake/raw without opcode
                     if opcode_int < 0:
@@ -206,7 +209,9 @@ class WorldProxy:
 
                     blacklist = cfg.get("BlackListedOpcodes", [])
 
-                    if name not in blacklist:
+                    display = ControlState.matches_filters(name, filters) if opcode_int >= 0 else True
+
+                    if name not in blacklist and display:
                         Logger.info(f"[WorldProxy Server → Client] {name} ({h.hex}), size={h.size}{view_json}")
 
                     # RAW data dump
@@ -252,7 +257,8 @@ class WorldProxy:
                     name = self.opcode_resolver.decode_opcode(h.cmd, "C")
 
                     opcode_int = h.cmd
-                    decoded_safe = self.interpreter.interpret(name, raw_header, payload)
+                    policy, filters = self._state_snapshot()
+                    decoded_safe = self.interpreter.interpret(name, raw_header, payload, policy=policy)
 
                     # Handshake/raw without opcode
                     if opcode_int < 0:
@@ -278,7 +284,9 @@ class WorldProxy:
 
                     blacklist = cfg.get("BlackListedOpcodes", [])
 
-                    if name not in blacklist:
+                    display = ControlState.matches_filters(name, filters) if opcode_int >= 0 else True
+
+                    if name not in blacklist and display:
                         Logger.info(f"[WorldProxy Client → Server] {name} ({h.hex}), size={h.size}{view_json}")
 
                     # RAW data dump
@@ -322,3 +330,17 @@ class WorldProxy:
 
         except Exception as e:
             Logger.error(f"[WorldProxy C→S] {e}")
+
+    # ------------------------------------------------------------------
+    def _state_snapshot(self) -> Tuple[DumpPolicy, Optional[Set[str]]]:
+        """
+        Build a DumpPolicy and active filters from shared state once per packet to avoid frequent locking.
+        Falls back to constructor flags if no control state is provided.
+        """
+        if self.control_state:
+            snap = self.control_state.snapshot()
+            focus_set: Optional[Set[str]] = set(snap.focus) if snap.focus is not None else None
+            filters = set(snap.filters) if snap.filters else None
+            return DumpPolicy(dump=snap.dump, update=snap.update, focus_dump=focus_set), filters
+
+        return DumpPolicy(dump=self.dump, update=self.update, focus_dump=self.focus_dump), None

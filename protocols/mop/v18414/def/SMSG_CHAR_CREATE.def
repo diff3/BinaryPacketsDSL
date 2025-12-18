@@ -2,4 +2,5 @@
 endian: little
 header:
 data:
-    result: B   # 0x2F i din capture
+    #result: B   # 0x2F i din capture
+    raw: R

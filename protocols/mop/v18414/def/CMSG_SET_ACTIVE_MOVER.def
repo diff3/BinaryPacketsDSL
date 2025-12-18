@@ -2,5 +2,6 @@
 endian: little
 header:
 data:
-    moverGUID: packed_guid, mask=0x20
+    # raw: R
+    moverGUID: packed_guid
     ack: B
