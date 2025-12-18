@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Promote captured packets into protocols/<program>/<version>."""
 
-import os
 import shutil
 from pathlib import Path
 from typing import List, Tuple
@@ -15,18 +14,18 @@ data:
 """
 
 
-def _base_paths(opcode: str):
+def _base_paths(opcode: str, cap_root: Path | str = Path("misc/captures")):
     cfg = ConfigLoader.load_config()
     program = cfg["program"]
     version = cfg["version"]
 
-    base = Path("protocols") / program / version
+    base = Path("protocols") / program / version / "data"
 
     live_json = base / "json" / f"{opcode}.json"
     live_dbg = base / "debug" / f"{opcode}.json"
     live_def = base / "def" / f"{opcode}.def"
 
-    cap_dir = Path("misc/captures")
+    cap_dir = Path(cap_root)
     src_json = cap_dir / "json" / f"{opcode}.json"
     src_dbg = cap_dir / "debug" / f"{opcode}.json"
 
@@ -53,6 +52,36 @@ def promote_opcode(opcode: str) -> List[str]:
 
     shutil.copy(src_dbg, live_dbg)
     lines.append(f"promoted debug → {live_dbg}")
+
+    if not live_def.exists():
+        live_def.write_text(TEMPLATE_DEF)
+        lines.append(f"created def stub → {live_def}")
+    else:
+        lines.append(f"def exists, skipped {live_def}")
+
+    return lines
+
+
+def promote_focus_opcode(opcode: str) -> List[str]:
+    """Copy focus capture artifacts into protocols/data and create a def stub if missing."""
+    live_json, live_dbg, live_def, src_json, src_dbg = _base_paths(opcode, cap_root=Path("misc/captures/focus"))
+
+    lines: List[str] = []
+
+    if not src_dbg.exists():
+        return [f"missing focus capture: {src_dbg}"]
+
+    for target in (live_json, live_dbg, live_def):
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+    if src_json.exists():
+        shutil.copy(src_json, live_json)
+        lines.append(f"promoted focus json → {live_json}")
+    else:
+        lines.append(f"no focus json, skipped {live_json}")
+
+    shutil.copy(src_dbg, live_dbg)
+    lines.append(f"promoted focus debug → {live_dbg}")
 
     if not live_def.exists():
         live_def.write_text(TEMPLATE_DEF)
@@ -129,7 +158,7 @@ def sync_protocols_from_captures() -> List[str]:
     except Exception as exc:
         return [f"config error: {exc}"]
 
-    base = Path("protocols") / program / version
+    base = Path("protocols") / program / version / "data"
     proto_debug = base / "debug"
     proto_json = base / "json"
 
@@ -199,7 +228,7 @@ def delete_all_captures() -> List[str]:
 def list_protocols(limit: int = 200, search: str | None = None) -> List[str]:
     """List promoted opcodes (DEF files) under protocols. Optional case-insensitive substring search."""
     cfg = ConfigLoader.load_config()
-    base = Path("protocols") / cfg["program"] / cfg["version"] / "def"
+    base = Path("protocols") / cfg["program"] / cfg["version"] / "data" / "def"
     if not base.is_dir():
         return [f"def dir missing: {base}"]
     items = sorted(p.stem for p in base.glob("*.def"))
@@ -216,7 +245,7 @@ def list_protocols(limit: int = 200, search: str | None = None) -> List[str]:
 
 def _artifact_path(kind: str, name: str) -> Tuple[Path, str]:
     cfg = ConfigLoader.load_config()
-    base = Path("protocols") / cfg["program"] / cfg["version"]
+    base = Path("protocols") / cfg["program"] / cfg["version"] / "data"
     kind = kind.lower()
     if kind == "def":
         return base / "def" / f"{name}.def", "DEF"
@@ -244,6 +273,7 @@ def view_protocol(kind: str, name: str, max_bytes: int = 65536) -> List[str]:
 
 __all__ = [
     "promote_opcode",
+    "promote_focus_opcode",
     "delete_opcode",
     "sync_done",
     "sync_protocols_from_captures",

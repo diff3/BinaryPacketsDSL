@@ -42,6 +42,7 @@ class _ControlTCPServer(socketserver.ThreadingTCPServer):
         self.opcodes_all: List[str] = []
         self.opcodes_capture: List[str] = []
         self.opcodes_defs: List[str] = []
+        self.opcodes_focus: List[str] = []
 
 
 class _ControlHandler(socketserver.StreamRequestHandler):
@@ -412,9 +413,11 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     candidates, prefix = choose(["on", "off"], sub)
             elif cmd == "focus":
                 if pos == 2:
-                    candidates, prefix = choose(["on", "off", "add", "rm", "clear", "list"], sub)
+                    candidates, prefix = choose(["on", "off", "add", "rm", "clear", "list", "promote"], sub)
                 elif pos == 3 and sub in ("add", "rm"):
                     candidates, prefix = choose(self.server.opcodes_all, arg)
+                elif pos == 3 and sub == "promote":
+                    candidates, prefix = choose(self.server.opcodes_focus, arg)
             elif cmd == "filter":
                 if pos == 2:
                     candidates, prefix = choose(["add", "remove", "rm", "del", "clear", "list", "ignore", "whitelist"], sub)
@@ -602,11 +605,12 @@ class ControlServer:
         primary_family = socket.AF_INET6 if (":" in self.host) else socket.AF_INET
         primary = bind_server(self.host, primary_family)
         if primary:
-            cmd_comp, opcode_all, opcode_cap, opcode_defs = self._build_completions()
+            cmd_comp, opcode_all, opcode_cap, opcode_defs, opcode_focus = self._build_completions()
             primary.command_completions = cmd_comp
             primary.opcodes_all = opcode_all
             primary.opcodes_capture = opcode_cap
             primary.opcodes_defs = opcode_defs
+            primary.opcodes_focus = opcode_focus
             servers.append(primary)
 
         # Optional IPv6 listener on ::1 to avoid telnet localhost::1 refusal when using IPv4 host
@@ -618,6 +622,7 @@ class ControlServer:
                     secondary.opcodes_all = primary.opcodes_all
                     secondary.opcodes_capture = primary.opcodes_capture
                     secondary.opcodes_defs = primary.opcodes_defs
+                    secondary.opcodes_focus = primary.opcodes_focus
                     servers.append(secondary)
 
         if not servers:
@@ -634,7 +639,7 @@ class ControlServer:
         bound_hosts = ", ".join(f"{'IPv6' if s.address_family==socket.AF_INET6 else 'IPv4'}@{s.server_address[0]}:{s.server_address[1]}" for s in servers)
         Logger.info(f"[Control] Listening on {bound_hosts} (telnet)")
 
-    def _build_completions(self) -> Tuple[List[str], List[str], List[str], List[str]]:
+    def _build_completions(self) -> Tuple[List[str], List[str], List[str], List[str], List[str]]:
         """Gather commands + opcode names for tab completion."""
         commands = [
             "clear",
@@ -654,6 +659,7 @@ class ControlServer:
         opcodes_all: set[str] = set()
         opcodes_capture: set[str] = set()
         opcodes_defs: set[str] = set()
+        opcodes_focus: set[str] = set()
         try:
             cfg = ConfigLoader.load_config()
             program = cfg["program"]
@@ -662,8 +668,12 @@ class ControlServer:
             for p in Path("misc/captures/debug").glob("*.json"):
                 opcodes_capture.add(p.stem)
                 opcodes_all.add(p.stem)
+            # From focus captures
+            for p in Path("misc/captures/focus/debug").glob("*.json"):
+                opcodes_focus.add(p.stem)
+                opcodes_all.add(p.stem)
             # From promoted def files
-            def_dir = Path("protocols") / program / version / "def"
+            def_dir = Path("protocols") / program / version / "data" / "def"
             for p in def_dir.glob("*.def"):
                 opcodes_defs.add(p.stem)
                 opcodes_all.add(p.stem)
@@ -683,6 +693,7 @@ class ControlServer:
             sorted(opcodes_all, key=str.upper),
             sorted(opcodes_capture, key=str.upper),
             sorted(opcodes_defs, key=str.upper),
+            sorted(opcodes_focus, key=str.upper),
         )
 
     # ------------------------------------------------------------------ #
@@ -780,6 +791,9 @@ class ControlServer:
             if snap.focus is None:
                 return ["focus: off"]
             return ["focus: on"] + [f" - {op}" for op in sorted(snap.focus)]
+        if sub == "promote" and len(args) >= 2:
+            op_name = " ".join(args[1:])
+            return promoter.promote_focus_opcode(op_name)
         if sub in ("add", "+") and len(args) >= 2:
             op_name = " ".join(args[1:])
             self.control_state.focus_add(op_name)
@@ -874,6 +888,7 @@ class ControlServer:
             "  focus rm  <op>           remove opcode name from focus",
             "  focus clear              empty focus list (leaves focus on)",
             "  focus list               list focused opcodes",
+            "  focus promote <op>       promote focus capture into protocols",
             "  filter add <pat>         show only packets matching pattern (e.g. CMSG_*)",
             "  filter remove <pat>      remove a filter pattern",
             "  filter clear             remove all filters (show all)",
