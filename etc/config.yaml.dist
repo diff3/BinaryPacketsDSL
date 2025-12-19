@@ -1,8 +1,7 @@
 tool_name: BinaryPacketsDSL
 author: Magnus Pettersson
 version: 0.5.0
-program: mop
-version: v18414
+# program/version kommer från vald proxy_profile
 friendly_name: Mist of Pandaria 5.4.8
 
 authserver:
@@ -13,17 +12,59 @@ worldserver:
   host: 0.0.0.0
   port: 8086
 
-auth_proxy:
-  listen_host: "0.0.0.0"
-  listen_port: 3722
-  auth_host: "192.168.11.30"
-  auth_port: 3724
+proxy_profiles:
+  vanilla: &vanilla_profile
+    program: vanilla
+    version: v1121
+    # Vanilla, vmangos 1.12.1
+    # Ports: 3714, 8015, 3413, 7817, 8010
+    auth_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 3722
+      auth_host: "192.168.11.30"
+      auth_port: 3724
 
-world_proxy:
-  listen_host: "0.0.0.0"
-  listen_port: 8084
-  world_host: "192.168.11.30"
-  world_port: 8085
+    world_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 8084
+      world_host: "192.168.11.30"
+      world_port: 8085
+
+  mop_skyfire548: &mop_skyfire548_profile
+    program: mop
+    version: v18414
+    # Mist of Pandaria SkyFire548
+    # Ports 3794, 8095, 7898, 8090
+    auth_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 3722
+      auth_host: "192.168.11.30"
+      auth_port: 3724
+
+    world_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 8084
+      world_host: "192.168.11.30"
+      world_port: 8085
+
+  mop_pandaria548: &mop_pandaria548_profile
+    program: mop
+    version: v18414
+    # Mist of Pandaria, Pandaria548:
+    # Ports: 3734, 8035, 7838, 8030
+    auth_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 3722
+      auth_host: "192.168.11.30"
+      auth_port: 3724
+
+    world_proxy:
+      listen_host: "0.0.0.0"
+      listen_port: 8084
+      world_host: "192.168.11.30"
+      world_port: 8085
+
+proxy_profile: *mop_skyfire548_profile
 
 control_server:
   enabled: true

@@ -22,6 +22,35 @@ def _merge_dicts(base: dict, override: dict) -> dict:
     return result
 
 
+def _apply_proxy_profile(base_cfg: dict) -> dict:
+    """
+    Merge the selected proxy profile into the base config, if defined.
+    """
+    profile_name = base_cfg.get("proxy_profile")
+    profiles = base_cfg.get("proxy_profiles")
+    if isinstance(profile_name, dict):
+        merged = _merge_dicts(base_cfg, profile_name)
+        if profile_name.get("program") is not None:
+            merged["program"] = profile_name["program"]
+        if profile_name.get("version") is not None:
+            merged["version"] = profile_name["version"]
+        return merged
+
+    if not profile_name or not isinstance(profiles, dict):
+        return base_cfg
+
+    profile_cfg = profiles.get(profile_name)
+    if not isinstance(profile_cfg, dict):
+        return base_cfg
+
+    merged = _merge_dicts(base_cfg, profile_cfg)
+    if profile_cfg.get("program") is not None:
+        merged["program"] = profile_cfg["program"]
+    if profile_cfg.get("version") is not None:
+        merged["version"] = profile_cfg["version"]
+    return merged
+
+
 class ConfigLoader:
     def get_config() -> dict:
         """
@@ -37,6 +66,7 @@ class ConfigLoader:
         """
         Loads the configuration file if not already cached.
         Also overlays optional program-specific config at protocols/<program>/config.yaml.
+        Applies selected proxy profile from proxy_profiles/proxy_profile if present.
         """
         global _config
 
@@ -49,6 +79,7 @@ class ConfigLoader:
             except yaml.YAMLError as e:
                 raise RuntimeError(f"Error parsing YAML file: {e}")
 
+            base_cfg = _apply_proxy_profile(base_cfg)
             # Optional program-specific overlay
             try:
                 program = base_cfg.get("program")
@@ -67,7 +98,6 @@ class ConfigLoader:
             except Exception:
                 # best-effort overlay; ignore if missing or malformed
                 pass
-
             _config = base_cfg
 
         return _config
