@@ -1,0 +1,5 @@
+# SMSG_MOVE_SET_ACTIVE_MOVER - Partial, needs testing
+endian: little
+header:
+data:
+    moverGUID: packed_guid, mask=0x02

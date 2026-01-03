@@ -1,0 +1,8 @@
+# SMSG_QUESTGIVER_STATUS – Partial, needs testing
+endian: little
+header:
+data:
+    npcGUID: packed_guid, mask=0xEB
+    status: B
+    unk1: H
+    unk2: B

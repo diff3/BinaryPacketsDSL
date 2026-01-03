@@ -1,0 +1,15 @@
+# CMSG_CHAR_CREATE – SkyFire MoP 5.4.8
+endian: little
+header:
+data:
+    outfit_id:    B
+    hair_style:   B
+    class:        B
+    skin:         B
+    face:         B
+    race:         B
+    facial_hair:  B
+    gender:       B
+    hair_color:   B
+    test: B
+    name: R

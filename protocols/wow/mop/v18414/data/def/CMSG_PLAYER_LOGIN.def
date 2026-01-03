@@ -1,0 +1,5 @@
+# CMSG_PLAYER_LOGIN - Partial, needs testing
+endian: little
+header:
+data:
+    guid: 6B, G
