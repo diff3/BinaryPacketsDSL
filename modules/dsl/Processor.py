@@ -8,19 +8,29 @@ from modules.dsl.Session import get_session
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
 from utils.Logger import Logger
-from utils.OpcodesFilter import filter_opcode
+from protocols.wow.shared.utils.OpcodesFilter import filter_opcode
 
 # GLOBALS
 config = ConfigLoader.load_config()
 
-def process_case(program: str, version: str, case: str, require_payload: bool = True) -> tuple[bool, list[str], bytes, object, object]:
+def process_case(
+    program: str,
+    version: str,
+    case: str,
+    require_payload: bool = True,
+    expansion: str | None = None,
+) -> tuple[bool, list[str], bytes, object, object]:
     """
     Load and prepare a packet case for parsing and validation.
     """
     try:
         session = get_session()
 
-        base_path = f"protocols/{program}/{version}"
+        expansion = expansion or config.get("expansion")
+        if expansion:
+            base_path = f"protocols/{program}/{expansion}/{version}"
+        else:
+            base_path = f"protocols/{program}/{version}"
         data_path = f"{base_path}/data"
         def_path = f"{data_path}/def/{case}.def"
         json_path = f"{data_path}/json/{case}.json"
@@ -33,7 +43,7 @@ def process_case(program: str, version: str, case: str, require_payload: bool = 
 
         if require_payload:
             try:
-                binary_data = FileHandler.load_payload(program, version, case)
+                binary_data = FileHandler.load_payload(program, version, case, expansion=expansion)
             except FileNotFoundError:
                 if os.path.exists(json_path):
                     expected = FileHandler.load_json_file(json_path)
@@ -49,6 +59,7 @@ def process_case(program: str, version: str, case: str, require_payload: bool = 
 
         session.version = version
         session.program = program
+        session.expansion = expansion
         return True, definition, binary_data, expected, debug
 
     except Exception as e:
@@ -57,8 +68,20 @@ def process_case(program: str, version: str, case: str, require_payload: bool = 
         return False, [], b"", None, None
 
 
-def load_case(program: str, version: str, case: str, require_payload: bool = True) -> tuple[str, list[str], bytes, object, object]:
-    success, def_lines, binary_data, expected, debug = process_case(program, version, case, require_payload)
+def load_case(
+    program: str,
+    version: str,
+    case: str,
+    require_payload: bool = True,
+    expansion: str | None = None,
+) -> tuple[str, list[str], bytes, object, object]:
+    success, def_lines, binary_data, expected, debug = process_case(
+        program,
+        version,
+        case,
+        require_payload,
+        expansion=expansion,
+    )
 
     if not success:
         raise FileNotFoundError(f"Case {case} could not be loaded.")
@@ -66,8 +89,13 @@ def load_case(program: str, version: str, case: str, require_payload: bool = Tru
     return case, def_lines, binary_data, expected, debug
 
 
-def load_all_cases(program: str, version: str, respect_ignored: bool = True) -> list[tuple[str, list[str], bytes, object, object]]:
-    cases = FileHandler.list_def_files(program, version)
+def load_all_cases(
+    program: str,
+    version: str,
+    respect_ignored: bool = True,
+    expansion: str | None = None,
+) -> list[tuple[str, list[str], bytes, object, object]]:
+    cases = FileHandler.list_def_files(program, version, expansion=expansion)
     loaded = []
 
     if not cases:
@@ -75,7 +103,12 @@ def load_all_cases(program: str, version: str, respect_ignored: bool = True) -> 
         return []
 
     for case in cases:
-        success, def_lines, binary_data, expected, debug = process_case(program, version, case)
+        success, def_lines, binary_data, expected, debug = process_case(
+            program,
+            version,
+            case,
+            expansion=expansion,
+        )
 
         if not success:
             Logger.error(f"Skipping: {case}")
@@ -94,9 +127,12 @@ def load_all_cases(program: str, version: str, respect_ignored: bool = True) -> 
     return loaded
 
 
-def handle_add(program: str, version: str, case: str, bin_data: str) -> bool:
+def handle_add(program: str, version: str, case: str, bin_data: str, expansion: str | None = None) -> bool:
     try:
-        base_path = f"protocols/{program}/{version}"
+        if expansion:
+            base_path = f"protocols/{program}/{expansion}/{version}"
+        else:
+            base_path = f"protocols/{program}/{version}"
         os.makedirs(f"{base_path}/def", exist_ok=True)
         os.makedirs(f"{base_path}/json", exist_ok=True)
         os.makedirs(f"{base_path}/debug", exist_ok=True)

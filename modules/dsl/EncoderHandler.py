@@ -46,9 +46,15 @@ class EncoderHandler:
         """
         cfg = ConfigLoader.load_config()
         program = cfg["program"]
+        expansion = cfg.get("expansion")
         version = cfg["version"]
 
-        case_name, def_lines, _, expected, _ = load_case(program, version, def_name)
+        case_name, def_lines, _, expected, _ = load_case(
+            program,
+            version,
+            def_name,
+            expansion=expansion,
+        )
 
         session = get_session()
         session.reset()

@@ -29,12 +29,15 @@ class FileHandler():
             return json.load(file)
 
     @staticmethod
-    def load_payload(program: str, version: str, case: str) -> bytes:
+    def load_payload(program: str, version: str, case: str, expansion: str | None = None) -> bytes:
         """
         Load payload bytes for a case.
         Requires debug json; raises if missing.
         """
-        debug_path = f"protocols/{program}/{version}/data/debug/{case}.json"
+        if expansion:
+            debug_path = f"protocols/{program}/{expansion}/{version}/data/debug/{case}.json"
+        else:
+            debug_path = f"protocols/{program}/{version}/data/debug/{case}.json"
 
         if os.path.exists(debug_path):
             data = FileHandler.load_json_file(debug_path)
@@ -61,8 +64,11 @@ class FileHandler():
         raise FileNotFoundError(f"Debug payload not found for {case}")
 
     @staticmethod
-    def list_def_files(program: str, version: str) -> list[str]:
-        folder = f"protocols/{program}/{version}/data/def"
+    def list_def_files(program: str, version: str, expansion: str | None = None) -> list[str]:
+        if expansion:
+            folder = f"protocols/{program}/{expansion}/{version}/data/def"
+        else:
+            folder = f"protocols/{program}/{version}/data/def"
         if not os.path.exists(folder):
             return []
 

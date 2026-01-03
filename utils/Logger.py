@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum, IntEnum
 
 from utils.ConfigLoader import ConfigLoader
+from utils.PathUtils import get_logs_root
 
 config = ConfigLoader.get_config()
 init()
@@ -86,13 +87,17 @@ class Logger:
         else:
             line = msg
 
-        with open(f"logs/{file}", "a", encoding='utf-8', errors='replace') as log:
+        log_dir = get_logs_root()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / file, "a", encoding='utf-8', errors='replace') as log:
             log.write(line + "\n")
 
     @staticmethod
     def reset_log(file=None):
         file = file or config['Logging']['log_file']
-        open(f"logs/{file}", "w").close()
+        log_dir = get_logs_root()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / file).write_text("")
 
     # ===================================================================
     # Console + File logging methods

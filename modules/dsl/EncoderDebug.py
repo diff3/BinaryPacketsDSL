@@ -26,9 +26,15 @@ class EncoderDebug:
     def dump_encoding(def_name: str, fields: dict, reference_override: bytes | None = None):
         cfg = ConfigLoader.load_config()
         program = cfg["program"]
+        expansion = cfg.get("expansion")
         version = cfg["version"]
 
-        case_name, def_lines, _, expected, debug = load_case(program, version, def_name)
+        case_name, def_lines, _, expected, debug = load_case(
+            program,
+            version,
+            def_name,
+            expansion=expansion,
+        )
 
         if debug.get("payload_len") == 0 and debug.get("size_matches_payload") is True:
             Logger.success("Header only, done")
@@ -225,17 +231,18 @@ class EncoderDebug:
     def _load_original_reference(def_name):
         cfg = ConfigLoader.load_config()
         program = cfg["program"]
+        expansion = cfg.get("expansion")
         version = cfg["version"]
 
         # Försök först använda samma payload-källa som den vanliga pipelinen
         # (tar hänsyn till header_mode, auth1b osv).
         try:
-            return FileHandler.load_payload(program, version, def_name)
+            return FileHandler.load_payload(program, version, def_name, expansion=expansion)
         except FileNotFoundError:
             pass
 
         # Fallback: läs debug-json manuellt vid behov.
-        debug_file = Path(f"protocols/{program}/{version}/data/debug/{def_name}.json")
+        debug_file = Path(f"protocols/{program}/{expansion}/{version}/data/debug/{def_name}.json")
         if not debug_file.exists():
             return None
 

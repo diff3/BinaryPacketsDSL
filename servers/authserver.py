@@ -5,7 +5,6 @@ import socket
 import signal
 import traceback
 import threading
-import importlib
 import sys
 from pathlib import Path
 
@@ -17,26 +16,19 @@ if str(ROOT) not in sys.path:
 from modules.dsl.DslRuntime import DslRuntime
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
-from utils.AutoRewrite import resolve_import
+from utils.ProtocolBootstrap import load_bootstrap
 
 config = ConfigLoader.load_config()
 config["Logging"]["logging_levels"] = "Information, Success, Error"
-program = config["program"]
-version = config["version"]
-
-mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
-DatabaseConnection = getattr(mod, "DatabaseConnection")
+bootstrap = load_bootstrap()
+DatabaseConnection = bootstrap.load_database()
 DatabaseConnection.initialize()
 
 
 # ---- Dynamic imports ----------------------------------------------------
 
-opcode_handlers = resolve_import("from handlers.AuthHandler import opcode_handlers")
-opcode_pack = resolve_import("from protocols.AuthOpcodes import AUTH_CLIENT_OPCODES")
-
-AUTH_CLIENT_OPCODES = opcode_pack["AUTH_CLIENT_OPCODES"]
-AUTH_SERVER_OPCODES = opcode_pack["AUTH_SERVER_OPCODES"]
-lookup = opcode_pack["lookup"]
+opcode_handlers = bootstrap.load_auth_handlers()
+AUTH_CLIENT_OPCODES, AUTH_SERVER_OPCODES, lookup = bootstrap.load_auth_opcodes()
 
 
 HOST = config["authserver"]["host"]
@@ -168,17 +160,27 @@ if __name__ == "__main__":
 
     try:
         # AuthServer: ingen JSON, ingen watcher — exakt som proxyn
-        runtime = DslRuntime(config["program"], config["version"], watch=False)
+        runtime = DslRuntime(
+            config["program"],
+            config["version"],
+            watch=False,
+            expansion=config.get("expansion"),
+        )
         runtime.load_runtime_all()
         Logger.info("[AuthServer] DSL runtime ready (runtime mode, no JSON)")
     except Exception as exc:
         Logger.error(f"[AuthServer] Runtime init failed (runtime mode): {exc}")
-        runtime = DslRuntime(config["program"], config["version"], watch=False)
+        runtime = DslRuntime(
+            config["program"],
+            config["version"],
+            watch=False,
+            expansion=config.get("expansion"),
+        )
         runtime.load_runtime_all()
 
     Logger.info(
         f"{config['friendly_name']} "
-        f"({config['program']}:{config['version']}) AuthServer (Minimal Mode)"
+        f"({config['program']}:{config.get('expansion')}:{config['version']}) AuthServer (Minimal Mode)"
     )
 
     start_server()

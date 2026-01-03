@@ -87,14 +87,15 @@ workon bpdsl
 
 ### args
 
-| Argument      | Description                                                  |
-| ------------- | :----------------------------------------------------------- |
-| -f, --file    | Specify a single .def packet file (without extension) to parse |
-| -p, --program | Set the program name (e.g., mop)                             |
-| -V, --version | Set the program version (e.g., 18414)                        |
-| -s, --silent  | Suppress all console output, still logs to file              |
-| -a, --add     | Create a new, empty packet definition set (requires --program, --version, --file, --bin) |
-| -P, --promote | In focus mode, write decoded output into `protocols/<program>/<version>/json` |
+| Argument        | Description                                                                 |
+| --------------- | :-------------------------------------------------------------------------- |
+| -f, --file      | Specify a single .def packet file (without extension) to parse              |
+| -p, --program   | Set the program name (e.g., wow)                                            |
+| -e, --expansion | Set the expansion name (e.g., vanilla or mop)                               |
+| -V, --version   | Set the program version (e.g., 18414)                                       |
+| -s, --silent    | Suppress all console output, still logs to file                             |
+| -a, --add       | Create a new, empty packet definition set (requires --program, --expansion, --version, --file, --bin) |
+| -P, --promote   | In focus mode, write decoded output into `protocols/<program>/<expansion>/<version>/json` |
 
 
 

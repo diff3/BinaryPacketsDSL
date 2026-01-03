@@ -32,8 +32,12 @@ def _apply_proxy_profile(base_cfg: dict) -> dict:
         merged = _merge_dicts(base_cfg, profile_name)
         if profile_name.get("program") is not None:
             merged["program"] = profile_name["program"]
+        if profile_name.get("expansion") is not None:
+            merged["expansion"] = profile_name["expansion"]
         if profile_name.get("version") is not None:
             merged["version"] = profile_name["version"]
+        if profile_name.get("config_variant") is not None:
+            merged["config_variant"] = profile_name["config_variant"]
         return merged
 
     if not profile_name or not isinstance(profiles, dict):
@@ -46,8 +50,12 @@ def _apply_proxy_profile(base_cfg: dict) -> dict:
     merged = _merge_dicts(base_cfg, profile_cfg)
     if profile_cfg.get("program") is not None:
         merged["program"] = profile_cfg["program"]
+    if profile_cfg.get("expansion") is not None:
+        merged["expansion"] = profile_cfg["expansion"]
     if profile_cfg.get("version") is not None:
         merged["version"] = profile_cfg["version"]
+    if profile_cfg.get("config_variant") is not None:
+        merged["config_variant"] = profile_cfg["config_variant"]
     return merged
 
 
@@ -65,7 +73,7 @@ class ConfigLoader:
     def load_config(filepath: str = "etc/config.yaml") -> dict:
         """
         Loads the configuration file if not already cached.
-        Also overlays optional program-specific config at protocols/<program>/config.yaml.
+        Also overlays optional program-specific config at protocols/<program>/<expansion>/<version>/config.yaml.
         Applies selected proxy profile from proxy_profiles/proxy_profile if present.
         """
         global _config
@@ -83,11 +91,16 @@ class ConfigLoader:
             # Optional program-specific overlay
             try:
                 program = base_cfg.get("program")
+                expansion = base_cfg.get("expansion")
                 version = base_cfg.get("version")
                 if program:
-                    # Prefer program+version-specific config
+                    # Prefer program+expansion+version-specific config
                     paths = []
-                    if version:
+                    if expansion:
+                        if version:
+                            paths.append(Path("protocols") / program / expansion / version / "config.yaml")
+                        paths.append(Path("protocols") / program / expansion / "config.yaml")
+                    elif version:
                         paths.append(Path("protocols") / program / version / "config.yaml")
                     paths.append(Path("protocols") / program / "config.yaml")
                     for program_cfg_path in paths:
@@ -95,6 +108,16 @@ class ConfigLoader:
                             overlay = yaml.safe_load(program_cfg_path.read_text(encoding="utf-8")) or {}
                             base_cfg = _merge_dicts(base_cfg, overlay)
                             break
+
+                # Optional variant overlay for server endpoints, etc.
+                variant = base_cfg.get("config_variant")
+                if program and expansion and version and isinstance(variant, str) and variant and variant != "default":
+                    variant_path = (
+                        Path("protocols") / program / expansion / version / f"config.{variant}.yaml"
+                    )
+                    if variant_path.is_file():
+                        overlay = yaml.safe_load(variant_path.read_text(encoding="utf-8")) or {}
+                        base_cfg = _merge_dicts(base_cfg, overlay)
             except Exception:
                 # best-effort overlay; ignore if missing or malformed
                 pass

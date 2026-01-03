@@ -15,8 +15,12 @@ config = ConfigLoader.get_config()
 class DefFileNameCompleter:
     def __call__(self, prefix, parsed_args, **kwargs):
         program = parsed_args.program or config.get("program")
+        expansion = getattr(parsed_args, "expansion", None) or config.get("expansion")
         version = parsed_args.version or config.get("version")
-        base_path = Path(f"protocols/{program}/{version}/data/def")
+        if expansion:
+            base_path = Path(f"protocols/{program}/{expansion}/{version}/data/def")
+        else:
+            base_path = Path(f"protocols/{program}/{version}/data/def")
         if not base_path.is_dir():
             return []
         return [
@@ -30,12 +34,17 @@ def parse_args():
     parser.add_argument("-a", "--add", action="store_true", help="Create new empty packet definition set")
     parser.add_argument("-P", "--promote", action="store_true", help="In focus mode, promote decoded output into protocols expected JSON")
     parser.add_argument("-f", "--file", type=str, help="Specify the packet file name (without extension)").completer = DefFileNameCompleter()
-    parser.add_argument("-p", "--program", type=str, help="Program name")
-    parser.add_argument("-V", "--version", type=str, help="Program version")
+    parser.add_argument("-p", "--program", type=str, help="Program/game name (e.g., wow)")
+    parser.add_argument("-e", "--expansion", type=str, help="Expansion name (e.g., vanilla, mop)")
+    parser.add_argument("-V", "--version", type=str, help="Expansion version (e.g., v1121, v18414)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging output")
     parser.add_argument("-b", "--bin", type=str, help="Path to binary file to add")
     parser.add_argument("-s", "--silent", action="store_true", help="Run silently (no logs)")
-    parser.add_argument("--focus", action="store_true", help="Use focus captures (misc/captures/focus)")
+    parser.add_argument(
+        "--focus",
+        action="store_true",
+        help="Use focus captures (protocols/<program>/<expansion>/<version>/captures/focus)",
+    )
 
     if argcomplete is not None:
         argcomplete.autocomplete(parser)

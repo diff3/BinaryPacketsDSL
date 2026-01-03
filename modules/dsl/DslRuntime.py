@@ -73,12 +73,22 @@ class _DefChangeHandler(FileSystemEventHandler):
 
 
 class DslRuntime:
-    def __init__(self, program: Optional[str] = None, version: Optional[str] = None, watch: bool = False):
+    def __init__(
+        self,
+        program: Optional[str] = None,
+        version: Optional[str] = None,
+        watch: bool = False,
+        expansion: Optional[str] = None,
+    ):
         cfg = ConfigLoader.load_config()
         self.program = program or cfg["program"]
+        self.expansion = expansion or cfg.get("expansion")
         self.version = version or cfg["version"]
 
-        base = Path("protocols") / self.program / self.version
+        if self.expansion:
+            base = Path("protocols") / self.program / self.expansion / self.version
+        else:
+            base = Path("protocols") / self.program / self.version
         self.def_dir = base / "data" / "def"
         self.json_dir = base / "data" / "json"
 
@@ -134,6 +144,7 @@ class DslRuntime:
         with self.lock:
             self.session.reset()
             self.session.program = self.program
+            self.session.expansion = self.expansion
             self.session.version = self.version
 
             self.session.fields = [node.copy() for node in compiled.fields]
@@ -181,6 +192,7 @@ class DslRuntime:
         with self.lock:
             self.session.reset()
             self.session.program = self.program
+            self.session.expansion = self.expansion
             self.session.version = self.version
 
             NodeTreeParser.parse((name, lines, b"", expected))

@@ -5,12 +5,12 @@ import argparse
 import threading
 from utils.ConfigLoader import ConfigLoader
 
-from modules.proxy.auth_proxy import AuthProxy
-from modules.proxy.world_proxy import WorldProxy
-from modules.proxy.control_server import ControlServer
-from modules.proxy.control_state import ControlState
+from protocols.wow.shared.modules.proxy.auth_proxy import AuthProxy
+from protocols.wow.shared.modules.proxy.world_proxy import WorldProxy
+from protocols.wow.shared.modules.proxy.control_server import ControlServer
+from protocols.wow.shared.modules.proxy.control_state import ControlState
 from modules.dsl.DslRuntime import DslRuntime
-from modules.interpretation.utils import set_dsl_runtime
+from protocols.wow.shared.modules.interpretation.utils import set_dsl_runtime
 from utils.Logger import Logger
     
 cfg = ConfigLoader.load_config()
@@ -34,11 +34,11 @@ def start_proxy(dump=False, update=False, focus_dump=None):
     ).start()
 
     try:
-        shared_runtime = DslRuntime(cfg["program"], cfg["version"], watch=True)
+        shared_runtime = DslRuntime(cfg["program"], cfg["version"], watch=True, expansion=cfg.get("expansion"))
         shared_runtime.load_runtime_all()
     except Exception as exc:
         Logger.error(f"[ProxyServer] Runtime init failed (runtime mode): {exc}")
-        shared_runtime = DslRuntime(cfg["program"], cfg["version"], watch=True)
+        shared_runtime = DslRuntime(cfg["program"], cfg["version"], watch=True, expansion=cfg.get("expansion"))
         shared_runtime.load_runtime_all()
 
     set_dsl_runtime(shared_runtime)

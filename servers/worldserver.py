@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import importlib
 import socket
 import signal
 import threading
@@ -9,20 +8,18 @@ import traceback
 
 from utils.Logger import Logger
 from utils.ConfigLoader import ConfigLoader
-from utils.OpcodeLoader import load_world_opcodes
-from utils.PacketDump import PacketDump
-from modules.crypto.ARC4Crypto import Arc4CryptoHandler
-from modules.interpretation.EncryptedWorldStream import EncryptedWorldStream
-from modules.interpretation.OpcodeResolver import OpcodeResolver
-from modules.interpretation.PacketInterpreter import (
+from utils.ProtocolBootstrap import load_bootstrap
+from protocols.wow.shared.modules.interpretation.EncryptedWorldStream import EncryptedWorldStream
+from protocols.wow.shared.modules.interpretation.OpcodeResolver import OpcodeResolver
+from protocols.wow.shared.modules.interpretation.PacketInterpreter import (
     DumpPolicy,
     DslDecoder,
     JsonNormalizer,
     PacketDumper,
     PacketInterpreter,
 )
-from modules.interpretation.parser import parse_plain_packets
-from modules.interpretation.utils import dsl_decode
+from protocols.wow.shared.modules.interpretation.parser import parse_plain_packets
+from protocols.wow.shared.modules.interpretation.utils import dsl_decode
 
 
 # ---- Configuration ------------------------------------------------------
@@ -31,11 +28,13 @@ config = ConfigLoader.load_config()
 config["Logging"]["logging_levels"] = "Information, Success, Error"
 
 program = config["program"]
+expansion = config.get("expansion")
 version = config["version"]
 
-mod = importlib.import_module(f"protocols.{program}.{version}.modules.database.DatabaseConnection")
-DatabaseConnection = getattr(mod, "DatabaseConnection")
+bootstrap = load_bootstrap()
+DatabaseConnection = bootstrap.load_database()
 DatabaseConnection.initialize()
+PacketDump = bootstrap.get_packet_dump()
 
 HOST = config["worldserver"]["host"]
 PORT = config["worldserver"]["port"]
@@ -44,7 +43,7 @@ running = True
 
 # ---- Opcodes/handlers ---------------------------------------------------
 
-WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, world_lookup = load_world_opcodes()
+WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, world_lookup = bootstrap.load_world_opcodes()
 opcode_resolver = OpcodeResolver(WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, world_lookup)
 
 try:
@@ -55,12 +54,10 @@ except Exception:
 AUTH_RESPONSE_OPCODE = EncryptedWorldStream.AUTH_RESPONSE_OPCODE
 
 try:
-    handlers_mod = importlib.import_module(
-        f"protocols.{program}.{version}.modules.handlers.WorldHandlers"
-    )
-    opcode_handlers = getattr(handlers_mod, "opcode_handlers", {})
-    get_auth_challenge = getattr(handlers_mod, "get_auth_challenge", None)
-    reset_handler_state = getattr(handlers_mod, "reset_state", None)
+    handlers = bootstrap.load_world_handlers()
+    opcode_handlers = handlers.get("opcode_handlers", {})
+    get_auth_challenge = handlers.get("get_auth_challenge")
+    reset_handler_state = handlers.get("reset_state")
     Logger.info("[WorldServer] Loaded world opcode handlers")
 except Exception:
     opcode_handlers = {}
@@ -71,7 +68,7 @@ except Exception:
 
 # ---- Interpretation helpers --------------------------------------------
 
-packet_dumper = PacketDump(f"protocols/{program}/{version}/data")
+packet_dumper = PacketDump(f"protocols/{program}/{expansion}/{version}/data")
 interpreter = PacketInterpreter(
     decoder=DslDecoder(),
     normalizer=JsonNormalizer(),
@@ -82,8 +79,8 @@ interpreter = PacketInterpreter(
 
 # ---- Constants ----------------------------------------------------------
 
-HANDSHAKE_SERVER = b"0\x00WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT\x00"
-HANDSHAKE_CLIENT = b"0\x00WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER\x00"
+HANDSHAKE_SERVER, HANDSHAKE_CLIENT = bootstrap.get_world_handshake()
+WorldCryptoHandler = bootstrap.get_world_crypto()
 
 
 # ---- Signal handling ----------------------------------------------------
@@ -106,7 +103,7 @@ def safe_decode(direction: str, name: str, raw_header: bytes, payload: bytes) ->
         Logger.error(traceback.format_exc())
 
 
-def parse_client_packets(data: bytes, encrypted: bool, stream: EncryptedWorldStream, buffer: bytearray, crypto: Arc4CryptoHandler):
+def parse_client_packets(data: bytes, encrypted: bool, stream: EncryptedWorldStream, buffer: bytearray, crypto):
     """Parse incoming client data based on encryption state."""
     if not encrypted:
         return parse_plain_packets(data, "C")
@@ -115,7 +112,7 @@ def parse_client_packets(data: bytes, encrypted: bool, stream: EncryptedWorldStr
     return stream.feed(buffer, crypto=crypto, direction="C")
 
 
-def build_encrypted_response(packets, crypto: Arc4CryptoHandler) -> bytes:
+def build_encrypted_response(packets, crypto) -> bytes:
     """Encrypt only the headers for server responses."""
     out = bytearray()
 
@@ -153,7 +150,7 @@ def parse_server_packets(raw: bytes):
         header = bytes(buf[:4])
         del buf[:4]
 
-        hdr = Arc4CryptoHandler().unpack_data(header)
+        hdr = WorldCryptoHandler().unpack_data(header)
         size = hdr.size
         cmd = hdr.cmd
 
@@ -189,7 +186,7 @@ def handle_client(sock: socket.socket, addr: tuple[str, int]) -> None:
         except Exception as exc:
             Logger.error(f"[WorldServer] Failed to reset handler state: {exc}")
 
-    crypto = Arc4CryptoHandler()
+    crypto = WorldCryptoHandler()
     stream = EncryptedWorldStream()
     encrypted = False
     buffer = bytearray()
@@ -350,7 +347,7 @@ if __name__ == "__main__":
 
     Logger.info(
         f"{config['friendly_name']} "
-        f"({config['program']}:{config['version']}) WorldServer (Minimal Mode)"
+        f"({config['program']}:{config.get('expansion')}:{config['version']}) WorldServer (Minimal Mode)"
     )
 
     start_server()

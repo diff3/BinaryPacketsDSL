@@ -12,10 +12,11 @@ from utils.ConfigLoader import ConfigLoader
 from utils.CliArgs import parse_args
 from utils.Logger import Logger
 from utils.PrintUtils import SessionPrint
+from utils.PathUtils import get_captures_root
 
 
-def load_focus_payloads(case_name: str):
-    root = Path("misc/captures/focus/debug")
+def load_focus_payloads(program, expansion, version, case_name: str):
+    root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"
     out = []
     if not root.is_dir():
         return out
@@ -46,6 +47,7 @@ if __name__ == "__main__":
 
     tool_name = config['tool_name']
     program = config['program']
+    expansion = config.get("expansion")
     version = config['version']
     friendly_name = config['friendly_name']
 
@@ -56,16 +58,22 @@ if __name__ == "__main__":
         program = args.program
         friendly_name = "manuell"
 
+    if args.expansion:
+        expansion = args.expansion
+        friendly_name = "manuell"
+
     if args.version:
         version = args.version
         friendly_name = "manuell"
 
     if args.add:
-        if not args.program or not args.version or not args.file or not args.bin:
-            Logger.error("Missing required arguments for --add: --program, --version, --file, and --bin")
+        if not program or not expansion or not version or not args.file or not args.bin:
+            Logger.error(
+                "Missing required arguments for --add: --program, --expansion, --version, --file, and --bin"
+            )
             exit(1)
 
-        if handle_add(args.program, args.version, args.file, args.bin):
+        if handle_add(program, version, args.file, args.bin, expansion=expansion):
             Logger.success(f"Successfully added packet: {args.file}")
             exit(0)
         else:
@@ -84,12 +92,12 @@ if __name__ == "__main__":
         exit(1)
    
     Logger.info(f"{tool_name} - {friendly_name}")
-    Logger.info(f"Parsing {program} {version}\n")
+    Logger.info(f"Parsing {program} {expansion} {version}\n")
 
     if args.file:
-        case_data = [load_case(program, version, args.file)]
+        case_data = [load_case(program, version, args.file, expansion=expansion)]
     else:
-        case_data = load_all_cases(program, version)
+        case_data = load_all_cases(program, version, expansion=expansion)
 
     if not case_data:
         Logger.error("No .def files found.")
@@ -103,7 +111,7 @@ if __name__ == "__main__":
         Logger.to_log('')
 
         # Fokusläge: decode alla sniffade varianter
-        focus_caps = load_focus_payloads(case[0]) if getattr(args, 'focus', False) else []
+        focus_caps = load_focus_payloads(program, expansion, version, case[0]) if getattr(args, 'focus', False) else []
         if args.promote and not focus_caps:
             Logger.error(f"[PROMOTE] Hittade inga fokusfiler för {case[0]} att promota.")
             exit(1)
@@ -120,13 +128,13 @@ if __name__ == "__main__":
                 NodeTreeParser.parse(focus_case)
                 result = DecoderHandler.decode(focus_case, silent=args.silent)
         if args.promote:
-            out_dir = Path(f"protocols/{program}/{version}/data/json")
+            out_dir = Path(f"protocols/{program}/{expansion}/{version}/data/json")
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / f"{case[0]}.json"
             out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
             Logger.success(f"[PROMOTE] Wrote expected JSON → {out_path}")
         elif args.update:
-            out_dir = Path("misc/captures/focus/json")
+            out_dir = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "json"
             out_dir.mkdir(parents=True, exist_ok=True)
             stem = fpath.stem
             out_path = out_dir / f"{stem}.json"
@@ -139,7 +147,7 @@ if __name__ == "__main__":
 
         # Uppdatera expected-json om flaggan --update är satt
         if args.update:
-            base = f"protocols/{program}/{version}/data/json"
+            base = f"protocols/{program}/{expansion}/{version}/data/json"
             out_path = f"{base}/{case[0]}.json"
             import os
             os.makedirs(base, exist_ok=True)
