@@ -28,7 +28,7 @@ class AuthProxy:
       • Dump/update: sparar EN fil per opcode, aldrig timestampade.
     """
 
-    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False, focus_dump=None, control_state: Optional[ControlState] = None):
+    def __init__(self, listen_host, listen_port, auth_host, auth_port, dump=False, update=False, focus_dump=None, control_state: Optional[ControlState] = None, dsl_runtime: Optional[DslRuntime] = None):
         self.listen_host = listen_host
         self.listen_port = listen_port
         self.auth_host = auth_host
@@ -46,16 +46,20 @@ class AuthProxy:
         # Update-läge använder denna dumper
         self.dumper = PacketDump(f"protocols/{self.program}/{self.version}/data")
 
-        try:
-            # Proxy-läge: ingen JSON, ingen watcher
-            self.runtime = DslRuntime(self.program, self.version, watch=False)
-            self.runtime.load_runtime_all()
-            Logger.info(f"[AuthProxy] DSL runtime ready (runtime mode, no JSON)")
-        except Exception as e:
-            Logger.error(f"[AuthProxy] Runtime init failed (runtime mode): {e}")
-            # Fallback – men fortfarande runtime-variant, utan JSON
-            self.runtime = DslRuntime(self.program, self.version, watch=False)
-            self.runtime.load_runtime_all()
+        if dsl_runtime is not None:
+            self.runtime = dsl_runtime
+            Logger.info("[AuthProxy] DSL runtime ready (runtime mode, no JSON)")
+        else:
+            try:
+                # Proxy-läge: ingen JSON, ingen watcher
+                self.runtime = DslRuntime(self.program, self.version, watch=False)
+                self.runtime.load_runtime_all()
+                Logger.info("[AuthProxy] DSL runtime ready (runtime mode, no JSON)")
+            except Exception as e:
+                Logger.error(f"[AuthProxy] Runtime init failed (runtime mode): {e}")
+                # Fallback – men fortfarande runtime-variant, utan JSON
+                self.runtime = DslRuntime(self.program, self.version, watch=False)
+                self.runtime.load_runtime_all()
 
     # ----------------------------------------------------------------------
 

@@ -74,8 +74,9 @@ def parse_plain_packets(raw_data: bytes, direction: str) -> List[Tuple[bytes, An
         if size is None:
             break
 
-        # MoP special: SMSG_AUTH_RESPONSE size includes header
-        adj_size = size
+        # Header size includes opcode (2 bytes) in plain mode
+        adj_size = max(0, size - 2)
+        # MoP special: SMSG_AUTH_RESPONSE size includes full header
         if cmd == 0x01F6:
             adj_size = max(0, size - 4)
 

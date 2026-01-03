@@ -25,6 +25,12 @@ DatabaseConnection = getattr(mod, "DatabaseConnection")
 _dsl_runtime: Optional[DslRuntime] = None
 
 
+def set_dsl_runtime(runtime: Optional[DslRuntime]) -> None:
+    """Inject a shared DSL runtime to avoid duplicate initialization."""
+    global _dsl_runtime
+    _dsl_runtime = runtime
+
+
 def to_safe_json(value: Any, key: Optional[str] = None) -> Any:
     """
     Convert DSL-returned structures to JSON-safe types.

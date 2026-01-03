@@ -218,6 +218,7 @@ class WorldProxy:
                         Logger.info(f"[RAW]\n{payload}")
 
 
+
                 # Transparent forward
                 client.sendall(data)
 
@@ -295,19 +296,29 @@ class WorldProxy:
                     if not state["encrypted"] and h.cmd == self.AUTH_SESSION_OPCODE:
                         Logger.success("[WorldProxy] CMSG_AUTH_SESSION detected")
 
-                        decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=False)
-                        account = decoded_auth.get("account") or decoded_auth.get("account")
+                        account = None
+                        try:
+                            decoded_auth = dsl_decode("CMSG_AUTH_SESSION", payload, silent=True)
+                            account = decoded_auth.get("account") or decoded_auth.get("username") or decoded_auth.get("I")
+                        except Exception:
+                            decoded_auth = {}
+
+                        if not account:
+                            account = self._extract_account_from_auth_session(payload)
 
                         if not account:
                             Logger.error("[WorldProxy] AUTH_SESSION without username")
                             continue
 
                         acc = DatabaseConnection.get_user_by_username(account.upper())
-                        if not acc or not acc.session_key:
+                        key = None
+                        if acc:
+                            key = getattr(acc, "session_key", None) or getattr(acc, "sessionkey", None)
+                        if not key:
                             Logger.error("[WorldProxy] No session key for account")
                             continue
 
-                        K = acc.session_key
+                        K = key
                         if isinstance(K, (bytes, bytearray)):
                             K = K.hex()
 
@@ -327,6 +338,27 @@ class WorldProxy:
 
         except Exception as e:
             Logger.error(f"[WorldProxy C→S] {e}")
+
+    @staticmethod
+    def _extract_account_from_auth_session(payload: bytes) -> Optional[str]:
+        """
+        Best-effort vanilla auth session parser: grab the first short ASCII token
+        (null-terminated) from the header section.
+        """
+        head = payload[:128]
+        for part in head.split(b"\x00"):
+            if not (2 <= len(part) <= 16):
+                continue
+            try:
+                text = part.decode("ascii")
+            except Exception:
+                continue
+            if not text.isalnum():
+                continue
+            if not any(ch.isalpha() for ch in text):
+                continue
+            return text
+        return None
 
     # ------------------------------------------------------------------
     def _state_snapshot(self) -> Tuple[DumpPolicy, Optional[Set[str]], Set[str], Set[str], bool, bool]:

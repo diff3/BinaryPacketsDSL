@@ -34,6 +34,7 @@ class DebugLevel(IntEnum):
 
 class Logger:
     """Unified colored console logger + file logger."""
+    _last_inline_len = 0
 
     @staticmethod
     def _get_logging_mask(levels):
@@ -169,10 +170,14 @@ class Logger:
         # Inline (single-line) progress for rapid updates
         if inline:
             if Logger._should_log(DebugLevel.INFO):
+                pad = max(0, Logger._last_inline_len - len(text))
                 end = "" if current != total else "\n"
-                print(f"\r{text}", end=end)
+                print(f"\r{text}{' ' * pad}", end=end, flush=True)
+                Logger._last_inline_len = len(text)
             if current == total and Logger._should_log_file(DebugLevel.INFO):
                 Logger.add_to_log(text, "INFO")
+            if current == total:
+                Logger._last_inline_len = 0
             return
 
         # Legacy multi-line mode

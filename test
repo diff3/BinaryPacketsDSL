@@ -1,0 +1,9 @@
+[INFO] [2026-01-03 03:43:39] Vanilla 1.12.1 ProxyServer
+
+[INFO] [2026-01-03 03:43:39] [Control] Listening on IPv6@127.0.0.1:1337, IPv6@::1:1337 (telnet)
+[INFO] [2026-01-03 03:43:39] Watching protocols/vanilla/v1121/data/def for changes
+DSL runtime load AUTH_LOGON_CHALLENGE_C [1/10] (10%)DSL runtime load AUTH_LOGON_CHALLENGE_S [2/10] (20%)DSL runtime load AUTH_LOGON_PROOF_C [3/10] (30%)    DSL runtime load AUTH_LOGON_PROOF_S [4/10] (40%)DSL runtime load AUTH_RECONNECT_CHALLENGE_C [5/10] (50%)DSL runtime load AUTH_RECONNECT_CHALLENGE_S [6/10] (60%)DSL runtime load AUTH_RECONNECT_PROOF_C [7/10] (70%)    DSL runtime load AUTH_RECONNECT_PROOF_S [8/10] (80%)DSL runtime load REALM_LIST_C [9/10] (90%)          DSL runtime load REALM_LIST_S [10/10] (100%)
+[INFO] [2026-01-03 03:43:39] [AuthProxy] DSL runtime ready (runtime mode, no JSON)
+[INFO] [2026-01-03 03:43:39] [AuthProxy] Listening on 0.0.0.0:3724 → 192.168.11.30:3720
+[INFO] [2026-01-03 03:43:39] [WorldProxy] Listening on 0.0.0.0:8085 → 192.168.11.30:8015
+[INFO] [2026-01-03 03:43:39] Database initialized (auth + characters)
