@@ -220,6 +220,19 @@ class SRP6Crypto:
 
         return self.int_to_32_le(verifier_int)
 
+    def calculate_verifier_from_hash(self, sha_pass_hash: str | bytes, salt: bytes) -> bytes:
+        """
+        Create SRP verifier using a precomputed SHA1(USER:PASS) hash.
+        """
+        if isinstance(sha_pass_hash, str):
+            hash_bytes = bytes.fromhex(sha_pass_hash.strip())
+        else:
+            hash_bytes = bytes(sha_pass_hash)
+
+        x = self.sha1_to_int_le(salt, hash_bytes)
+        verifier_int = pow(self.G, x, self._modulus_int)
+        return self.int_to_32_le(verifier_int)
+
     def check_password(
         self,
         username: str,

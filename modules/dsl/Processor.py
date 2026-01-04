@@ -37,7 +37,9 @@ def process_case(
         debug_path = f"{data_path}/debug/{case}.json"
 
         definition = FileHandler.load_file(def_path)
-        debug = FileHandler.load_json_file(debug_path)
+        debug = {}
+        if os.path.exists(debug_path):
+            debug = FileHandler.load_json_file(debug_path)
         binary_data = b""
         expected = {}
 

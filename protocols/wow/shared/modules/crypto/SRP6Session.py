@@ -35,7 +35,8 @@ class SRP6Session:
 
     def generate_B(self):
         """Legacy alias — old handlers expect this name."""
-        return self.compute_B()
+        self.compute_B()
+        return self.B_bytes
 
     # ------------------------------------------------------------------
 
@@ -63,7 +64,7 @@ class SRP6Session:
     def verify_proof(self, A_bytes: bytes, M1_bytes: bytes):
         """
         Validates client proof M1.
-        Returns (ok, M2, fields)
+        Returns (ok, M2, session_key)
         """
 
         ok, M2, k_bytes = self.core.server_verify(
@@ -79,13 +80,4 @@ class SRP6Session:
         if not ok:
             return False, None, None
 
-        fields = {
-            "cmd": 1,
-            "error": 0,
-            "M2": M2,
-            "unk1": 0x8000,
-            "unk2": 0,
-            "unk3": 0,
-        }
-
-        return True, M2, fields, k_bytes
+        return True, M2, k_bytes
