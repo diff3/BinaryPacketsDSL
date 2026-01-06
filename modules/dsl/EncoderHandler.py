@@ -438,6 +438,12 @@ class EncoderHandler:
                 setattr(n, "__is_loop_child", True)
 
             should_emit = EncoderHandler._should_emit(n)
+            if getattr(n, "optional", False) and name:
+                if name in local_ctx:
+                    if local_ctx.get(name) is None:
+                        continue
+                elif getattr(n, "value", None) is None:
+                    continue
 
             # ============================================================
             #  IF-BLOCK – med stöd för loop-villkor

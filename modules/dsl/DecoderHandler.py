@@ -4,6 +4,7 @@
 from modules.dsl.Session import BaseNode, get_session
 from modules.dsl.Session import VariableNode
 from modules.dsl.ModifierMapping import modifiers_operation_mapping
+import ast
 import struct
 import json
 from utils.Logger import Logger
@@ -77,10 +78,17 @@ class DecodeState:
 
 
 def preprocess_condition(cond: str):
-    if not cond:
+    """
+    Normalize DSL conditions to Python-like expressions:
+    - remove '€'
+    - convert foo[i].bar → foo[i]["bar"]
+    - convert foo.bar → foo["bar"]
+    """
+    if not isinstance(cond, str) or not cond:
         return cond
     cond = cond.replace("€", "")
-    cond = re.sub(r'(\w+\[\w+\])\.(\w+)', r'\1["\2"]', cond)
+    cond = re.sub(r"(\w+\[[^\]]+\])\.(\w+)", r'\1["\2"]', cond)
+    cond = re.sub(r"\b([A-Za-z_]\w*)\.(\w+)", r'\1["\2"]', cond)
     return cond
 
 def _lookup_scope_value(scope: dict, key: str):
@@ -114,24 +122,62 @@ def eval_expr(expr: str, scope: dict, raw=None):
         # Return slice instruction — NOT bytes
         return ("slice", start, end, None)
 
-    # --- Pure variable reference ---
-    if expr.startswith("€") and re.fullmatch(r"€\w+", expr):
-        name = expr[1:]
-        return scope.get(name)
+    # --- Pure variable reference (supports [idx] and .key) ---
+    if expr.startswith("€") and re.fullmatch(r"€\w+(?:\[\w+\])?(?:\.\w+)?", expr):
+        return DecoderHandler.resolve_variable(expr, scope)
 
-    # --- Replace €var with scope values ---
-    def repl_var(m):
-        v = m.group(1)
-        val = _lookup_scope_value(scope, v)
-        return str(val if val is not None else 0)
+    def eval_ast(node, ctx):
+        if isinstance(node, ast.Expression):
+            return eval_ast(node.body, ctx)
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Num):  # py<3.8
+            return node.n
+        if isinstance(node, ast.Name):
+            val = ctx.get(node.id, 0)
+            return 0 if val is None else val
+        if isinstance(node, ast.BinOp):
+            left = eval_ast(node.left, ctx)
+            right = eval_ast(node.right, ctx)
+            if isinstance(node.op, ast.Add):
+                return left + right
+            if isinstance(node.op, ast.Sub):
+                return left - right
+            if isinstance(node.op, ast.Mult):
+                return left * right
+            if isinstance(node.op, ast.Div):
+                return left / right
+            if isinstance(node.op, ast.Mod):
+                return left % right
+            raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
+        if isinstance(node, ast.UnaryOp):
+            val = eval_ast(node.operand, ctx)
+            if isinstance(node.op, ast.UAdd):
+                return +val
+            if isinstance(node.op, ast.USub):
+                return -val
+            raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+        if isinstance(node, ast.Subscript):
+            target = eval_ast(node.value, ctx)
+            slc = eval_ast(node.slice, ctx)
+            return target[slc]
+        if isinstance(node, ast.Slice):
+            lower = eval_ast(node.lower, ctx) if node.lower is not None else None
+            upper = eval_ast(node.upper, ctx) if node.upper is not None else None
+            step = eval_ast(node.step, ctx) if node.step is not None else None
+            return slice(lower, upper, step)
+        if hasattr(ast, "Index") and isinstance(node, ast.Index):  # py<3.9
+            return eval_ast(node.value, ctx)
+        raise ValueError(f"Unsupported expression node: {type(node).__name__}")
 
-    expr_eval = re.sub(r"€([A-Za-z_]\w*)", repl_var, expr)
+    expr_eval = preprocess_condition(expr)
+    ctx = DecoderHandler._build_eval_context(scope)
+    try:
+        tree = ast.parse(expr_eval, mode="eval")
+    except SyntaxError as e:
+        raise ValueError(f"Invalid expression: {expr}") from e
 
-    # --- Validate safe arithmetic ---
-    if not re.fullmatch(r"[0-9+\-*/%() ]+", expr_eval):
-        raise ValueError(f"Unsafe characters in expression: {expr}")
-
-    return eval(expr_eval, {"__builtins__": None}, {})
+    return eval_ast(tree, ctx)
 
 
 
@@ -169,6 +215,15 @@ class DecoderHandler:
         Always returns: (field, stored, endian)
         """
         scope = state.all
+        if getattr(field, "optional", False) and getattr(field, "has_io", True):
+            if bitstate.offset >= len(raw_data):
+                field.value = None
+                field.raw_offset = bitstate.offset
+                field.raw_length = 0
+                field.raw_data = b""
+                state.set_field(field, None)
+                field.processed = True
+                return field, True, endian
 
         # ---------------------------------------------------------
         # Slice node
@@ -309,7 +364,30 @@ class DecoderHandler:
         # ---------------------------------------------------------
         # Seek
         # ---------------------------------------------------------
-        if field.name == 'seek':
+        if field.interpreter == 'seek_match':
+            bitstate.align_to_byte()
+            pattern = getattr(field, "pattern", b"")
+            start = bitstate.offset
+            if not pattern:
+                if not getattr(field, "optional", False):
+                    Logger.warning("seek next: empty pattern")
+                    bitstate.advance_to(len(raw_data), 0)
+                field.processed = True
+                return field, True, endian
+
+            idx = raw_data.find(pattern, start)
+            if idx == -1:
+                if not getattr(field, "optional", False):
+                    Logger.warning(f"seek next: pattern not found ({getattr(field, 'pattern_desc', '')})")
+                    bitstate.advance_to(len(raw_data), 0)
+                field.processed = True
+                return field, True, endian
+
+            bitstate.advance_to(idx, 0)
+            field.processed = True
+            return field, True, endian
+
+        if field.interpreter == 'seek':
             bitstate.offset = field.value
             field.processed = True
             return field, True, endian
@@ -372,6 +450,20 @@ class DecoderHandler:
         # bits
         # ---------------------------------------------------------
         if field.interpreter == 'bits':
+            bits_required = 0
+            for mod in getattr(field, "modifiers", []) or []:
+                m = re.fullmatch(r"(\d+)([Bb])", mod)
+                if m:
+                    bits_required += int(m.group(1))
+            remaining_bits = (len(raw_data) - bitstate.offset) * 8 - bitstate.bit_pos
+            if getattr(field, "optional", False) and bits_required > remaining_bits:
+                field.value = None
+                field.raw_offset = bitstate.offset
+                field.raw_length = 0
+                field.raw_data = b""
+                state.set_field(field, None)
+                field.processed = True
+                return field, True, endian
             field = DecoderHandler.decode_bits_field(field, raw_data, bitstate)
             state.set_field(field, field.value)
             field.processed = True
@@ -497,6 +589,13 @@ class DecoderHandler:
 
             needs_io = getattr(field, "has_io", True)
             if needs_io and bitstate.offset >= len(raw_data):
+                if getattr(field, "optional", False):
+                    field, _, endian = DecoderHandler._process_field(
+                        field, raw_data, bitstate, endian, state
+                    )
+                    fields[i] = field
+                    i += 1
+                    continue
                 Logger.warning(f"Ran out of raw data before field '{getattr(field, 'name', '?')}'")
                 break
             
@@ -658,6 +757,12 @@ class DecoderHandler:
 
         try:
             size = struct.calcsize(f"{endian}{fmt}")
+            if getattr(field, "optional", False) and start + size > len(raw_data):
+                field.value = None
+                field.raw_offset = start
+                field.raw_length = 0
+                field.raw_data = b""
+                return field, None, endian
 
             if 's' not in fmt:
                 # Normal struct unpack
@@ -821,6 +926,14 @@ class DecoderHandler:
 
         bitstate.align_to_byte()
         start = bitstate.offset
+        if getattr(field, "optional", False) and start + size > len(raw_data):
+            field.value = None
+            field.raw_offset = start
+            field.raw_length = 0
+            field.raw_data = b""
+            field.processed = True
+            state.set_field(field, None)
+            return field
         chunk = raw_data[start:start + size]
         bitstate.advance_to(start + len(chunk), 0)
 
@@ -877,6 +990,14 @@ class DecoderHandler:
 
         bitstate.align_to_byte()
         start = bitstate.offset
+        if getattr(field, "optional", False) and start + size > len(raw_data):
+            field.value = None
+            field.raw_offset = start
+            field.raw_length = 0
+            field.raw_data = b""
+            field.processed = True
+            state.set_field(field, None)
+            return field
         chunk = raw_data[start:start + size]
         bitstate.advance_to(start + len(chunk), 0)
 
@@ -1084,22 +1205,31 @@ class DecoderHandler:
     # ===================================================================
 
     @staticmethod
-    def _eval_condition_var(cond: str, state_data: dict) -> bool:
+    def _build_eval_context(state_data: dict) -> dict:
+        ctx: dict = {}
+        if isinstance(state_data, dict):
+            ctx.update(state_data)
+        scope = session.scope
+        if getattr(scope, "global_vars", None):
+            ctx.update(scope.global_vars)
+        for frame in getattr(scope, "scope_stack", []):
+            ctx.update(frame)
+        return ctx
+
+    @staticmethod
+    def _eval_condition(cond: str, state_data: dict) -> bool:
         """
-        Enkel sanningskoll på ett '€var'-liknande uttryck, t.ex:
-          €success
-          €chars_meta[i].guid_1_mask
-          €chars_meta[0].guid_1_mask
-        Vi använder resolve_variable istället för eval().
+        Python-like condition evaluation with AND/OR support.
+        Mirrors encoder semantics (eval with local context).
         """
-        cond = (cond or "").strip()
+        cond = preprocess_condition((cond or "").strip())
         if not cond:
             return False
-        # DSL villkor skrivs som '€var...' — låt resolve_variable göra all magi
-        val = DecoderHandler.resolve_variable(cond, state_data)
-
-        # Om resolve_variable inte hittar något → villkoret är falskt
-        return bool(val)
+        ctx = DecoderHandler._build_eval_context(state_data)
+        try:
+            return bool(eval(cond, {}, ctx))
+        except Exception:
+            return False
 
     @staticmethod
     def handle_if(field, raw_data, bitstate, endian, state: DecodeState):
@@ -1108,13 +1238,13 @@ class DecoderHandler:
         branch = None
 
         # huvud-villkoret
-        if DecoderHandler._eval_condition_var(field.condition, state.all):
+        if DecoderHandler._eval_condition(field.condition, state.all):
             branch = field.true_branch
         else:
             # ev. elif-grenar
             if field.elif_branches:
                 for cond, nodes in field.elif_branches:
-                    if DecoderHandler._eval_condition_var(cond, state.all):
+                    if DecoderHandler._eval_condition(cond, state.all):
                         branch = nodes
                         break
 

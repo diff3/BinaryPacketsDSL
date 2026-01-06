@@ -9,6 +9,7 @@ from protocols.wow.shared.modules.proxy.auth_proxy import AuthProxy
 from protocols.wow.shared.modules.proxy.world_proxy import WorldProxy
 from protocols.wow.shared.modules.proxy.control_server import ControlServer
 from protocols.wow.shared.modules.proxy.control_state import ControlState
+from servers.generic_proxy import GenericProxy
 from modules.dsl.DslRuntime import DslRuntime
 from protocols.wow.shared.modules.interpretation.utils import set_dsl_runtime
 from utils.Logger import Logger
@@ -16,6 +17,53 @@ from utils.Logger import Logger
 cfg = ConfigLoader.load_config()
 
 def start_proxy(dump=False, update=False, focus_dump=None):
+    if cfg.get("program") != "wow":
+        Logger.info("[ProxyServer] Non-WoW mode: generic TCP proxy")
+        proxy_cfg = cfg.get("proxy") or {}
+        auth_cfg = cfg.get("auth_proxy")
+        world_cfg = cfg.get("world_proxy")
+
+        proxies = []
+        if proxy_cfg:
+            proxies.append(
+                GenericProxy(
+                    proxy_cfg.get("listen_host", "0.0.0.0"),
+                    int(proxy_cfg.get("listen_port", 0) or 0),
+                    proxy_cfg.get("target_host", "127.0.0.1"),
+                    int(proxy_cfg.get("target_port", 0) or 0),
+                    name="GenericProxy",
+                )
+            )
+        if auth_cfg:
+            proxies.append(
+                GenericProxy(
+                    auth_cfg.get("listen_host", "0.0.0.0"),
+                    int(auth_cfg.get("listen_port", 0) or 0),
+                    auth_cfg.get("auth_host", auth_cfg.get("target_host", "127.0.0.1")),
+                    int(auth_cfg.get("auth_port", auth_cfg.get("target_port", 0) or 0)),
+                    name="AuthProxy",
+                )
+            )
+        if world_cfg:
+            proxies.append(
+                GenericProxy(
+                    world_cfg.get("listen_host", "0.0.0.0"),
+                    int(world_cfg.get("listen_port", 0) or 0),
+                    world_cfg.get("world_host", world_cfg.get("target_host", "127.0.0.1")),
+                    int(world_cfg.get("world_port", world_cfg.get("target_port", 0) or 0)),
+                    name="WorldProxy",
+                )
+            )
+
+        if not proxies:
+            Logger.error("[ProxyServer] No proxy endpoints configured")
+            return
+
+        for p in proxies[:-1]:
+            threading.Thread(target=p.start, daemon=True).start()
+        proxies[-1].start()
+        return
+
     control_cfg = cfg.get("control_server", {}) if isinstance(cfg, dict) else {}
     control_enabled = bool(control_cfg.get("enabled", True))
     control_host = control_cfg.get("host", "127.0.0.1")

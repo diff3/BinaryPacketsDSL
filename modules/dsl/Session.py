@@ -24,6 +24,7 @@ class BaseNode:
         payload=True,
         has_io=True,
         visibility_prefix=None,
+        optional=False,
     ):
         self.name = name
         self.format = format
@@ -37,6 +38,7 @@ class BaseNode:
         self.payload = payload           # should field be emitted when encoding
         self.has_io = has_io             # does the field move offset/bitstate
         self.visibility_prefix = visibility_prefix  # raw prefix '-', '+', or None
+        self.optional = optional         # optional field (skip if missing)
 
         # decoder-populated
         self.value = None

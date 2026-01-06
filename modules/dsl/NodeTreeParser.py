@@ -11,6 +11,7 @@ Prepared for future DSL changes.
 
 from __future__ import annotations
 
+import ast
 import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
@@ -134,6 +135,14 @@ class NodeTreeParser:
                 i += consumed
                 continue
 
+            # ---------------- match -------------------
+            if stripped.startswith("match "):
+                parsed, consumed = NodeTreeParser.parse_match(lines, i, ctx)
+                if parsed:
+                    nodes.append(parsed)
+                i += consumed
+                continue
+
             # ---------------- include ----------------
             if stripped.startswith("include "):
                 NodeTreeParser._handle_include(stripped, nodes, ctx)
@@ -198,6 +207,13 @@ class NodeTreeParser:
             name = name[1:].strip()
 
         return name, visible, payload, prefix
+
+    @staticmethod
+    def _parse_optional(name: str) -> tuple[str, bool]:
+        cleaned = name.strip()
+        if cleaned.endswith("?"):
+            return cleaned[:-1].strip(), True
+        return name, False
 
     # =====================================================================
     # INCLUDE
@@ -270,21 +286,96 @@ class NodeTreeParser:
 
     @staticmethod
     def parse_seek(line: str) -> Optional[BaseNode]:
-        parts = line.strip().split()
-        if len(parts) == 2 and parts[1].isdigit():
-            return BaseNode(
+        raw = line.strip()
+        optional = False
+
+        if raw.startswith("seek?"):
+            optional = True
+            rest = raw[len("seek?"):].strip()
+        elif raw.startswith("seek"):
+            rest = raw[len("seek"):].strip()
+        else:
+            Logger.warning(f"Malformed seek '{line}'")
+            return None
+
+        if not rest:
+            Logger.warning(f"Malformed seek '{line}'")
+            return None
+
+        if rest.startswith("next"):
+            pattern_raw = rest[len("next"):].strip()
+            pattern = NodeTreeParser._parse_seek_pattern(pattern_raw)
+            if pattern is None:
+                Logger.warning(f"Malformed seek pattern '{line}'")
+                return None
+            node = BaseNode(
                 name="seek",
-                format=parts[1],
-                interpreter="seek",
+                format=None,
+                interpreter="seek_match",
                 modifiers=[],
                 encode_modifiers=[],
                 depends_on=None,
                 dynamic=False,
                 ignore=False,
             )
+            node.pattern = pattern
+            node.pattern_desc = pattern_raw
+            node.optional = optional
+            return node
 
-        Logger.warning(f"Malformed seek '{line}'")
-        return None
+        try:
+            offset = int(rest, 0)
+        except ValueError:
+            Logger.warning(f"Malformed seek '{line}'")
+            return None
+
+        node = BaseNode(
+            name="seek",
+            format=str(offset),
+            interpreter="seek",
+            modifiers=[],
+            encode_modifiers=[],
+            depends_on=None,
+            dynamic=False,
+            ignore=False,
+        )
+        node.value = offset
+        node.optional = optional
+        return node
+
+    @staticmethod
+    def _parse_seek_pattern(raw: str) -> Optional[bytes]:
+        if not raw:
+            return None
+
+        if raw.startswith(("'", '"', "b'", 'b"')):
+            try:
+                val = ast.literal_eval(raw)
+            except Exception:
+                return None
+            if isinstance(val, bytes):
+                return val
+            if isinstance(val, str):
+                return val.encode("utf-8")
+            return None
+
+        tokens = raw.split()
+        if not tokens:
+            return None
+
+        out = bytearray()
+        for tok in tokens:
+            t = tok
+            if t.startswith(("0x", "0X")):
+                t = t[2:]
+            if not re.fullmatch(r"[0-9a-fA-F]+", t):
+                return None
+            if len(t) % 2 != 0:
+                return None
+            for i in range(0, len(t), 2):
+                out.append(int(t[i:i + 2], 16))
+
+        return bytes(out)
 
     # =====================================================================
     # BITMASK BLOCK
@@ -342,6 +433,8 @@ class NodeTreeParser:
 
             if raw.startswith("if "):
                 parsed, consumed = NodeTreeParser.parse_if(block_lines, i, ctx)
+            elif raw.startswith("match "):
+                parsed, consumed = NodeTreeParser.parse_match(block_lines, i, ctx)
             elif raw.startswith("loop "):
                 parsed, consumed = NodeTreeParser.parse_loop(block_lines, i, ctx)
             elif raw.startswith("uncompress "):
@@ -401,6 +494,8 @@ class NodeTreeParser:
 
             if raw.startswith("if "):
                 parsed, consumed = NodeTreeParser.parse_if(block_lines, i, ctx)
+            elif raw.startswith("match "):
+                parsed, consumed = NodeTreeParser.parse_match(block_lines, i, ctx)
             elif raw.startswith("loop "):
                 parsed, consumed = NodeTreeParser.parse_loop(block_lines, i, ctx)
             elif raw.startswith("uncompress "):
@@ -502,7 +597,7 @@ class NodeTreeParser:
             return NodeTreeParser.parse_padding("padding 0"), 1
 
         # seek
-        if stripped.startswith("seek "):
+        if stripped.startswith("seek"):
             return NodeTreeParser.parse_seek(raw), 1
 
         # uncompress
@@ -516,6 +611,10 @@ class NodeTreeParser:
         # loop
         if stripped.startswith("loop "):
             return NodeTreeParser.parse_loop(lines, idx, ctx)
+
+        # match
+        if stripped.startswith("match "):
+            return NodeTreeParser.parse_match(lines, idx, ctx)
 
         # nested if
         if stripped.startswith("if "):
@@ -555,10 +654,6 @@ class NodeTreeParser:
 
             indent = len(re.match(r"^\s*", raw)[0])
 
-            # ---------- FIX: only deeper indent belongs to IF block ----------
-            if indent <= base_indent:
-                break
-
             # ---------- elif ----------
             if stripped.startswith("elif ") and indent == base_indent:
                 current_branch = []
@@ -574,7 +669,18 @@ class NodeTreeParser:
                 i += 1
                 continue
 
+            # ---------- end of IF block ----------
+            if indent <= base_indent:
+                break
+
             # ---------- child inside IF ----------
+            if stripped.startswith("include "):
+                tmp: List[Any] = []
+                NodeTreeParser._handle_include(stripped, tmp, ctx)
+                current_branch.extend(tmp)
+                i += 1
+                continue
+
             eq_pos = stripped.find("=")
             colon_pos = stripped.find(":")
             if eq_pos != -1 and not stripped.startswith("if ") and (colon_pos == -1 or eq_pos < colon_pos):
@@ -603,6 +709,182 @@ class NodeTreeParser:
         return node, i - start_idx
 
     # =====================================================================
+    # MATCH / CASE
+    # =====================================================================
+
+    @staticmethod
+    def _split_case_items(raw: str) -> List[str]:
+        items: List[str] = []
+        buf: List[str] = []
+        in_str = False
+        str_char = ""
+        depth = 0
+
+        i = 0
+        while i < len(raw):
+            ch = raw[i]
+
+            if in_str:
+                buf.append(ch)
+                if ch == str_char and (i == 0 or raw[i - 1] != "\\"):
+                    in_str = False
+                i += 1
+                continue
+
+            if ch in ("'", '"'):
+                in_str = True
+                str_char = ch
+                buf.append(ch)
+                i += 1
+                continue
+
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}":
+                if depth > 0:
+                    depth -= 1
+
+            if ch == "," and depth == 0:
+                item = "".join(buf).strip()
+                if item:
+                    items.append(item)
+                buf = []
+                i += 1
+                continue
+
+            buf.append(ch)
+            i += 1
+
+        tail = "".join(buf).strip()
+        if tail:
+            items.append(tail)
+        return items
+
+    @staticmethod
+    def _build_case_condition(subject: str, items: List[str]) -> str:
+        conds: List[str] = []
+        for item in items:
+            if not item:
+                continue
+            if item.startswith(("'", '"')):
+                conds.append(f"({subject} == {item})")
+                continue
+            if ".." in item:
+                left, right = [p.strip() for p in item.split("..", 1)]
+                if left and right:
+                    conds.append(f"({subject} >= {left} and {subject} <= {right})")
+                    continue
+            conds.append(f"({subject} == {item})")
+        if not conds:
+            return ""
+        if len(conds) == 1:
+            return conds[0]
+        return "(" + " or ".join(conds) + ")"
+
+    @staticmethod
+    def parse_match(lines, start_idx, ctx):
+        header = lines[start_idx]
+        match = re.match(r"\s*match\s+(.+?)\s*:?\s*$", header)
+        if not match:
+            Logger.warning(f"Malformed match: {header.strip()}")
+            return None, 1
+
+        subject = match.group(1).strip()
+        base_indent = len(re.match(r"^\s*", header)[0])
+
+        cases = []
+        default_branch = None
+        current_branch = None
+        case_indent = None
+
+        i = start_idx + 1
+        total = len(lines)
+
+        while i < total:
+            raw = lines[i]
+            stripped = raw.strip()
+
+            if not stripped:
+                i += 1
+                continue
+
+            indent = len(re.match(r"^\s*", raw)[0])
+            if indent <= base_indent:
+                break
+
+            is_case = stripped.startswith("case ") or stripped.startswith("default")
+            if is_case and (case_indent is None or indent == case_indent):
+                case_indent = indent
+                label = stripped.rstrip(":").strip()
+
+                if label.startswith("default") or label == "case _" or label == "case _:":
+                    current_branch = []
+                    default_branch = current_branch
+                    i += 1
+                    continue
+
+                case_raw = label[len("case "):].strip()
+                if not case_raw:
+                    Logger.warning(f"Empty case in match: {header.strip()}")
+                    current_branch = []
+                    i += 1
+                    continue
+
+                items = NodeTreeParser._split_case_items(case_raw)
+                cond = NodeTreeParser._build_case_condition(subject, items)
+                branch = []
+                cases.append((cond, branch))
+                current_branch = branch
+                i += 1
+                continue
+
+            if current_branch is None:
+                Logger.warning(f"Match body without case: {stripped}")
+                i += 1
+                continue
+
+            if stripped.startswith("include "):
+                tmp: List[Any] = []
+                NodeTreeParser._handle_include(stripped, tmp, ctx)
+                current_branch.extend(tmp)
+                i += 1
+                continue
+
+            parsed, consumed = NodeTreeParser.parse_struct_or_if(lines, i, ctx)
+            if parsed:
+                current_branch.append(parsed)
+            i += consumed
+
+        if not cases and default_branch is None:
+            Logger.warning(f"Match has no cases: {header.strip()}")
+            return None, i - start_idx
+
+        if cases:
+            head_cond, head_branch = cases[0]
+            elif_branches = cases[1:] or None
+            node = IfNode(
+                name=f"match_{subject}",
+                format="",
+                interpreter="if",
+                condition=head_cond,
+                true_branch=head_branch,
+                false_branch=default_branch or None,
+                elif_branches=elif_branches,
+            )
+        else:
+            node = IfNode(
+                name=f"match_{subject}",
+                format="",
+                interpreter="if",
+                condition="1",
+                true_branch=default_branch,
+                false_branch=None,
+                elif_branches=None,
+            )
+
+        return node, i - start_idx
+
+    # =====================================================================
     # SINGLE-LINE FIELD → NODE
     # =====================================================================
 
@@ -621,6 +903,7 @@ class NodeTreeParser:
 
             if len(parts) >= 2 and parts[0] == "combine":
                 left, visible, payload, prefix = NodeTreeParser._parse_visibility(left)
+                left, optional = NodeTreeParser._parse_optional(left)
                 left, ignore, ctx.anon_counter = ParserUtils.check_ignore_and_rename(
                     left, ctx.anon_counter
                 )
@@ -637,6 +920,7 @@ class NodeTreeParser:
                 node.payload = payload
                 node.visibility_prefix = prefix
                 node.has_io = False
+                node.optional = optional
                 return node
 
         # ------------------------------------------------------------
@@ -645,7 +929,7 @@ class NodeTreeParser:
         if stripped.startswith("padding"):
             return NodeTreeParser.parse_padding(line)
 
-        if stripped.startswith("seek "):
+        if stripped.startswith("seek"):
             return NodeTreeParser.parse_seek(line)
 
         if stripped in ("flushbit", "flushbits"):
@@ -659,6 +943,7 @@ class NodeTreeParser:
             fmt, mods, enc_mods = ModifierUtils.parse_modifiers(rest)
 
             name, visible, payload, prefix = NodeTreeParser._parse_visibility(name)
+            name, optional = NodeTreeParser._parse_optional(name)
             name, ignore, ctx.anon_counter = ParserUtils.check_ignore_and_rename(
                 name, ctx.anon_counter
             )
@@ -675,6 +960,7 @@ class NodeTreeParser:
             node.payload = payload
             node.visibility_prefix = prefix
             node.has_io = True
+            node.optional = optional
             return node
         
         # ------------------------------------------------------------
@@ -685,6 +971,7 @@ class NodeTreeParser:
             fmt, mods, enc_mods = ModifierUtils.parse_modifiers(right)
 
             left, visible, payload, prefix = NodeTreeParser._parse_visibility(left)
+            left, optional = NodeTreeParser._parse_optional(left)
             buf_assign = re.fullmatch(r"(\w+)\[(\d+)(?:-(\d+))?\]", left)
             if buf_assign:
                 buf_name, start_idx, end_idx = buf_assign.group(1), int(buf_assign.group(2)), buf_assign.group(3)
@@ -710,6 +997,7 @@ class NodeTreeParser:
                 node.payload = payload
                 node.has_io = True
                 node.visibility_prefix = prefix
+                node.optional = optional
                 return node
 
         # ======================================================================
@@ -728,6 +1016,7 @@ class NodeTreeParser:
 
         # Visibility prefix (+/-)
         name, visible, payload, prefix = NodeTreeParser._parse_visibility(name)
+        name, optional = NodeTreeParser._parse_optional(name)
 
         # Name → apply ignore + auto-numbering
         name, ignore, ctx.anon_counter = ParserUtils.check_ignore_and_rename(
@@ -752,6 +1041,7 @@ class NodeTreeParser:
             node.payload = payload
             node.has_io = has_io
             node.visibility_prefix = prefix
+            node.optional = optional
             if default_val is not None:
                 node.value = default_val
             return node
@@ -801,12 +1091,6 @@ class NodeTreeParser:
             if prefix is None:
                 node.visible = False
             return node
-
-        # Slice: foo: €var[x:y]
-        if fmt.startswith("€") and "[" in fmt and ":" in fmt:
-            inner = fmt[fmt.index("[")+1 : fmt.rindex("]")]
-            node = SliceNode(name=name, slice_expr=inner)
-            return finalize_node(node)
 
         # Dynamic string: foo: €len's
         if fmt.startswith("€") and fmt.endswith("'s"):

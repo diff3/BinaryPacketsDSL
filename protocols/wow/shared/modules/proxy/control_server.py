@@ -545,6 +545,16 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     if nxt and nxt[:1] in (b"\n", b"\x00"):
                         self.rfile.read(1)
                 return "".join(buf).strip()
+            if ch in (b"\x7f", b"\b"):  # backspace/delete
+                if buf:
+                    buf.pop()
+                    if echo:
+                        try:
+                            self.wfile.write(b"\b \b")
+                            self.wfile.flush()
+                        except Exception:
+                            pass
+                continue
             try:
                 c = ch.decode("utf-8")
             except UnicodeDecodeError:
