@@ -281,6 +281,7 @@ Encode payload:
 **If / Elif / Else**
 
 - Conditions are Python-like and evaluate against current values.
+- Supports `==`, `!=`, `<`, `<=`, `>`, `>=`, plus `and` / `or`.
 
 - This is declarative branching for structural differences.
 
@@ -297,6 +298,18 @@ Encode payload:
     else:
         a: I
 
+
+
+**Debug Print (no payload)**
+
+- `print(...)` writes to the debug log without affecting decode or encode output.
+- Works in both decode and encode to trace values at any point.
+- Default level is `debug`, override with `print[level](...)`.
+
+**Example:**
+    print("start")
+    print("user:", €username)
+    print[info]("count:", €count, "items:", €items)
 
 
 **Match / Case**
@@ -346,6 +359,25 @@ Example:
     buf[]: 4B
     buf[0]: B
     buf[1] <- B
+
+
+**Index Shorthand (bytes)**
+
+- `name: idx 1, 2, 3` expands to `name[1]: B`, `name[2]: B`, `name[3]: B`.
+- Useful for unordered byte reassembly (e.g., digests) while keeping byte order explicit.
+
+**Example:**
+    digest: idx 18, 14, 3 4 0
+
+
+**Bits Shorthand**
+
+- `bits 1BI: a, b, c` expands to `a: bits, 1BI` etc.
+- Keeps long bit-mask sequences readable without changing order.
+
+**Example:**
+    bits 1BI: guildguid_4_mask, guid_0_mask, boosted
+    bits 6BI: name_len
 
 
 

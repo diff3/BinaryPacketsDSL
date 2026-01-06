@@ -52,6 +52,14 @@ class ParseContext:
 # =====================================================================
 
 class NodeTreeParser:
+    @staticmethod
+    def _extend_nodes(target: List[Any], parsed):
+        if not parsed:
+            return
+        if isinstance(parsed, list):
+            target.extend(parsed)
+        else:
+            target.append(parsed)
 
     @staticmethod
     def parse(case: tuple) -> List[Any]:
@@ -154,8 +162,7 @@ class NodeTreeParser:
 
             # Variabler hanteras numera av parse_variable() högre upp
             # så här ska vi *inte* fånga dem längre.
-            if parsed:
-                nodes.append(parsed)
+            NodeTreeParser._extend_nodes(nodes, parsed)
 
             i += 1
             continue
@@ -459,8 +466,7 @@ class NodeTreeParser:
                 i += 1
                 continue
             else:
-                if parsed:
-                    block_nodes.append(parsed)
+                NodeTreeParser._extend_nodes(block_nodes, parsed)
 
             i += consumed
 
@@ -520,8 +526,7 @@ class NodeTreeParser:
                 i += 1
                 continue
             else:
-                if parsed:
-                    children.append(parsed)
+                NodeTreeParser._extend_nodes(children, parsed)
 
             i += consumed
 
@@ -558,8 +563,7 @@ class NodeTreeParser:
         children = []
         for blk in block_lines:
             parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
-            if parsed:
-                children.append(parsed)
+            NodeTreeParser._extend_nodes(children, parsed)
 
         node = UncompressNode(
             name="uncompress",
@@ -691,8 +695,7 @@ class NodeTreeParser:
                 continue
 
             parsed, consumed = NodeTreeParser.parse_struct_or_if(lines, i, ctx)
-            if parsed:
-                current_branch.append(parsed)
+            NodeTreeParser._extend_nodes(current_branch, parsed)
 
             i += consumed
 
@@ -851,8 +854,7 @@ class NodeTreeParser:
                 continue
 
             parsed, consumed = NodeTreeParser.parse_struct_or_if(lines, i, ctx)
-            if parsed:
-                current_branch.append(parsed)
+            NodeTreeParser._extend_nodes(current_branch, parsed)
             i += consumed
 
         if not cases and default_branch is None:
@@ -893,6 +895,82 @@ class NodeTreeParser:
         stripped = line.strip()
         if not stripped:
             return None
+
+        # ------------------------------------------------------------
+        # print (debug only, no IO)
+        # ------------------------------------------------------------
+        if stripped.startswith("print"):
+            match = re.match(r"^print(?:\[(\w+)\])?\s*(.*)$", stripped)
+            if match:
+                level = (match.group(1) or "debug").strip()
+                rest = (match.group(2) or "").strip()
+                expr = rest
+                if expr.startswith("(") and expr.endswith(")"):
+                    expr = expr[1:-1].strip()
+                node = BaseNode(
+                    name="print",
+                    format="",
+                    interpreter="print",
+                    modifiers=[],
+                    encode_modifiers=[],
+                    depends_on=None,
+                    dynamic=False,
+                    ignore=True,
+                    visible=False,
+                    payload=False,
+                    has_io=False,
+                )
+                node.print_expr = expr
+                node.print_level = level
+                return node
+
+        # ------------------------------------------------------------
+        # idx index list: name: idx 1, 2, 3
+        # expands to name[1]: B ... name[3]: B
+        # ------------------------------------------------------------
+        shorthand = re.match(r"^([+\-]?\s*\w+\??)\s*:\s*idx\s+([0-9][0-9,\s]*)$", stripped)
+        if shorthand:
+            raw_name = shorthand.group(1).strip()
+            raw_list = shorthand.group(2)
+            indices: List[int] = []
+            for tok in re.split(r"[,\s]+", raw_list.strip()):
+                if not tok:
+                    continue
+                if not tok.isdigit():
+                    indices = []
+                    break
+                indices.append(int(tok))
+            if indices:
+                name_base, _, _, prefix = NodeTreeParser._parse_visibility(raw_name)
+                name_base, optional = NodeTreeParser._parse_optional(name_base)
+                prefix_str = prefix or ""
+                suffix = "?" if optional else ""
+                nodes: List[Any] = []
+                for idx in indices:
+                    expanded = f"{prefix_str}{name_base}[{idx}]{suffix}: B"
+                    parsed = NodeTreeParser.parse_line_to_node(expanded, ctx)
+                    NodeTreeParser._extend_nodes(nodes, parsed)
+                return nodes if nodes else None
+
+        # ------------------------------------------------------------
+        # shorthand bits list: bits 1BI: a, b, c
+        # expands to a: bits, 1BI ... c: bits, 1BI
+        # ------------------------------------------------------------
+        bits_shorthand = re.match(r"^bits\s+([^:]+)\s*:\s*(.+)$", stripped)
+        if bits_shorthand:
+            mods_raw = bits_shorthand.group(1).strip()
+            names_raw = bits_shorthand.group(2).strip()
+            names: List[str] = []
+            for tok in re.split(r"[,\s]+", names_raw):
+                if tok:
+                    names.append(tok)
+            if names:
+                nodes: List[Any] = []
+                for name in names:
+                    expanded = f"{name}: bits, {mods_raw}"
+                    parsed = NodeTreeParser.parse_line_to_node(expanded, ctx)
+                    NodeTreeParser._extend_nodes(nodes, parsed)
+                return nodes if nodes else None
 
         # ------------------------------------------------------------
         # combine syntax:  foo: combine seed

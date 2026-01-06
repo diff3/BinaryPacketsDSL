@@ -212,34 +212,6 @@ class _ControlHandler(socketserver.StreamRequestHandler):
             self._history_idx = max(0, self._history_idx - 1)
         return list(self._history[self._history_idx])
 
-    # ------------------------------------------------------------------ #
-    # Telnet negotiation helpers (simple but explicit responses)
-    # ------------------------------------------------------------------ #
-    def _negotiate_telnet(self) -> None:
-        """
-        Send a minimal set of telnet options to request server-side echo and suppress GA.
-        """
-        seq = bytes(
-            [
-                self.server.IAC,
-                self.server.WILL,
-                self.server.ECHO,
-                self.server.IAC,
-                self.server.WILL,
-                self.server.SGA,
-                self.server.IAC,
-                self.server.DO,
-                self.server.SGA,
-                self.server.IAC,
-                self.server.DO,
-                self.server.LINEMODE,
-            ]
-        )
-        try:
-            self.request.sendall(seq)
-        except Exception:
-            pass
-
     def _handle_iac(self) -> bool:
         """Process a telnet IAC sequence. Returns False if the stream ended."""
         cmd = self.rfile.read(1)
@@ -250,11 +222,7 @@ class _ControlHandler(socketserver.StreamRequestHandler):
             opt = self.rfile.read(1)
             if not opt:
                 return False
-            if opt in (
-                bytes([self.server.ECHO]),
-                bytes([self.server.SGA]),
-                bytes([self.server.LINEMODE]),
-            ):
+            if opt in (bytes([self.server.ECHO]), bytes([self.server.SGA])):
                 reply = bytes([self.server.IAC, self.server.DO, opt[0]])
             else:
                 reply = bytes([self.server.IAC, self.server.DONT, opt[0]])
@@ -268,11 +236,7 @@ class _ControlHandler(socketserver.StreamRequestHandler):
             opt = self.rfile.read(1)
             if not opt:
                 return False
-            if opt in (
-                bytes([self.server.ECHO]),
-                bytes([self.server.SGA]),
-                bytes([self.server.LINEMODE]),
-            ):
+            if opt in (bytes([self.server.ECHO]), bytes([self.server.SGA])):
                 reply_cmd = self.server.WILL if cmd == bytes([self.server.DO]) else self.server.WONT
             else:
                 reply_cmd = self.server.WONT
@@ -299,12 +263,12 @@ class _ControlHandler(socketserver.StreamRequestHandler):
 
     def _negotiate_telnet(self) -> None:
         """
-        Send a minimal set of telnet options to request server-side echo and suppress GA.
-        This helps avoid client-echoed escape sequences (e.g. arrow keys).
+        Request character-at-a-time input with server-side echo (no LINEMODE).
         """
         IAC = 255
         WILL = 251
         DO = 253
+        DONT = 254
         ECHO = 1
         SUPPRESS_GO_AHEAD = 3
         LINEMODE = 34
@@ -321,7 +285,7 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                 DO,
                 SUPPRESS_GO_AHEAD,
                 IAC,
-                DO,
+                DONT,
                 LINEMODE,
             ]
         )

@@ -180,6 +180,74 @@ def eval_expr(expr: str, scope: dict, raw=None):
     return eval_ast(tree, ctx)
 
 
+def _split_print_args(expr: str) -> list[str]:
+    if not isinstance(expr, str):
+        return []
+    s = expr.strip()
+    if not s:
+        return []
+    parts = []
+    buf = []
+    depth = 0
+    in_str = False
+    quote = ""
+    escape = False
+    for ch in s:
+        if in_str:
+            buf.append(ch)
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == quote:
+                in_str = False
+            continue
+        if ch in ("'", '"'):
+            in_str = True
+            quote = ch
+            buf.append(ch)
+            continue
+        if ch in "([{":
+            depth += 1
+            buf.append(ch)
+            continue
+        if ch in ")]}":
+            depth = max(0, depth - 1)
+            buf.append(ch)
+            continue
+        if ch == "," and depth == 0:
+            part = "".join(buf).strip()
+            if part:
+                parts.append(part)
+            buf = []
+            continue
+        buf.append(ch)
+    if buf:
+        part = "".join(buf).strip()
+        if part:
+            parts.append(part)
+    return parts
+
+
+def _log_print_message(level: str, msg: str):
+    lvl = (level or "debug").strip().lower()
+    if lvl in ("info", "i"):
+        Logger.info(msg)
+    elif lvl in ("warn", "warning", "w"):
+        Logger.warning(msg)
+    elif lvl in ("error", "err", "e"):
+        Logger.error(msg)
+    elif lvl in ("success", "ok", "s"):
+        Logger.success(msg)
+    elif lvl in ("anticheat", "anti", "a"):
+        Logger.anticheat(msg)
+    elif lvl in ("script", "sc"):
+        Logger.script(msg)
+    else:
+        Logger.debug(msg)
+
 
 
 class DecoderHandler:
@@ -299,6 +367,18 @@ class DecoderHandler:
         # Debug print (no IO / no result impact)
         # ---------------------------------------------------------
         if field.interpreter == "print":
+            expr = getattr(field, "print_expr", "") or ""
+            level = getattr(field, "print_level", "") or "debug"
+            parts = _split_print_args(expr)
+            values = []
+            for part in parts:
+                try:
+                    val = eval_expr(part, scope, raw_data)
+                except Exception:
+                    val = part
+                values.append(str(val))
+            msg = " ".join(values) if values else ""
+            _log_print_message(level, msg)
             field.processed = True
             return field, True, endian
 

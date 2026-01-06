@@ -14,6 +14,8 @@ data:
    os: 4s, sM | MQ
    country: 4s, sM | MQ
    timezone_bias: I
+   print("HelloWorld")
    ip: 4s, W
+   print[warning]("IP not ready: " + ip)
    I_len: B
    username: €I_len's
