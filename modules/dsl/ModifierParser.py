@@ -1,33 +1,40 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""Modifier parsing utilities for DSL fields."""
+
+from __future__ import annotations
+
 import re
-from typing import Tuple, List
-from modules.dsl.ModifierMapping import modifiers_operation_mapping
 
 _COMPOUND_BITS_RE = re.compile(r"^\s*(\d+)\s*([Bb])\s*(I?)\s*$")
 
+
 class ModifierUtils:
+    """Parse decode and encode modifiers for DSL fields."""
+
     @staticmethod
-    def parse_modifiers(raw_line: str) -> Tuple[str, List[str], List[str]]:
-        """
-        Parse "format, modifiers... | encode_mods..." into (fmt, decode_mods, encode_mods).
-        Rules:
-          - If fmt == 'bits', we enter bit-mode and only allow compound bit tokens ('<n>B', '<n>BI', '<n>b', '<n>bI').
-          - Otherwise, we allow normal one-letter modifiers (s, M, I, H, U, u, t, W, ...).
-          - We do NOT allow bit-operators outside 'bits' mode to avoid mixing two systems.
+    def parse_modifiers(raw_line: str) -> tuple[str, list[str], list[str]]:
+        """Parse "format, mods | enc_mods" into format and modifier lists.
+
+        Args:
+            raw_line (str): Full modifier string.
+
+        Returns:
+            tuple[str, list[str], list[str]]: (format, decode_mods, encode_mods).
         """
         if "," in raw_line:
             fmt_raw, mods_raw = [x.strip() for x in raw_line.split(",", 1)]
         else:
             fmt_raw, mods_raw = raw_line.strip(), ""
 
-        # Support syntax like "S | Q" (fmt and encode-mods only)
         if "|" in fmt_raw and not mods_raw:
             left, right = [x.strip() for x in fmt_raw.split("|", 1)]
-            fmt_raw, mods_raw = left, ""  # no decode mods
+            fmt_raw, mods_raw = left, ""
             mods_enc_inline = right
         else:
             mods_enc_inline = ""
 
-        # Split decode/encode mods på '|'
         if "|" in mods_raw:
             mods_dec_raw, mods_enc_raw = [x.strip() for x in mods_raw.split("|", 1)]
         else:
@@ -36,71 +43,64 @@ class ModifierUtils:
         if mods_enc_inline:
             mods_enc_raw = mods_enc_inline
 
-        # Decide mode
         is_bits_mode = fmt_raw.lower() == "bits"
 
         if is_bits_mode:
-            # In bits mode we suppress fmt (no struct format) and inject a sentinel 'bits'
-            fmt = ""  # or None, depending on your downstream
+            fmt = ""
             modifiers = ModifierUtils._expand_modifiers(mods_dec_raw, bits_mode=True)
             modifiers.insert(0, "bits")
             encode_mods = ModifierUtils._expand_modifiers(mods_enc_raw, bits_mode=False)
         else:
-            # Normal struct mode: keep fmt as-is
             fmt = fmt_raw
             modifiers = ModifierUtils._expand_modifiers(mods_dec_raw, bits_mode=False)
             encode_mods = ModifierUtils._expand_modifiers(mods_enc_raw, bits_mode=False)
 
-            # Guard: forbid bit operators outside bits-mode
             bad = [m for m in modifiers if _COMPOUND_BITS_RE.fullmatch(m)]
             if bad:
-                # Pick one: raise to be strict, or auto-upgrade to bits-mode.
-                # Strict is safer so you notice mistakes early:
-                raise ValueError(f"Bit-operators {bad} used without 'bits' mode in '{raw_line}'. "
-                                 f"Write it as: 'bits, {', '.join(bad)}' instead.")
+                bad_joined = ", ".join(bad)
+                raise ValueError(
+                    f"Bit-operators {bad} used without 'bits' mode in '{raw_line}'. "
+                    f"Write it as: 'bits, {bad_joined}' instead."
+                )
         return fmt, modifiers, encode_mods
 
     @staticmethod
-    def _expand_modifiers(raw_mods: str, *, bits_mode: bool) -> List[str]:
-        """
-        Tokenize the modifiers part.
-        - Split on commas, trim each piece.
-        - Keep compound bit tokens intact (e.g., '8BI' stays one token).
-        - Split glued normal tokens like 'sM' into ['s','M'] (but only in non-bits mode).
-        - Ignore empty segments gracefully.
+    def _expand_modifiers(raw_mods: str, *, bits_mode: bool) -> list[str]:
+        """Tokenize the modifiers part into normalized tokens.
+
+        Args:
+            raw_mods (str): Raw modifiers string.
+            bits_mode (bool): Whether the parser is in bits-only mode.
+
+        Returns:
+            list[str]: Parsed modifier tokens.
         """
         if not raw_mods:
             return []
 
-        tokens: List[str] = []
-        # First split on commas; users can write "8BI, sM" or just "8BI"
+        tokens: list[str] = []
         for seg in (p.strip() for p in raw_mods.split(",") if p.strip()):
             if bits_mode:
-                # In bits mode, accept only compound bit tokens; allow whitespace inside, but keep as one.
                 if _COMPOUND_BITS_RE.fullmatch(seg):
-                    tokens.append(seg.replace(" ", ""))  # normalize spaces
+                    tokens.append(seg.replace(" ", ""))
                 else:
-                    # If someone wrote e.g. "8B I" with a space instead of no space, normalize it:
                     no_space = seg.replace(" ", "")
                     if _COMPOUND_BITS_RE.fullmatch(no_space):
                         tokens.append(no_space)
                     else:
-                        # Anything else (like 's','M','I',...) is not allowed in bits mode to prevent mixing.
-                        raise ValueError(f"Invalid token '{seg}' in bits-mode. "
-                                         f"Use '<n>B', '<n>BI', '<n>b', or '<n>bI'.")
+                        raise ValueError(
+                            f"Invalid token '{seg}' in bits-mode. "
+                            "Use '<n>B', '<n>BI', '<n>b', or '<n>bI'."
+                        )
             else:
-                # Non-bits mode: allow one-letter ops (s,M,I,H,U,u,t,W,...) and also glued strings like 'sM'.
-                # Named tokens with ':' or '=' (e.g. mask=0xEB) are kept intact.
-                # We do NOT allow plain 'B'/'b' as modifiers here; 'B' as a *format* is fine (fmt="B").
                 if ":" in seg or "=" in seg:
                     tokens.append(seg.replace(" ", ""))
                 elif len(seg) == 1:
                     tokens.append(seg)
                 else:
-                    # If it's a bit token by mistake, let the caller error out in parse_modifiers.
-                    if _COMPOUND_BITS_RE.fullmatch(seg.replace(" ", "")):
-                        tokens.append(seg.replace(" ", ""))  # will be rejected by caller (not in bits mode)
+                    cleaned = seg.replace(" ", "")
+                    if _COMPOUND_BITS_RE.fullmatch(cleaned):
+                        tokens.append(cleaned)
                     else:
-                        # Split glued normal ops like 'sM' into ['s','M']
                         tokens.extend(list(seg))
         return tokens

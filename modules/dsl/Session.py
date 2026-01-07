@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""AST node definitions and shared session state for DSL parsing."""
+
+from __future__ import annotations
+
+from typing import Any, Optional
+
 from modules.dsl.GlobalScope import GlobalScope
 
 
-# ============================================================
-# Base node used by all AST elements
-# ============================================================
 class BaseNode:
-    """Generic AST node container."""
+    """Generic AST node container used by the DSL parser."""
 
     def __init__(
         self,
-        name=None,
-        format=None,
-        interpreter=None,
-        modifiers=None,
-        encode_modifiers=None,
-        depends_on=None,
-        dynamic=False,
-        ignore=False,
-        visible=True,
-        payload=True,
-        has_io=True,
-        visibility_prefix=None,
-        optional=False,
-    ):
+        name: Optional[str] = None,
+        format: Optional[str] = None,
+        interpreter: Optional[str] = None,
+        modifiers: Optional[list[Any]] = None,
+        encode_modifiers: Optional[list[Any]] = None,
+        depends_on: Optional[str] = None,
+        dynamic: bool = False,
+        ignore: bool = False,
+        visible: bool = True,
+        payload: bool = True,
+        has_io: bool = True,
+        visibility_prefix: Optional[str] = None,
+        optional: bool = False,
+    ) -> None:
+        """Initialize a base node."""
         self.name = name
         self.format = format
         self.interpreter = interpreter
@@ -34,20 +38,19 @@ class BaseNode:
         self.depends_on = depends_on
         self.dynamic = dynamic
         self.ignore = ignore
-        self.visible = visible           # should field appear in decoded result
-        self.payload = payload           # should field be emitted when encoding
-        self.has_io = has_io             # does the field move offset/bitstate
-        self.visibility_prefix = visibility_prefix  # raw prefix '-', '+', or None
-        self.optional = optional         # optional field (skip if missing)
+        self.visible = visible
+        self.payload = payload
+        self.has_io = has_io
+        self.visibility_prefix = visibility_prefix
+        self.optional = optional
 
-        # decoder-populated
-        self.value = None
-        self.raw_data = None
-        self.raw_offset = None
-        self.raw_length = None
+        self.value: Any = None
+        self.raw_data: Any = None
+        self.raw_offset: Optional[int] = None
+        self.raw_length: Optional[int] = None
         self.processed = False
 
-    def copy(self):
+    def copy(self) -> BaseNode:
         """Shallow-safe copy for runtime decode operations."""
         new = self.__class__.__new__(self.__class__)
         new.__dict__ = dict(self.__dict__)
@@ -58,12 +61,12 @@ class BaseNode:
             new.nodes = [c.copy() for c in self.nodes]
 
         return new
-    
-    def clone(self):
-        """Backward compat alias for old code expecting .clone()."""
+
+    def clone(self) -> BaseNode:
+        """Backward compatible alias for code expecting .clone()."""
         return self.copy()
-    
-    def __repr__(self):
+
+    def __repr__(self) -> str:
         name = getattr(self, "name", "_")
         fmt = getattr(self, "format", "?")
         interp = getattr(self, "interpreter", "")
@@ -73,22 +76,21 @@ class BaseNode:
     __str__ = __repr__
 
 
-# ============================================================
-# Variable node
-# ============================================================
 class VariableNode(BaseNode):
+    """AST node representing a variable assignment."""
+
     def __init__(
         self,
-        name,
-        raw_value=None,
-        value=None,
-        format=None,
-        interpreter="literal",
-        modifiers=None,
-        depends_on=None,
-        dynamic=False,
-        ignore=False
-    ):
+        name: str,
+        raw_value: Optional[str] = None,
+        value: Any = None,
+        format: Optional[str] = None,
+        interpreter: str = "literal",
+        modifiers: Optional[list[Any]] = None,
+        depends_on: Optional[str] = None,
+        dynamic: bool = False,
+        ignore: bool = False,
+    ) -> None:
         super().__init__(
             name=name,
             format=format,
@@ -96,26 +98,25 @@ class VariableNode(BaseNode):
             modifiers=modifiers,
             depends_on=depends_on,
             dynamic=dynamic,
-            ignore=ignore
+            ignore=ignore,
         )
         self.raw_value = raw_value
         self.value = value
 
 
-# ============================================================
-# If node
-# ============================================================
 class IfNode(BaseNode):
+    """AST node representing an if/elif/else block."""
+
     def __init__(
         self,
-        name,
-        format,
-        interpreter,
-        condition,
-        true_branch,
-        false_branch=None,
-        elif_branches=None
-    ):
+        name: Optional[str],
+        format: Optional[str],
+        interpreter: str,
+        condition: str,
+        true_branch: list[BaseNode],
+        false_branch: Optional[list[BaseNode]] = None,
+        elif_branches: Optional[list[tuple[str, list[BaseNode]]]] = None,
+    ) -> None:
         super().__init__(name=name, format=format, interpreter=interpreter)
         self.condition = condition
         self.true_branch = true_branch
@@ -124,20 +125,19 @@ class IfNode(BaseNode):
         self.processed = False
 
 
-# ============================================================
-# Loop node
-# ============================================================
 class LoopNode(BaseNode):
+    """AST node representing a loop block."""
+
     def __init__(
         self,
-        name,
-        format,
-        interpreter,
-        count_from,
-        target,
-        dynamic,
-        children
-    ):
+        name: Optional[str],
+        format: Optional[str],
+        interpreter: str,
+        count_from: str,
+        target: Optional[str],
+        dynamic: bool,
+        children: list[BaseNode],
+    ) -> None:
         super().__init__(name=name, format=format, interpreter=interpreter, dynamic=dynamic)
         self.count_from = count_from
         self.target = target
@@ -145,47 +145,59 @@ class LoopNode(BaseNode):
         self.processed = False
 
 
-# ============================================================
-# Block definition (include/import blocks)
-# ============================================================
 class BlockDefinition(BaseNode):
-    def __init__(self, name, nodes):
+    """AST node for reusable block definitions."""
+
+    def __init__(self, name: str, nodes: list[BaseNode]) -> None:
         super().__init__(name=name, format=None, interpreter="block")
         self.nodes = nodes
 
 
-# ============================================================
-# Bitmask node
-# ============================================================
 class BitmaskNode(BaseNode):
-    def __init__(self, name, size, children):
+    """AST node for bitmask blocks."""
+
+    def __init__(self, name: str, size: int, children: list[BaseNode]) -> None:
         super().__init__(name=name, interpreter="bitmask")
         self.size = size
         self.children = children
         self.processed = False
 
 
-# ============================================================
-# Packed GUID node
-# ============================================================
 class PackedGuidNode(BaseNode):
-    def __init__(self, name, format, interpreter, modifiers, encode_modifiers, ignore=False):
+    """AST node for packed GUID fields."""
+
+    def __init__(
+        self,
+        name: str,
+        format: str,
+        interpreter: str,
+        modifiers: Optional[list[Any]],
+        encode_modifiers: Optional[list[Any]],
+        ignore: bool = False,
+    ) -> None:
         super().__init__(
             name=name,
             format=format,
             interpreter=interpreter,
             modifiers=modifiers,
             encode_modifiers=encode_modifiers,
-            ignore=ignore
+            ignore=ignore,
         )
         self.processed = False
 
 
-# ============================================================
-# Uncompress block node
-# ============================================================
 class UncompressNode(BaseNode):
-    def __init__(self, name, format, interpreter, algo, length_expr, children):
+    """AST node for compressed payload blocks."""
+
+    def __init__(
+        self,
+        name: Optional[str],
+        format: Optional[str],
+        interpreter: str,
+        algo: str,
+        length_expr: Optional[str],
+        children: list[BaseNode],
+    ) -> None:
         super().__init__(name=name, format=format, interpreter=interpreter)
         self.algo = algo
         self.length_expr = length_expr
@@ -193,29 +205,27 @@ class UncompressNode(BaseNode):
         self.processed = False
 
 
-# ============================================================
-# Session object — includes unified GlobalScope
-# ============================================================
 class PacketSession:
+    """Session state for a single decode or encode run."""
 
-    def __init__(self):
-        self.fields = []
-        self.blocks = {}
-        self.variables = {}         # legacy compatibility
-        self.scope = GlobalScope()  # new variable handling
+    def __init__(self) -> None:
+        self.fields: list[BaseNode] = []
+        self.blocks: dict[str, BlockDefinition] = {}
+        self.variables: dict[str, Any] = {}
+        self.scope = GlobalScope()
 
-    def reset(self):
-        """Reset for next packet decode."""
+    def reset(self) -> None:
+        """Reset the session state for the next decode pass."""
         self.fields = []
         self.blocks = {}
         self.variables = {}
         self.scope = GlobalScope()
 
-# ============================================================
-# Slice node (e.g. x = slice[a:b])
-# ============================================================
+
 class SliceNode(BaseNode):
-    def __init__(self, name, slice_expr):
+    """AST node representing a payload slice assignment."""
+
+    def __init__(self, name: str, slice_expr: str) -> None:
         super().__init__(
             name=name,
             format="",
@@ -224,13 +234,28 @@ class SliceNode(BaseNode):
             encode_modifiers=[],
             ignore=False,
         )
-        self.slice_expr = slice_expr 
+        self.slice_expr = slice_expr
         self.processed = False
 
-# ============================================================
-# Singleton accessor
-# ============================================================
+
 _singleton_session = PacketSession()
 
-def get_session():
+
+def get_session() -> PacketSession:
+    """Return the shared PacketSession singleton."""
     return _singleton_session
+
+
+__all__ = [
+    "BaseNode",
+    "VariableNode",
+    "IfNode",
+    "LoopNode",
+    "BlockDefinition",
+    "BitmaskNode",
+    "PackedGuidNode",
+    "UncompressNode",
+    "PacketSession",
+    "SliceNode",
+    "get_session",
+]

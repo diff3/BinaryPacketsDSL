@@ -142,4 +142,120 @@ M2         | raw     | raw           |
         b_public      = B_bytes,      # LE
         a_public      = A_bytes,      # LE
         m1_client     = M1_client,    # raw bytes
-    )
+    ) 
+
+-----------------------------------------------------------------------
+10. Vanilla / vMangos Differences
+-----------------------------------------------------------------------
+
+Vanilla (v1.12.1) uses SRP6CryptoVanilla. The overall flow is the same, but
+there are two important differences compared to MoP/SkyFire:
+
+1) Session key derivation  
+   - Vanilla uses SHA1 interleave without trimming leading zero bytes.  
+   - SkyFire trims leading zeros from S before interleave.  
+   - This affects K, M1, and M2. Use the correct SRP6 core for the mode.
+
+2) Stored salt/verifier endianness  
+   - vMangos/Vanilla databases often store salt/verifier as big-endian.  
+   - The runtime converts to little-endian for SRP6CryptoVanilla.  
+   - Config: `srp6_storage_endian` ("big" or "little").  
+   - If unset, vmangos/vanilla defaults to "big".
+
+Minimal vanilla flow (conceptual):
+
+    # load from DB (hex or bytes)
+    salt_db, verifier_db
+    if storage_endian == "big":
+        salt = reverse(salt_db)
+        verifier = reverse(verifier_db)
+    else:
+        salt = salt_db
+        verifier = verifier_db
+
+    session = SRP6Session(username, salt, verifier, mode="vmangos")
+    B = session.generate_B()
+    ok, M2, K = session.verify_proof(A, M1)
+
+-----------------------------------------------------------------------
+11. Client-Side SRP6 Flow (MoP/SkyFire)
+-----------------------------------------------------------------------
+
+The client uses the AUTH_LOGON_CHALLENGE_S fields and never reads N/g from
+config. Client steps:
+
+1) Receive from server  
+   - N (32 bytes, little-endian wire)  
+   - g (1 byte)  
+   - s (salt, 32 bytes)  
+   - B (32 bytes, little-endian wire)
+
+2) Choose random a (32 bytes) and compute:
+
+    A = g^a mod N
+    A_wire = A as 32-byte little-endian
+
+3) Compute scramble:
+
+    u = SHA1(A_wire || B_wire) interpreted as little-endian int
+
+4) Compute x:
+
+    x = SHA1(s || SHA1(UPPER(USER:PASS))) as little-endian int
+
+5) Compute shared secret S:
+
+    v = g^x mod N
+    S = (B - 3*v)^(a + u*x) mod N
+
+6) Compute session key K:
+
+    K = SHA1_interleave(S)  # MoP/SkyFire trimming rules
+
+7) Compute proof M1:
+
+    M1 = H( H(N) xor H(g), H(I), s, A, B, K )
+
+8) Send AUTH_LOGON_PROOF_C with A and M1.
+
+-----------------------------------------------------------------------
+12. SRP-6 Mathematics (Protocol Level)
+-----------------------------------------------------------------------
+
+Notation:
+
+    N  = large safe prime (modulus)  
+    g  = generator  
+    H  = SHA1  
+    s  = salt  
+    I  = username  
+    P  = password  
+    x  = private key derived from credentials  
+    a  = client private ephemeral  
+    b  = server private ephemeral  
+    A  = g^a mod N (client public)  
+    B  = (k*v + g^b) mod N (server public)  
+    u  = H(A || B) (scramble)  
+    v  = g^x mod N (verifier)  
+
+Core equations:
+
+    x = H(s || H(I ":" P))  
+    v = g^x mod N  
+
+    A = g^a mod N  
+    B = (k*v + g^b) mod N  
+
+    u = H(A || B)  
+
+    S_client = (B - k*v)^(a + u*x) mod N  
+    S_server = (A * v^u)^b mod N  
+
+Both sides derive:
+
+    K = H_interleave(S)
+
+Proofs:
+
+    M1 = H( H(N) xor H(g), H(I), s, A, B, K )  
+    M2 = H( A, M1, K )

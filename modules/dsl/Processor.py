@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""Packet definition loading helpers for the DSL runtime."""
+
+from __future__ import annotations
+
 import ast
 import json
 import os
+from typing import Any
+
 from modules.dsl.Session import get_session
+from protocols.wow.shared.utils.OpcodesFilter import filter_opcode
 from utils.ConfigLoader import ConfigLoader
 from utils.FileUtils import FileHandler
 from utils.Logger import Logger
-from protocols.wow.shared.utils.OpcodesFilter import filter_opcode
 
-# GLOBALS
 config = ConfigLoader.load_config()
+
+
+def _build_base_path(program: str, version: str, expansion: str | None) -> str:
+    """Build the base protocols path for a program/version/expansion."""
+    if expansion:
+        return f"protocols/{program}/{expansion}/{version}"
+    return f"protocols/{program}/{version}"
 
 def process_case(
     program: str,
@@ -19,18 +31,26 @@ def process_case(
     case: str,
     require_payload: bool = True,
     expansion: str | None = None,
-) -> tuple[bool, list[str], bytes, object, object]:
+) -> tuple[bool, list[str], bytes, dict[str, Any] | None, dict[str, Any] | None]:
+    """Load and prepare a packet case for parsing and validation.
+
+    Args:
+        program (str): Program name.
+        version (str): Protocol version.
+        case (str): Case name.
+        require_payload (bool): Load payload bytes when True.
+        expansion (str | None): Expansion override.
+
+    Returns:
+        tuple[bool, list[str], bytes, dict[str, Any] | None, dict[str, Any] | None]:
+        (success, definition, payload, expected_json, debug_json).
     """
-    Load and prepare a packet case for parsing and validation.
-    """
+    # global config
     try:
         session = get_session()
 
         expansion = expansion or config.get("expansion")
-        if expansion:
-            base_path = f"protocols/{program}/{expansion}/{version}"
-        else:
-            base_path = f"protocols/{program}/{version}"
+        base_path = _build_base_path(program, version, expansion)
         data_path = f"{base_path}/data"
         def_path = f"{data_path}/def/{case}.def"
         json_path = f"{data_path}/json/{case}.json"
@@ -66,7 +86,6 @@ def process_case(
 
     except Exception as e:
         Logger.error(f"[{case}] Failed to process: {e}")
-        # FIX: return 5 values instead of 4
         return False, [], b"", None, None
 
 
@@ -76,7 +95,9 @@ def load_case(
     case: str,
     require_payload: bool = True,
     expansion: str | None = None,
-) -> tuple[str, list[str], bytes, object, object]:
+) -> tuple[str, list[str], bytes, dict[str, Any] | None, dict[str, Any] | None]:
+    """Load a single case and raise when missing."""
+    # global config
     success, def_lines, binary_data, expected, debug = process_case(
         program,
         version,
@@ -87,7 +108,7 @@ def load_case(
 
     if not success:
         raise FileNotFoundError(f"Case {case} could not be loaded.")
-    
+
     return case, def_lines, binary_data, expected, debug
 
 
@@ -96,7 +117,9 @@ def load_all_cases(
     version: str,
     respect_ignored: bool = True,
     expansion: str | None = None,
-) -> list[tuple[str, list[str], bytes, object, object]]:
+) -> list[tuple[str, list[str], bytes, dict[str, Any] | None, dict[str, Any] | None]]:
+    """Load all available cases for a program/version."""
+    # global config
     cases = FileHandler.list_def_files(program, version, expansion=expansion)
     loaded = []
 
@@ -129,12 +152,17 @@ def load_all_cases(
     return loaded
 
 
-def handle_add(program: str, version: str, case: str, bin_data: str, expansion: str | None = None) -> bool:
+def handle_add(
+    program: str,
+    version: str,
+    case: str,
+    bin_data: str,
+    expansion: str | None = None,
+) -> bool:
+    """Create empty .def/.json files and a debug dump for new packets."""
+    # global config
     try:
-        if expansion:
-            base_path = f"protocols/{program}/{expansion}/{version}"
-        else:
-            base_path = f"protocols/{program}/{version}"
+        base_path = _build_base_path(program, version, expansion)
         os.makedirs(f"{base_path}/def", exist_ok=True)
         os.makedirs(f"{base_path}/json", exist_ok=True)
         os.makedirs(f"{base_path}/debug", exist_ok=True)

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-High-level DSL runtime with cached ASTs and optional filesystem watching.
+"""High-level DSL runtime with cached ASTs and optional filesystem watching.
+
+This module loads .def files into cached ASTs, restores scope variables, and
+exposes decode helpers that reset session state. Optional filesystem watching
+keeps cached definitions in sync with disk changes.
 """
 
 from __future__ import annotations
@@ -10,7 +13,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from modules.dsl.DecoderHandler import DecoderHandler
 from modules.dsl.NodeTreeParser import NodeTreeParser
@@ -25,46 +28,53 @@ try:
 except ImportError:
     FileSystemEventHandler = None
     Observer = None
-# Provide no-op base class if watchdog is missing to avoid TypeError at class definition
+
+# Provide a no-op base class when watchdog is missing.
 if FileSystemEventHandler is None:
     class FileSystemEventHandler:  # type: ignore
-        def __init__(self, *args, **kwargs):
-            pass
+        """Fallback watchdog handler when the dependency is unavailable."""
+
+        def __init__(self, *args, **kwargs) -> None:
+            return None
 
 
 @dataclass
 class CompiledDefinition:
+    """Container for compiled .def data used by the runtime cache."""
+
     name: str
     path: Path
-    lines: List[str]
+    lines: list[str]
     expected: Any
-    fields: List[Any] = field(default_factory=list)
-    variables: Dict[str, Any] = field(default_factory=dict)
-    blocks: Dict[str, BlockDefinition] = field(default_factory=dict)
+    fields: list[Any] = field(default_factory=list)
+    variables: dict[str, Any] = field(default_factory=dict)
+    blocks: dict[str, BlockDefinition] = field(default_factory=dict)
     mtime: float = 0.0
 
 
 class _DefChangeHandler(FileSystemEventHandler):
-    def __init__(self, runtime: "DslRuntime"):
+    """Watchdog event handler that triggers runtime recompilation."""
+
+    def __init__(self, runtime: "DslRuntime") -> None:
         self.runtime = runtime
 
-    def on_created(self, event):
+    def on_created(self, event: Any) -> None:
         self._maybe_reload(event)
 
-    def on_modified(self, event):
+    def on_modified(self, event: Any) -> None:
         self._maybe_reload(event)
 
-    def on_moved(self, event):
+    def on_moved(self, event: Any) -> None:
         self._maybe_reload(event)
 
-    def on_deleted(self, event):
+    def on_deleted(self, event: Any) -> None:
         if getattr(event, "is_directory", False):
             return
         path = Path(event.src_path)
         if path.suffix == ".def":
             self.runtime.drop(path.stem)
 
-    def _maybe_reload(self, event):
+    def _maybe_reload(self, event: Any) -> None:
         if getattr(event, "is_directory", False):
             return
         path = Path(event.src_path)
@@ -73,13 +83,23 @@ class _DefChangeHandler(FileSystemEventHandler):
 
 
 class DslRuntime:
+    """Load, cache, and decode DSL definitions."""
+
     def __init__(
         self,
         program: Optional[str] = None,
         version: Optional[str] = None,
         watch: bool = False,
         expansion: Optional[str] = None,
-    ):
+    ) -> None:
+        """Initialize a runtime instance.
+
+        Args:
+            program (str | None): Program name override.
+            version (str | None): Protocol version override.
+            watch (bool): Enable filesystem watching for .def changes.
+            expansion (str | None): Expansion override.
+        """
         cfg = ConfigLoader.load_config()
         self.program = program or cfg["program"]
         self.expansion = expansion or cfg.get("expansion")
@@ -92,7 +112,7 @@ class DslRuntime:
         self.def_dir = base / "data" / "def"
         self.json_dir = base / "data" / "json"
 
-        self.cache: Dict[str, CompiledDefinition] = {}
+        self.cache: dict[str, CompiledDefinition] = {}
         self.lock = threading.RLock()
         self.session = get_session()
         self.observer: Optional[Observer] = None
@@ -100,8 +120,8 @@ class DslRuntime:
         if watch:
             self.start_watcher()
 
-    # ------------------------------------------------------------------ #
     def load_all(self) -> None:
+        """Compile all .def files and cache them with expected JSON."""
         if not self.def_dir.exists():
             Logger.warning(f"DEF directory not found: {self.def_dir}")
             return
@@ -117,9 +137,7 @@ class DslRuntime:
             Logger.progress("DSL load", idx, total, inline=True, detail=path.stem)
 
     def load_runtime_all(self) -> None:
-        """Load DSL definitions WITHOUT loading expected .json files.
-        Used by proxy/auth servers.
-        """
+        """Compile all .def files without loading expected JSON."""
         if not self.def_dir.exists():
             Logger.warning(f"DEF directory not found: {self.def_dir}")
             return
@@ -131,13 +149,23 @@ class DslRuntime:
 
         total = len(paths)
         for idx, path in enumerate(paths, start=1):
-            self.compile_file_runtime(path)  # <-- viktig ändring
-            Logger.progress("DSL runtime load", idx, total, inline=True, detail=path.stem) 
+            self.compile_file_runtime(path)
+            Logger.progress("DSL runtime load", idx, total, inline=True, detail=path.stem)
 
+    def decode(self, name: str, payload: bytes, silent: bool = False) -> dict[str, Any]:
+        """Decode a packet payload using the cached definition.
 
-    # ------------------------------------------------------------------ #
-    def decode(self, name: str, payload: bytes, silent: bool = False) -> dict:
-        compiled = self.cache.get(name) or self.compile_file(self.def_dir / f"{name}.def")
+        Args:
+            name (str): Definition name (without extension).
+            payload (bytes): Raw packet payload.
+            silent (bool): Skip success logging when True.
+
+        Returns:
+            dict[str, Any]: Decoded public fields.
+        """
+        compiled = self.cache.get(name) or self.compile_file(
+            self.def_dir / f"{name}.def"
+        )
         if not compiled:
             raise FileNotFoundError(f"Missing def for {name}")
 
@@ -149,9 +177,6 @@ class DslRuntime:
 
             self.session.fields = [node.copy() for node in compiled.fields]
 
-            # -------------------------
-            # SCOPE → restored here
-            # -------------------------
             self.session.scope.set_all(
                 {k: v.copy() for k, v in compiled.variables.items()}
             )
@@ -161,17 +186,25 @@ class DslRuntime:
                 for k, b in compiled.blocks.items()
             }
 
-            return DecoderHandler.decode((name, compiled.lines, payload, compiled.expected or {}), silent=silent)
+            return DecoderHandler.decode(
+                (name, compiled.lines, payload, compiled.expected or {}),
+                silent=silent,
+            )
 
-    # ------------------------------------------------------------------ #
     def stop(self) -> None:
+        """Stop the filesystem watcher if running."""
         if self.observer:
             self.observer.stop()
             self.observer.join(timeout=2)
             self.observer = None
 
-    # ------------------------------------------------------------------ #
-    def compile_file(self, path: Path, force: bool = False, log_prefix: str = "") -> Optional[CompiledDefinition]:
+    def compile_file(
+        self,
+        path: Path,
+        force: bool = False,
+        log_prefix: str = "",
+    ) -> Optional[CompiledDefinition]:
+        """Compile a .def file and cache it along with expected JSON."""
         path = Path(path)
         if not path.exists():
             Logger.warning(f"{log_prefix} Missing def file: {path}")
@@ -187,7 +220,10 @@ class DslRuntime:
         lines = FileHandler.load_file(str(path))
 
         expected_path = self.json_dir / f"{name}.json"
-        expected = FileHandler.load_json_file(str(expected_path)) if expected_path.exists() else {}
+        if expected_path.exists():
+            expected = FileHandler.load_json_file(str(expected_path))
+        else:
+            expected = {}
 
         with self.lock:
             self.session.reset()
@@ -203,14 +239,11 @@ class DslRuntime:
                 lines=lines,
                 expected=expected,
                 fields=[n.copy() for n in self.session.fields],
-
-                # ------------------------------------
-                # NEW: variables now come from SCOPE
-                # ------------------------------------
                 variables=self.session.scope.get_all().copy(),
-
-                blocks={k: BlockDefinition(name=b.name, nodes=[n.copy() for n in b.nodes])
-                        for k, b in self.session.blocks.items()},
+                blocks={
+                    k: BlockDefinition(name=b.name, nodes=[n.copy() for n in b.nodes])
+                    for k, b in self.session.blocks.items()
+                },
                 mtime=mtime,
             )
 
@@ -218,7 +251,13 @@ class DslRuntime:
             Logger.debug(f"{log_prefix}Cached {name} ({len(compiled.fields)} fields)")
             return compiled
 
-    def compile_file_runtime(self, path: Path, force: bool = False, log_prefix: str = ""):
+    def compile_file_runtime(
+        self,
+        path: Path,
+        force: bool = False,
+        log_prefix: str = "",
+    ) -> Optional[CompiledDefinition]:
+        """Compile a .def file without loading expected JSON."""
         path = Path(path)
         if not path.exists():
             Logger.warning(f"{log_prefix} Missing def file: {path}")
@@ -238,18 +277,19 @@ class DslRuntime:
             self.session.program = self.program
             self.session.version = self.version
 
-            # No expected JSON for proxy mode
             NodeTreeParser.parse((name, lines, b"", {}))
 
             compiled = CompiledDefinition(
                 name=name,
                 path=path,
                 lines=lines,
-                expected={},    # always empty for runtime
+                expected={},
                 fields=[n.copy() for n in self.session.fields],
                 variables=self.session.scope.get_all().copy(),
-                blocks={k: BlockDefinition(name=b.name, nodes=[n.copy() for n in b.nodes])
-                        for k, b in self.session.blocks.items()},
+                blocks={
+                    k: BlockDefinition(name=b.name, nodes=[n.copy() for n in b.nodes])
+                    for k, b in self.session.blocks.items()
+                },
                 mtime=mtime,
             )
 
@@ -257,15 +297,15 @@ class DslRuntime:
             Logger.debug(f"{log_prefix}Runtime cached {name} ({len(compiled.fields)} fields)")
             return compiled
 
-    # ------------------------------------------------------------------ #
     def drop(self, name: str) -> None:
+        """Drop a cached definition by name."""
         with self.lock:
             if name in self.cache:
                 del self.cache[name]
                 Logger.info(f"[watch] Dropped cache for {name}")
 
-    # ------------------------------------------------------------------ #
     def start_watcher(self) -> None:
+        """Start a watchdog observer for live .def reloads."""
         if Observer is None or FileSystemEventHandler is None:
             Logger.warning("watchdog not installed; live reload disabled")
             return

@@ -6,9 +6,10 @@ SRP6Client – Pure client-side SRP-6a mathematics for World of Warcraft authent
 
 Purpose
 -------
-This module implements the client calculations for the SRP-6a protocol used by 
-WoW's authentication handshake. Unlike server-side SRP6Crypto, this class NEVER 
-reads N or g from configuration. Those values must come directly from the 
+This module implements the client calculations for the SRP-6a protocol used by
+WoW's authentication handshake (MoP/SkyFire style). Unlike server-side SRP6Crypto,
+this class NEVER
+reads N or g from configuration. Those values must come directly from the
 server's AUTH_LOGON_CHALLENGE_S packet.
 
 The class provides:
@@ -18,9 +19,15 @@ The class provides:
 
 Why?
 ----
-This file documents the SRP process from the *client perspective* and is 
-valuable for research, testing, automation and replay tools. It works together 
+This file documents the SRP process from the *client perspective* and is
+valuable for research, testing, automation and replay tools. It works together
 with the packet DSL decoders/encoders, but does not build packets itself.
+
+Scope
+-----
+This client implementation matches MoP/SkyFire SRP behavior (little-endian,
+trimmed SHA1 interleave). Vanilla/vMangos uses a different interleave and
+storage conventions; do not use this class for v1.12.1 flows.
 
 Coding Standards
 ----------------
