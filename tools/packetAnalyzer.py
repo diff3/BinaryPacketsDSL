@@ -13,7 +13,7 @@ from utils.CliArgs import parse_args
 from utils.Logger import Logger
 from utils.PrintUtils import SessionPrint
 from utils.PathUtils import get_captures_root
-
+from pathlib import Path
 
 def load_focus_payloads(program, expansion, version, case_name: str):
     root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"
@@ -127,20 +127,20 @@ if __name__ == "__main__":
                 focus_case = (case[0], def_lines, payload, {}, None)
                 NodeTreeParser.parse(focus_case)
                 result = DecoderHandler.decode(focus_case, silent=args.silent)
-        if args.promote:
-            out_dir = Path(f"protocols/{program}/{expansion}/{version}/data/json")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            out_path = out_dir / f"{case[0]}.json"
-            out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
-            Logger.success(f"[PROMOTE] Wrote expected JSON → {out_path}")
-        elif args.update:
-            out_dir = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "json"
-            out_dir.mkdir(parents=True, exist_ok=True)
-            stem = fpath.stem
-            out_path = out_dir / f"{stem}.json"
-            out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
-            Logger.success(f"[UPDATE FOCUS] Wrote expected JSON → {out_path}")
-            continue
+            if args.promote:
+                out_dir = Path(f"protocols/{program}/{expansion}/{version}/data/json")
+                out_dir.mkdir(parents=True, exist_ok=True)
+                out_path = out_dir / f"{case[0]}.json"
+                out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+                Logger.success(f"[PROMOTE] Wrote expected JSON → {out_path}")
+            elif args.update:
+                out_dir = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "json"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                stem = fpath.stem
+                out_path = out_dir / f"{stem}.json"
+                out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+                Logger.success(f"[UPDATE FOCUS] Wrote expected JSON → {out_path}")
+                continue
 
         # Standard: använd inladdat payload
         result = DecoderHandler.decode(case, silent=args.silent)

@@ -66,8 +66,22 @@ def promote_opcode(opcode: str) -> List[str]:
 
 def promote_focus_opcode(opcode: str) -> List[str]:
     """Copy focus capture artifacts into protocols/data and create a def stub if missing."""
-    live_json, live_dbg, live_def, src_json, src_dbg = _base_paths(
-        opcode, cap_root=get_captures_root(focus=True)
+
+    src_opcode = opcode
+
+    # Strip trailing _<digits> ONLY for destination
+    parts = opcode.rsplit("_", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        dst_opcode = parts[0]
+    else:
+        dst_opcode = opcode
+
+    live_json, live_dbg, live_def, _, _ = _base_paths(
+        dst_opcode, cap_root=get_captures_root(focus=True)
+    )
+
+    _, src_dbg, _, src_json, _ = _base_paths(
+        src_opcode, cap_root=get_captures_root(focus=True)
     )
 
     lines: List[str] = []

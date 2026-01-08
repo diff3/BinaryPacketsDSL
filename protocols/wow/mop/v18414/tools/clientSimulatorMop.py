@@ -16,6 +16,7 @@ import struct
 import time
 import select
 import sys
+import argparse
 
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
@@ -56,6 +57,18 @@ def to_bytes(val):
         return bytes.fromhex(val)
     raise TypeError(val)
 
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--auto", action="store_true", help="Enable automatic login loop")
+    p.add_argument("--count", type=int, default=1, help="Number of login iterations")
+    p.add_argument("--stay", type=int, default=5, help="Seconds to stay logged in")
+    p.add_argument("--pause", type=int, default=1, help="Pause between iterations")
+    p.add_argument("--user")
+    p.add_argument("--password")
+    p.add_argument("--realmid", type=int, help="Realm ID/index (0-based or 1-based)")
+    p.add_argument("--character", help="Character name to auto-login")
+    
+    return p.parse_args()
 
 # ----------------------------------------------------------------------
 # Client
@@ -92,8 +105,9 @@ class ClientSimulator:
     # ============================================================
 
     def run(self):
-        if not self._prompt_credentials():
-            return
+        if not self.username or not self.password:
+            if not self._prompt_credentials():
+                return
 
         sock = self._auth_flow()
         if not sock:
@@ -230,6 +244,17 @@ class ClientSimulator:
         return realm_list.get("realmlist", [])
     
     def _choose_realm(self, realms):
+        # AUTO MODE: välj realm utan input()
+        if hasattr(self, "_auto_realmid"):
+            rid = self._auto_realmid
+            # tillåt både 0-baserad och 1-baserad
+            if rid >= 1:
+                rid -= 1
+            rid = max(0, min(rid, len(realms) - 1))
+            Logger.info(f"[AUTO] Selecting realm index {rid}")
+            return realms[rid]
+
+        # MANUAL MODE (oförändrat)
         print("\nREALMS\n")
         for i, r in enumerate(realms, 1):
             print(f"{i}. {r['name']} ({r['address']})")
@@ -516,20 +541,34 @@ class ClientSimulator:
                         return
 
                     print("\nCHARACTERS\n")
-                    for i, ch in enumerate(chars, 1):
-                        cname = ch.get("name", "Unknown")
-                        clevel = ch.get("level", ch.get("lvl", "?"))
-                        cclass = ch.get("class", ch.get("cls", "?"))
-                        print(f"{i}. {cname} (level {clevel}, class {cclass})")
+                    # AUTO MODE: välj character via namn
+                    if hasattr(self, "_auto_character"):
+                        name = self._auto_character.lower()
+                        ch = next(
+                            (c for c in chars if c.get("name", "").lower() == name),
+                            None,
+                        )
+                        if not ch:
+                            Logger.error(f"[AUTO] Character '{self._auto_character}' not found")
+                            return
+                        Logger.info(f"[AUTO] Selecting character '{self._auto_character}'")
+                    else:
+                        # MANUAL MODE (oförändrat)
+                        print("\nCHARACTERS\n")
+                        for i, chx in enumerate(chars, 1):
+                            cname = chx.get("name", "Unknown")
+                            clevel = chx.get("level", chx.get("lvl", "?"))
+                            cclass = chx.get("class", chx.get("cls", "?"))
+                            print(f"{i}. {cname} (level {clevel}, class {cclass})")
 
-                    choice = input(f"\nSelect character [1-{len(chars)}] (default 1): ").strip()
-                    try:
-                        idx = int(choice) - 1 if choice else 0
-                    except ValueError:
-                        idx = 0
+                        choice = input(f"\nSelect character [1-{len(chars)}] (default 1): ").strip()
+                        try:
+                            idx = int(choice) - 1 if choice else 0
+                        except ValueError:
+                            idx = 0
 
-                    idx = max(0, min(idx, len(chars) - 1))
-                    ch = chars[idx]
+                        idx = max(0, min(idx, len(chars) - 1))
+                        ch = chars[idx]
 
                     extracted_guid = self._extract_guid(ch)
                     if extracted_guid is not None:
@@ -793,12 +832,14 @@ class ClientSimulator:
 
         ws.sendall(crypto.decrypt_recv(hdr) + payload)
         Logger.info(f"[SEND] CMSG_SEND_TEXT_EMOTE {emote_name} ({emote_id})")
+
     def _world_idle(self, ws, crypto):
         """
         Keep the world socket alive after login and allow simple chat input.
         """
         Logger.info("[WORLD] Entering idle loop (breathing)")
         Logger.info("Type chat messages and press Enter to speak.")
+        start_time = time.time()
 
         QUIET_OPCODES = {
             "SMSG_SPLINE_MOVE_UNSET_FLYING",
@@ -812,6 +853,14 @@ class ClientSimulator:
 
         while True:
             try:
+                if hasattr(self, "_auto_stay_seconds"):
+                    if time.time() - start_time >= self._auto_stay_seconds:
+                        Logger.info("[WORLD] Auto logout (timer reached)")
+                        try:
+                            ws.close()
+                        except Exception:
+                            pass
+                        return
                 rlist, _, _ = select.select(
                     [ws, sys.stdin],
                     [],
@@ -849,5 +898,29 @@ class ClientSimulator:
 # ----------------------------------------------------------------------
 
 if __name__ == "__main__":
+    args = parse_args()
     Logger.info("MoP 5.4.8 client simulator")
-    ClientSimulator().run()
+
+    def run_once():
+        client = ClientSimulator()
+        if args.user:
+            client.username = args.user
+        if args.password:
+            client.password = args.password
+        if args.auto:
+            client._auto_stay_seconds = args.stay
+        if args.realmid is not None:
+            client._auto_realmid = args.realmid
+
+        if args.character:
+            client._auto_character = args.character
+        
+        client.run()
+
+    if not args.auto:
+        run_once()
+    else:
+        for i in range(args.count):
+            Logger.info(f"[AUTO] Login {i+1}/{args.count}")
+            run_once()
+            time.sleep(args.pause)

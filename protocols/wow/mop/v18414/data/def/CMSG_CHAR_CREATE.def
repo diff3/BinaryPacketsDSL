@@ -1,4 +1,4 @@
-# CMSG_CHAR_CREATE – SkyFire MoP 5.4.8
+# CMSG_CHAR_CREATE – Done
 endian: little
 header:
 data:
@@ -11,5 +11,9 @@ data:
     facial_hair:  B
     gender:       B
     hair_color:   B
-    test: B
-    name: R
+    name_lenght: bits, 6BI
+    unk: bits, 1BI
+    name: €name_lenght's
+    
+    if €unk != 0
+      unk_tail: I

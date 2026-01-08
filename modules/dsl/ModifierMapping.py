@@ -220,6 +220,17 @@ class ModifierInterPreter:
         )
 
         return cleaned
+    
+    @staticmethod
+    def to_byte_seq(field_value: Any) -> Any:
+        """Apply WriteByteSeq semantics: XOR each byte with 1."""
+        if isinstance(field_value, (bytes, bytearray)):
+            return bytes((b ^ 0x01) for b in field_value)
+
+        if isinstance(field_value, list) and all(isinstance(b, int) for b in field_value):
+            return [((b ^ 0x01) & 0xFF) for b in field_value]
+
+        return field_value
 
 modifiers_operation_mapping: dict[str, Any] = {
     "B": BitInterPreter.from_bits,
@@ -242,4 +253,5 @@ modifiers_operation_mapping: dict[str, Any] = {
     "E": ModifierInterPreter.to_big_endian,
     "r": ModifierInterPreter.to_rawstring,
     "T": ModifierInterPreter.to_clean_text,
+    "Y": ModifierInterPreter.to_byte_seq,
 }
