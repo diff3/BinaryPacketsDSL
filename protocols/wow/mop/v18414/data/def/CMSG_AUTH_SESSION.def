@@ -21,7 +21,16 @@ data:
    digest: idx 17 7 13 15 1 10
    addonSize: 4B, I
    +digest: €digest, J
-   addons = slice[58:58+€addonSize]
+   addons_uncompressed_size: 4B, I
+   -addons_compressed_size = €addonSize - 4
+   uncompress zlib €addons_compressed_size:
+       addons_count: I
+       loop €addons_count to addons:
+           name: S
+           enabled: B
+           crc: I
+           unk: I
+       addons_crc: I
 
    hasAccountBit: bits, 1BI
    accountNameLength: bits, 11BI

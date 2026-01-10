@@ -23,6 +23,18 @@ from utils.PathUtils import get_captures_root, get_protocol_root
 from protocols.wow.shared.utils.OpcodeLoader import load_world_opcodes
 from protocols.wow.shared.modules.interpretation.utils import dsl_decode, to_safe_json
 
+import time
+from modules.dsl.EncoderHandler import EncoderHandler
+from modules.dsl.DecoderHandler import DecoderHandler
+
+def load_expected(case_name: str) -> dict:
+    path = Path(
+        f"protocols/{program}/{expansion}/{version}/data/json/{case_name}.json"
+    )
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 # Lookup maps (opcode int -> name)
 WORLD_CLIENT_OPCODES, WORLD_SERVER_OPCODES, _ = load_world_opcodes()
 # Reverse map for server opcodes: name -> opcode int
@@ -242,26 +254,101 @@ def handle_CMSG_TIME_SYNC_RESPONSE(sock, opcode: int, payload: bytes) -> Tuple[i
 
 
 def handle_CMSG_ENUM_CHARACTERS(sock, opcode: int, payload: bytes) -> Tuple[int, Optional[bytes]]:
+    # _log_cmsg("CMSG_ENUM_CHARACTERS", payload)
+    # raw = _load_raw_packet("SMSG_ENUM_CHARACTERS_RESULT")
     _log_cmsg("CMSG_ENUM_CHARACTERS", payload)
-    raw = _load_raw_packet("SMSG_ENUM_CHARACTERS_RESULT")
+
+    fields = load_expected("SMSG_ENUM_CHARACTERS_RESULT")
+
+    raw = EncoderHandler.encode_packet(
+        "SMSG_ENUM_CHARACTERS_RESULT",
+        fields,
+    )
+        
     return 0, raw
 
 
 def handle_CMSG_READY_FOR_ACCOUNT_DATA_TIMES(sock, opcode: int, payload: bytes) -> Tuple[int, Optional[bytes]]:
     _log_cmsg("CMSG_READY_FOR_ACCOUNT_DATA_TIMES", payload)
-    raw = _load_raw_packet("SMSG_ACCOUNT_DATA_TIMES")
+    # raw = _load_raw_packet("SMSG_ACCOUNT_DATA_TIMES")
+    
+    now = int(time.time())
+
+    fields = {
+        "flag": 0x80,
+        "timestamps": [now] + [0] * 7,
+        "mask": 21,
+        "server_time": now,
+    }
+
+    raw = EncoderHandler.encode_packet("SMSG_ACCOUNT_DATA_TIMES", fields)
+    # return opcode_map.SMSG_ACCOUNT_DATA_TIMES, raw
+
     return 0, raw
 
+
+def character_name_exists(name: str) -> bool:
+    # TODO: replace with DB lookup
+    return False
 
 def handle_CMSG_CHAR_CREATE(sock, opcode: int, payload: bytes) -> Tuple[int, Optional[bytes]]:
-    _log_cmsg("CMSG_CHAR_CREATE", payload)
-    raw = _load_raw_packet("SMSG_CHAR_CREATE")
+
+    CHAR_CREATE_SUCCESS = 0
+    CHAR_CREATE_ERROR = 1
+    CHAR_CREATE_NAME_IN_USE = 2
+
+    # --- decode incoming packet ---
+    data = DecoderHandler.decode("CMSG_CHAR_CREATE", payload)
+    if not data:
+        raw = EncoderHandler.encode_packet(
+            "SMSG_CHAR_CREATE",
+            {"result": CHAR_CREATE_ERROR},
+        )
+        return 0, raw
+
+    name = data.get("name")
+    if not name:
+        raw = EncoderHandler.encode_packet(
+            "SMSG_CHAR_CREATE",
+            {"result": CHAR_CREATE_ERROR},
+        )
+        return 0, raw
+
+    # --- stub: name check ---
+    if character_name_exists(name):
+        raw = EncoderHandler.encode_packet(
+            "SMSG_CHAR_CREATE",
+            {"result": CHAR_CREATE_NAME_IN_USE},
+        )
+        return 0, raw
+
+    # --- stub: DB insert later ---
+    # char_id = db.insert_character(data)
+
+    # --- success ---
+    raw = EncoderHandler.encode_packet(
+        "SMSG_CHAR_CREATE",
+        {"result": CHAR_CREATE_SUCCESS},
+    )
     return 0, raw
 
 
-def handle_CMSG_CHAR_DELETE(sock, opcode: int, payload: bytes) -> Tuple[int, Optional[bytes]]:
+def handle_CMSG_CHAR_DELETE(sock, opcode: int, payload: bytes):
     _log_cmsg("CMSG_CHAR_DELETE", payload)
-    raw = _load_raw_packet("SMSG_CHAR_DELETE")
+
+    decoded = DecoderHandler.decode("CMSG_CHAR_DELETE", payload) or {}
+    guid = decoded.get("guid")
+
+    Logger.info(f"[CHAR DELETE] Requested delete GUID={guid}")
+
+    # Här kan du senare koppla riktig logik:
+    # remove_character(guid)
+
+    fields = {
+        "result": 0,  # DELETE_OK
+    }
+
+    raw = EncoderHandler.encode_packet("SMSG_CHAR_DELETE", fields)
     return 0, raw
 
 

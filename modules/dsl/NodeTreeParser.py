@@ -560,10 +560,45 @@ class NodeTreeParser:
 
         block_count, block_lines = ParserUtils.count_size_of_block_structure(lines, start_idx)
 
-        children = []
-        for blk in block_lines:
-            parsed = NodeTreeParser.parse_line_to_node(blk.strip(), ctx)
-            NodeTreeParser._extend_nodes(children, parsed)
+        children: List[Any] = []
+        i = 0
+        while i < len(block_lines):
+            raw = block_lines[i].strip()
+            if not raw:
+                i += 1
+                continue
+
+            if raw.startswith("if "):
+                parsed, consumed = NodeTreeParser.parse_if(block_lines, i, ctx)
+            elif raw.startswith("match "):
+                parsed, consumed = NodeTreeParser.parse_match(block_lines, i, ctx)
+            elif raw.startswith("loop "):
+                parsed, consumed = NodeTreeParser.parse_loop(block_lines, i, ctx)
+            elif raw.startswith("uncompress "):
+                parsed, consumed = NodeTreeParser.parse_uncompress(block_lines, i, ctx)
+            elif raw.startswith("bitmask "):
+                parsed, consumed = NodeTreeParser.parse_bitmask(block_lines, i, ctx)
+            elif raw.startswith("include "):
+                tmp: List[Any] = []
+                NodeTreeParser._handle_include(raw, tmp, ctx)
+                for n in tmp:
+                    children.append(n)
+                i += 1
+                continue
+            else:
+                parsed = NodeTreeParser.parse_line_to_node(block_lines[i], ctx)
+                consumed = 1
+
+            if "=" in raw and not raw.startswith("if "):
+                parsed = NodeTreeParser.parse_variable(raw, ctx)
+                ctx.variables[parsed.name] = parsed
+                children.append(parsed)
+                i += 1
+                continue
+            else:
+                NodeTreeParser._extend_nodes(children, parsed)
+
+            i += consumed
 
         node = UncompressNode(
             name="uncompress",

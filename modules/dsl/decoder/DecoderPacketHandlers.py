@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from modules.dsl.Session import BaseNode, get_session
 from modules.dsl.bitsHandler import BitState
+from modules.dsl.decoder.DecoderExpressions import eval_expr
 from utils.DebugHelper import DebugHelper
 from utils.Logger import Logger
 
@@ -147,15 +148,21 @@ def handle_uncompress(
 
     length = None
     if length_expr:
-        expression = length_expr.strip()
-        if expression.startswith("€"):
-            expression = expression[1:]
-        if expression.endswith("B"):
-            expression = expression[:-1]
         try:
-            length = int(expression)
-        except ValueError:
-            length = resolve_variable(expression, state.all)
+            length = eval_expr(length_expr, state.all, raw_data)
+        except Exception:
+            length = None
+
+        if not isinstance(length, int):
+            expression = length_expr.strip()
+            if expression.startswith("€"):
+                expression = expression[1:]
+            if expression.endswith("B"):
+                expression = expression[:-1]
+            try:
+                length = int(expression)
+            except ValueError:
+                length = resolve_variable(f"€{expression}", state.all)
 
     if length is None:
         length = len(raw_data) - bitstate.offset

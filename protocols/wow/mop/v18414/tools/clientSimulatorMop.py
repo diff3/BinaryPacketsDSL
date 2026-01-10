@@ -17,6 +17,8 @@ import time
 import select
 import sys
 import argparse
+import zlib
+from pathlib import Path
 
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
@@ -67,6 +69,7 @@ def parse_args():
     p.add_argument("--password")
     p.add_argument("--realmid", type=int, help="Realm ID/index (0-based or 1-based)")
     p.add_argument("--character", help="Character name to auto-login")
+    p.add_argument("--addons-dir", help="Path to Interface/AddOns")
     
     return p.parse_args()
 
@@ -98,6 +101,7 @@ class ClientSimulator:
             server_ops,
             world_lookup,
         )
+        self._addons_dir = None
 
 
     # ============================================================
@@ -349,15 +353,17 @@ class ClientSimulator:
             session_key_bytes=bytes.fromhex(self.session_key_hex),
         )
 
-        addons_bytes = bytes.fromhex("30050000789c7593514ec3300c868b38051247403cf2be0d360dad5259bbbd222ff15aab695cb969c576134ec2f548858440725ef3fd76e23fbf1fb22c5b3aba5e41ecfbc234841376e8c3619bdd7cde7e3d65ffb89806901dd79704470f3a194d20f62a5b829c508686fb040ec1e199d0d99c3c75d06b22f2967cad377060da1ca4457daa1538f41644430db8086b1cf44a47d1aa1226b447108293c34193717782b0e33ac92afc083aecc1843d905d0b747af3c3ba103e937ef5339ec6ba62761a7cf186471f505e79140f4e916cdca56fd4d93779344737749397a34ca867643392b34bf06d9aaed807619716a864eb871e8dfea26dc06ee1e2a4904ce12c29d9c490a472342b0e7d2d6051e53be636d6ae59d28fccc108eb84272cc02aa4c0f0b3036a5da4e9ef9b93a356edf1cc52a726ade68dd09daca8c31c3cd4a8ed4bc52deaf656b36d654b4effd688c9a3a8ecc864cbc012efd41d3816eaf9db884358354c06153a77d4fb2dc6d0fc2efe5fc5dde37df10de06e9df7")
+        addons_blob = bytes.fromhex(
+            "30050000789c7593514ec3300c868b38051247403cf2be0d360dad5259bbbd222ff15aab695cb969c576134ec2f548858440725ef3fd76e23fbf1fb22c5b3aba5e41ecfbc234841376e8c3619bdd7cde7e3d65ffb89806901dd79704470f3a194d20f62a5b829c508686fb040ec1e199d0d99c3c75d06b22f2967cad377060da1ca4457daa1538f41644430db8086b1cf44a47d1aa1226b447108293c34193717782b0e33ac92afc083aecc1843d905d0b747af3c3ba103e937ef5339ec6ba62761a7cf186471f505e79140f4e916cdca56fd4d93779344737749397a34ca867643392b34bf06d9aaed807619716a864eb871e8dfea26dc06ee1e2a4904ce12c29d9c490a472342b0e7d2d6051e53be636d6ae59d28fccc108eb84272cc02aa4c0f0b3036a5da4e9ef9b93a356edf1cc52a726ade68dd09daca8c31c3cd4a8ed4bc52deaf656b36d654b4effd688c9a3a8ecc864cbc012efd41d3816eaf9db884358354c06153a77d4fb2dc6d0fc2efe5fc5dde37df10de06e9df7"
+        )
+        addons_fields = self._build_addons_fields(addons_blob)
 
         fields = {
             "digest": digest_bytes,
             "VirtualRealmID": 1,
             "clientSeed": client_seed,
             "clientBuild": self.cfg["client"]["build"],
-            "addonSize": len(addons_bytes),
-            "addons": addons_bytes,
+            **addons_fields,
             "hasAccountBit": 0,
             "accountNameLength": len(acct),
             "account": acct,
@@ -392,6 +398,150 @@ class ClientSimulator:
         
         Logger.success("Auth OK")
         return crypto
+
+    def _build_addons_fields(self, fallback_blob: bytes) -> dict:
+        cfg_client = self.cfg.get("client") or {}
+        addons_dir = getattr(self, "_addons_dir", None) or cfg_client.get("addons_path")
+        if addons_dir:
+            fields = self._build_addons_from_dir(Path(addons_dir))
+            if fields:
+                return fields
+        return self._parse_addons_blob(fallback_blob)
+
+    def _build_addons_from_dir(self, addons_dir: Path) -> dict | None:
+        if not addons_dir.exists():
+            Logger.warning(f"[ADDONS] AddOns dir not found: {addons_dir}")
+            return None
+
+        addons = []
+        for entry in sorted(addons_dir.iterdir(), key=lambda p: p.name.lower()):
+            if not entry.is_dir():
+                continue
+            addons.append(
+                {
+                    "name": entry.name,
+                    "enabled": 1,
+                    "crc": self._compute_addon_crc(entry),
+                    "unk": 0,
+                }
+            )
+
+        if not addons:
+            Logger.warning(f"[ADDONS] No addons found in {addons_dir}")
+            return None
+
+        payload = self._pack_addons_payload(addons)
+        addons_crc = zlib.crc32(payload) & 0xFFFFFFFF
+        uncompressed = payload + addons_crc.to_bytes(4, "little")
+        compressed = zlib.compress(uncompressed)
+
+        return {
+            "addonSize": len(compressed) + 4,
+            "addons_uncompressed_size": len(uncompressed),
+            "addons_count": len(addons),
+            "addons": addons,
+            "addons_crc": addons_crc,
+        }
+
+    def _pack_addons_payload(self, addons: list[dict]) -> bytes:
+        out = bytearray()
+        out.extend(len(addons).to_bytes(4, "little"))
+        for addon in addons:
+            name = (addon.get("name") or "").encode("ascii", errors="replace")
+            out.extend(name)
+            out.append(0)
+            out.append(int(addon.get("enabled", 0)) & 0xFF)
+            out.extend(int(addon.get("crc", 0)).to_bytes(4, "little"))
+            out.extend(int(addon.get("unk", 0)).to_bytes(4, "little"))
+        return bytes(out)
+
+    def _compute_addon_crc(self, addon_dir: Path) -> int:
+        preferred = [
+            addon_dir / f"{addon_dir.name}.pub",
+            addon_dir / f"{addon_dir.name}.toc",
+        ]
+        for path in preferred:
+            if path.exists():
+                try:
+                    return zlib.crc32(path.read_bytes()) & 0xFFFFFFFF
+                except Exception:
+                    return 0
+
+        for suffix in (".pub", ".toc"):
+            for path in addon_dir.glob(f"*{suffix}"):
+                try:
+                    return zlib.crc32(path.read_bytes()) & 0xFFFFFFFF
+                except Exception:
+                    return 0
+
+        return 0
+
+    def _parse_addons_blob(self, blob: bytes) -> dict:
+        if len(blob) < 4:
+            raise ValueError("addons blob too short")
+
+        expected_len = int.from_bytes(blob[:4], "little")
+        compressed = blob[4:]
+
+        data = zlib.decompress(compressed)
+        if expected_len and expected_len != len(data):
+            Logger.warning(
+                f"[ADDONS] Uncompressed size mismatch: {expected_len} != {len(data)}"
+            )
+
+        if len(data) < 8:
+            raise ValueError("addons data too short")
+
+        count = int.from_bytes(data[:4], "little")
+        idx = 4
+        addons = []
+
+        for _ in range(count):
+            end = data.find(b"\x00", idx)
+            if end == -1:
+                raise ValueError("addons data missing name terminator")
+
+            name = data[idx:end].decode("ascii", errors="replace")
+            idx = end + 1
+
+            if idx + 9 > len(data):
+                raise ValueError("addons data truncated")
+
+            enabled = data[idx]
+            idx += 1
+            crc = int.from_bytes(data[idx:idx + 4], "little")
+            idx += 4
+            unk = int.from_bytes(data[idx:idx + 4], "little")
+            idx += 4
+
+            addons.append(
+                {
+                    "name": name,
+                    "enabled": enabled,
+                    "crc": crc,
+                    "unk": unk,
+                }
+            )
+
+        trailer = 0
+        if idx + 4 <= len(data):
+            trailer = int.from_bytes(data[idx:idx + 4], "little")
+            idx += 4
+
+        if idx != len(data):
+            Logger.warning(
+                f"[ADDONS] Trailing bytes after addons list: {len(data) - idx}"
+            )
+
+        recompressed = zlib.compress(data)
+
+        return {
+            "addonSize": len(recompressed) + 4,
+            "addons_uncompressed_size": len(data),
+            "addons_count": len(addons),
+            "addons": addons,
+            "addons_crc": trailer,
+        }
     
     def _recv_world_packets(self, ws, crypto):
         while True:
@@ -914,6 +1064,8 @@ if __name__ == "__main__":
 
         if args.character:
             client._auto_character = args.character
+        if args.addons_dir:
+            client._addons_dir = args.addons_dir
         
         client.run()
 
