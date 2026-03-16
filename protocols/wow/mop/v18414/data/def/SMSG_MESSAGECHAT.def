@@ -1,6 +1,16 @@
-# SMSG_MESSAGECHAT – raw passthrough
+# SMSG_MESSAGECHAT
 endian: little
 header:
 data:
-    _: 12B
-    raw: R, r
+    type: B
+    language: I
+    sender_guid: Q
+    flags: I
+    sender_name_len: I
+    sender_name: €sender_name_len's
+    target_guid: Q
+    target_name_len: I
+    target_name: €target_name_len's
+    message_len: I
+    message: €message_len's
+    chat_tag: B

@@ -21,7 +21,7 @@ data:
         guildguid_1_mask: bits, 1BI
         guildguid_0_mask: bits, 1BI
         guid_4_mask: bits, 1BI
-        guild_guid_7_mask: bits, 1BI
+        guildguid_7_mask: bits, 1BI
         guid_2_mask: bits, 1BI
         guid_5_mask: bits, 1BI
         guildguid_2_mask: bits, 1BI

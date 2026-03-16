@@ -46,7 +46,50 @@ class ModifierInterPreter:
             return hex(field_value)
         if isinstance(field_value, str):
             return field_value.encode("utf-8").hex()
+        if isinstance(field_value, (bytes, bytearray)):
+            return bytes(field_value).hex()
         return field_value
+
+    @staticmethod
+    def to_mask_info(field_value: Any) -> Any:
+        """Convert a mask byte sequence into hex + set-bit indices."""
+        if isinstance(field_value, list) and all(isinstance(b, int) for b in field_value):
+            data = bytes((b & 0xFF) for b in field_value)
+        elif isinstance(field_value, (bytes, bytearray)):
+            data = bytes(field_value)
+        else:
+            return field_value
+
+        set_bits = []
+        for byte_index, byte in enumerate(data):
+            for bit in range(8):
+                if byte & (1 << bit):
+                    set_bits.append(byte_index * 8 + bit)
+
+        return {
+            "hex": data.hex(),
+            "set_bits": set_bits,
+            "bitcount": len(set_bits),
+        }
+
+    @staticmethod
+    def to_u32_list(field_value: Any) -> Any:
+        """Convert bytes into a list of little-endian uint32 values."""
+        if isinstance(field_value, list) and all(isinstance(b, int) for b in field_value):
+            data = bytes((b & 0xFF) for b in field_value)
+        elif isinstance(field_value, (bytes, bytearray)):
+            data = bytes(field_value)
+        else:
+            return field_value
+
+        values = []
+        for i in range(0, len(data) - (len(data) % 4), 4):
+            values.append(int.from_bytes(data[i:i + 4], "little"))
+
+        return {
+            "hex": data.hex(),
+            "u32": values,
+        }
 
     @staticmethod
     def to_mirror(field_value: Any) -> Any:
@@ -254,4 +297,6 @@ modifiers_operation_mapping: dict[str, Any] = {
     "r": ModifierInterPreter.to_rawstring,
     "T": ModifierInterPreter.to_clean_text,
     "Y": ModifierInterPreter.to_byte_seq,
+    "K": ModifierInterPreter.to_mask_info,
+    "V": ModifierInterPreter.to_u32_list,
 }

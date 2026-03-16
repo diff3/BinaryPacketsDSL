@@ -3,11 +3,17 @@
 
 import json
 import time
+from itertools import count
 from pathlib import Path
+from threading import Lock
 from datetime import datetime
 from utils.ConfigLoader import ConfigLoader
 from utils.PathUtils import get_captures_root
 from protocols.wow.shared.modules.crypto.ARC4Crypto import Arc4CryptoHandler
+
+
+_focus_capture_counter = count(1)
+_focus_capture_counter_lock = Lock()
 
 
 def bytes_to_spaced_hex(data: bytes) -> str:
@@ -273,7 +279,15 @@ def dump_capture(
 
     # Use timestamped names when provided (focus-dump), otherwise legacy name.
     ts = ts if ts is not None else None
-    suffix = f"{case_name}.json" if ts is None else f"{case_name}_{ts}.json"
+    if ts is None:
+        suffix = f"{case_name}.json"
+    else:
+        with _focus_capture_counter_lock:
+            counter_value = next(_focus_capture_counter)
+            suffix = f"{case_name}_{ts}_{counter_value:04d}.json"
+            while (root / "debug" / suffix).exists() or (root / "json" / suffix).exists():
+                counter_value = next(_focus_capture_counter)
+                suffix = f"{case_name}_{ts}_{counter_value:04d}.json"
 
     bin_path = None
     json_path = root / "json" / suffix

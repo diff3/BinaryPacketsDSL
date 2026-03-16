@@ -14,6 +14,30 @@ import struct
 from dataclasses import dataclass
 
 
+
+# ------------------------------------------------------------
+# ENUM / Character list helpers
+# ------------------------------------------------------------
+
+def _guid_bytes_and_masks(guid: int) -> tuple[list[int], dict]:
+    """
+    Convert uint64 GUID to:
+      - little-endian byte list (len=8)
+      - MoP ENUM_CHARACTERS guid_X_mask dict
+    """
+    if not (0 <= guid <= 0xFFFFFFFFFFFFFFFF):
+        raise ValueError("guid must fit in uint64")
+
+    raw = GuidHelper.to_le_bytes(guid)  # already <Q little-endian
+    byte_list = list(raw)
+
+    masks = {
+        f"guid_{i}_mask": 1 if raw[i] != 0 else 0
+        for i in range(8)
+    }
+
+    return byte_list, masks
+
 # ------------------------------------------------------------
 # High GUID values (MoP / SkyFire)
 # ------------------------------------------------------------
@@ -55,6 +79,14 @@ class GuidHelper:
             ((realm & 0xFFFF) << 32) |
             (low & 0xFFFFFFFF)
         )
+
+    @staticmethod
+    def make_login_guid(low: int, realm: int, high: int) -> int:
+        """
+        Build the 48-bit login GUID (high:8 + realm:8 + low:32) used by CMSG_PLAYER_LOGIN.
+        """
+        upper = ((high & 0xFF) << 8) | (realm & 0xFF)
+        return ((upper & 0xFFFF) << 32) | (low & 0xFFFFFFFF)
 
     @staticmethod
     def decode(guid: int) -> DecodedGuid:
@@ -131,6 +163,20 @@ class GuidHelper:
                 idx += 1
 
         return GuidHelper.from_le_bytes(bytes(raw))
+    
+    @staticmethod
+    def decode_login_guid(login_guid: int) -> tuple[int, int, int]:
+        """
+        Decode the 48-bit login GUID used by CMSG_PLAYER_LOGIN:
+          upper16 = (high8<<8) | realm8
+          low32   = low
+        Returns: (low, realm, high)
+        """
+        upper = (login_guid >> 32) & 0xFFFF
+        low = login_guid & 0xFFFFFFFF
+        high = (upper >> 8) & 0xFF
+        realm = upper & 0xFF
+        return low, realm, high
 
 
 # ------------------------------------------------------------

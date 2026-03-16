@@ -17,7 +17,7 @@ def preprocess_condition(expr: str) -> str:
         return expr
 
     e = expr.replace("€", "")
-    e = re.sub(r"(\\w+\\[[^\\]]+\\])\\.(\\w+)", r'\\1[\"\\2\"]', e)
+    e = re.sub(r"(\w+\[[^\]]+\])\.(\w+)", r'\1["\2"]', e)
     return e
 
 

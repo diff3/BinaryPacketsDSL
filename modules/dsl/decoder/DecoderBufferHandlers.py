@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from modules.dsl.ModifierMapping import modifiers_operation_mapping
+from modules.dsl.decoder.DecoderExpressions import eval_expr
 
 
 ResolveVariable = Callable[[str, dict[str, Any]], Any]
@@ -47,9 +48,20 @@ def resolve_length_expression(
         pass
 
     try:
-        return resolve_variable(cleaned, scope)
+        resolved = resolve_variable(cleaned, scope)
+    except Exception:
+        resolved = None
+    if resolved is not None:
+        return resolved
+
+    try:
+        value = eval_expr(cleaned, scope)
     except Exception:
         return None
+
+    if isinstance(value, (int, float)):
+        return int(value)
+    return None
 
 
 def handle_buffer_allocation(

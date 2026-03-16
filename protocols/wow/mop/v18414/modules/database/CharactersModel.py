@@ -77,3 +77,24 @@ class Characters(Base):
     deleteInfos_Account = Column(Integer)
     deleteInfos_Name = Column(String(12))
     deleteDate = Column(Integer)
+
+
+class CharacterAction(Base):
+    __tablename__ = "character_action"
+
+    guid = Column(Integer, primary_key=True, autoincrement=False)
+    spec = Column(TINYINT(unsigned=True), primary_key=True, default=0)
+    button = Column(SMALLINT(unsigned=True), primary_key=True, default=0)
+    action = Column(Integer, nullable=False, default=0)
+    type_ = Column("type", TINYINT(unsigned=True), nullable=False, default=0)
+
+
+class CharacterSpell(Base):
+    __tablename__ = "character_spell"
+
+    guid = Column(Integer, primary_key=True, autoincrement=False)
+    spell = Column(MEDIUMINT(unsigned=True), primary_key=True, default=0)
+    active = Column(TINYINT(unsigned=True), nullable=False, default=1)
+    disabled = Column(TINYINT(unsigned=True), nullable=False, default=0)
+    spec = Column(TINYINT(unsigned=True), nullable=False, default=0)
+    spec_mask = Column("specMask", SMALLINT(unsigned=True), nullable=False, default=0)

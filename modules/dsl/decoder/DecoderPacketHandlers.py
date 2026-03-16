@@ -41,7 +41,11 @@ def combine_guid(target_name: str, mask: Any, values: dict[str, Any], result: di
     try:
         meta = result["chars_meta"][index_value]
     except Exception:
-        return 0
+        meta_list = scope.get("chars_meta")
+        if isinstance(meta_list, list) and 0 <= index_value < len(meta_list):
+            meta = meta_list[index_value]
+        else:
+            return 0
 
     if isinstance(mask, list):
         mask_list = mask

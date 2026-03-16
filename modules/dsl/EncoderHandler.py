@@ -641,6 +641,12 @@ class EncoderHandler:
             if interp == "dynamic" and fmt and fmt.endswith("'s"):
                 if not should_emit:
                     continue
+                dep_expr = getattr(n, "depends_on", None)
+                resolved = EncoderHandler._resolve_length_expr(
+                    dep_expr, local_ctx, local_ctx
+                )
+                if resolved is not None:
+                    setattr(n, "_resolved_len", resolved)
                 cleaned.append((n, name, "__dyn_str__"))
                 continue
 
@@ -922,10 +928,19 @@ class EncoderHandler:
                 continue
 
             if fmt == "__bitmask__":
+                child_fields = dict(fields)
+                loop_entry = getattr(node, "__loop_entry", None)
+                if isinstance(loop_entry, dict):
+                    child_fields.update(loop_entry)
+
+                node_value = getattr(node, "value", None)
+                if isinstance(node_value, dict):
+                    child_fields.update(node_value)
+
                 child_nodes = EncoderHandler._flatten_blocks(node.children)
-                child_nodes = EncoderHandler._expand_loops(child_nodes, fields)
-                child_clean = EncoderHandler._cleanup(child_nodes, fields)
-                chunk = EncoderHandler._encode_cleaned(child_clean, fields, endian, buffers, buffer_seq)
+                child_nodes = EncoderHandler._expand_loops(child_nodes, child_fields)
+                child_clean = EncoderHandler._cleanup(child_nodes, child_fields)
+                chunk = EncoderHandler._encode_cleaned(child_clean, child_fields, endian, buffers, buffer_seq)
                 out.extend(chunk)
                 continue
 
@@ -1078,16 +1093,19 @@ class EncoderHandler:
                 if isinstance(value, str):
                     value = value.encode("utf-8")
 
+                expected_len = getattr(node, "_resolved_len", None)
                 dep = getattr(node, "depends_on", "") or ""
                 if dep.startswith("€"):
                     dep = dep[1:]
 
-                expected_len = fields.get(dep)
+                if expected_len is None:
+                    expected_len = fields.get(dep)
                 try:
                     expected_len = int(expected_len)
                 except Exception:
                     expected_len = len(value)
-                    fields[dep] = expected_len
+                    if dep and dep.isidentifier():
+                        fields[dep] = expected_len
 
                 if expected_len < 0:
                     expected_len = 0

@@ -486,7 +486,47 @@ class DecoderHandler:
 
     @staticmethod
     def _handle_dynamic(field: Any, scope: dict[str, Any]) -> bool:
-        length = DecoderHandler.resolve_variable(field.format, scope)
+        expr = getattr(field, "depends_on", None) or field.format
+        length = None
+
+        if expr is not None:
+            try:
+                length = eval_expr(expr, scope)
+            except Exception:
+                length = None
+
+        if length is None:
+            length = DecoderHandler.resolve_variable(field.format, scope)
+
+        if isinstance(length, (bytes, bytearray)):
+            length = sum(bin(b).count("1") for b in length) * 4
+        elif isinstance(length, dict):
+            if isinstance(length.get("bitcount"), int):
+                length = length["bitcount"] * 4
+            else:
+                hex_value = length.get("hex")
+                if isinstance(hex_value, str):
+                    try:
+                        raw = bytes.fromhex(hex_value)
+                    except ValueError:
+                        raw = None
+                    if raw is not None:
+                        length = sum(bin(b).count("1") for b in raw) * 4
+        elif isinstance(length, str):
+            expr_name = getattr(field, "depends_on", None) or ""
+            if "mask" in expr_name:
+                try:
+                    raw = bytes.fromhex(length)
+                except ValueError:
+                    raw = None
+                if raw is not None:
+                    length = sum(bin(b).count("1") for b in raw) * 4
+
+        try:
+            length = int(length)
+        except Exception:
+            length = None
+
         if length is None:
             Logger.warning(f"Failed to resolve dynamic field: {field.name}")
             return False

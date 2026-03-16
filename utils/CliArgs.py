@@ -33,7 +33,12 @@ def parse_args():
     parser.add_argument("-u", "--update", action="store_true", help="Update .json output from .bin + .def")
     parser.add_argument("-a", "--add", action="store_true", help="Create new empty packet definition set")
     parser.add_argument("-P", "--promote", action="store_true", help="In focus mode, promote decoded output into protocols expected JSON")
-    parser.add_argument("-f", "--file", type=str, help="Specify the packet file name (without extension)").completer = DefFileNameCompleter()
+    parser.add_argument(
+        "-f",
+        "--file",
+        type=str,
+        help="Specify the packet file name (without extension) or a focus capture .json filename",
+    ).completer = DefFileNameCompleter()
     parser.add_argument("-p", "--program", type=str, help="Program/game name (e.g., wow)")
     parser.add_argument("-e", "--expansion", type=str, help="Expansion name (e.g., vanilla, mop)")
     parser.add_argument("-V", "--version", type=str, help="Expansion version (e.g., v1121, v18414)")

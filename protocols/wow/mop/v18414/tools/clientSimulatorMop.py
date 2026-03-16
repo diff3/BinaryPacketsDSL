@@ -11,14 +11,13 @@ Goals:
 
 import getpass
 import os
+import random
 import socket
 import struct
 import time
 import select
 import sys
 import argparse
-import zlib
-from pathlib import Path
 
 from utils.ConfigLoader import ConfigLoader
 from utils.Logger import Logger
@@ -26,8 +25,11 @@ from protocols.wow.shared.utils.OpcodeLoader import load_world_opcodes
 
 from modules.dsl.EncoderHandler import EncoderHandler
 from protocols.wow.shared.modules.crypto.ARC4Crypto import Arc4CryptoHandler
-from protocols.wow.shared.modules.crypto.SRP6Client import SRP6Client, H
+from protocols.wow.shared.modules.crypto.SRP6Client import SRP6Client
 from protocols.wow.shared.modules.crypto.SRP6Crypto import SRP6Crypto
+from protocols.wow.shared.modules.AddonsBuilder import AddonsBuilder
+from protocols.wow.shared.modules.AuthClientBuilder import AuthClientBuilder
+from protocols.wow.shared.utils.guid import GuidHelper, HighGuid
 
 cfg = ConfigLoader.load_config()
 world_opcode_module = (
@@ -78,8 +80,9 @@ def parse_args():
 # ----------------------------------------------------------------------
 
 class ClientSimulator:
-    HANDSHAKE_SERVER = b"0\x00WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT\x00"
-    HANDSHAKE_CLIENT = b"0\x00WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER\x00"
+    HANDSHAKE_PREFIX = 0x30  # ASCII '0'
+    HANDSHAKE_SERVER = "WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT"
+    HANDSHAKE_CLIENT = "WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER"
 
     def __init__(self):
         self.cfg = ConfigLoader.load_config()
@@ -102,6 +105,7 @@ class ClientSimulator:
             world_lookup,
         )
         self._addons_dir = None
+        self._realm_id = None
 
 
     # ============================================================
@@ -163,37 +167,8 @@ class ClientSimulator:
         return sock
 
     def _send_auth_challenge(self, sock):
-        client = self.cfg["client"]
-
-        game = b"WoW\x00"
-        platform = client["platform"].encode() + b"\x00"
-        os_name = client["os"].encode() + b"\x00"
-        country = client["country"].encode()
-        timezone = client["timezone"]
-        build = client["build"]
-
-        version1, version2, version3 = 5, 4, 8
-
-        ip_bytes = socket.inet_aton(client["ip"])
-        u = self.username.upper().encode("ascii")
-        ulen = len(u)
-
-        payload = (
-            game +
-            bytes([version1, version2, version3]) +
-            struct.pack("<H", build) +
-            platform +
-            os_name +
-            country +
-            struct.pack("<I", timezone) +
-            ip_bytes +
-            bytes([ulen]) +
-            u
-        )
-
-        pkt = b"\x00" + b"\x08" + struct.pack("<H", len(payload)) + payload
-
         Logger.info("[SEND] AUTH_LOGON_CHALLENGE_C")
+        pkt = AuthClientBuilder.build_logon_challenge(self.username, self.cfg["client"])
         sock.sendall(pkt)
 
     def _recv_auth_challenge(self, sock) -> dict:
@@ -202,14 +177,8 @@ class ClientSimulator:
         return self.decoder.decode("AUTH_LOGON_CHALLENGE_S", data) or {}
 
     def _send_auth_proof(self, sock):
-        pkt = (
-            b"\x01" +
-            self.srp.A_wire +
-            self.srp.M1 +
-            H(self.srp.A_wire, self.srp.M1, self.srp.K) +
-            b"\x00\x00"
-        )
         Logger.info("[SEND] AUTH_LOGON_PROOF_C")
+        pkt = AuthClientBuilder.build_logon_proof(self.srp)
         sock.sendall(pkt)
 
     def _recv_auth_proof(self, sock) -> dict:
@@ -234,11 +203,8 @@ class ClientSimulator:
     # ============================================================
 
     def _fetch_realms(self, sock: socket.socket):
-        build = self.cfg["client"]["build"]
-
-        pkt = bytes([0x10]) + build.to_bytes(4, "little")
-
         Logger.info("[SEND] REALM_LIST_C (raw cmd + build)")
+        pkt = AuthClientBuilder.build_realm_list(self.cfg["client"]["build"])
         sock.sendall(pkt)
 
         data = sock.recv(4096)
@@ -273,10 +239,42 @@ class ClientSimulator:
         idx = max(0, min(idx, len(realms) - 1))
         return realms[idx]
 
+    def _resolve_realm_id(self, realm: dict) -> int:
+        if isinstance(realm, dict):
+            rid = realm.get("realmid")
+            if rid is not None:
+                try:
+                    return int(rid)
+                except (TypeError, ValueError):
+                    pass
+        return 1
+
+    def _normalize_player_login_guid(self, guid_value: int) -> int | None:
+        if guid_value is None:
+            return None
+        try:
+            guid_int = int(guid_value)
+        except (TypeError, ValueError):
+            return None
+
+        # Already a 6-byte login guid (realm:16 + low:32).
+        if 0 <= guid_int <= 0xFFFFFFFFFFFF:
+            if guid_int <= 0xFFFFFFFF:
+                realm_id = self._realm_id if self._realm_id is not None else 1
+                return GuidHelper.make_login_guid(guid_int, realm_id, HighGuid.PLAYER)
+            return guid_int
+
+        try:
+            decoded = GuidHelper.decode(guid_int)
+        except Exception:
+            return guid_int
+        return GuidHelper.make_login_guid(decoded.low, decoded.realm, decoded.high)
+
     # ============================================================
     # WORLD FLOW
     # ============================================================
     def _world_flow(self, realm: dict):
+        self._realm_id = self._resolve_realm_id(realm)
         host, port = realm["address"].split(":")
         port = int(port)
 
@@ -314,6 +312,19 @@ class ClientSimulator:
                         Logger.error("World auth failed")
                         return
                     Logger.success("World auth OK")
+                    realm_list = decoded.get("realm") or []
+                    if realm_list:
+                        realm_id = realm_list[0].get("realm_id")
+                        if realm_id is not None:
+                            try:
+                                realm_id = int(realm_id)
+                            except (TypeError, ValueError):
+                                realm_id = None
+                        if realm_id is not None and realm_id != self._realm_id:
+                            Logger.info(
+                                f"[WORLD] Realm ID from auth response: {realm_id} (was {self._realm_id})"
+                            )
+                            self._realm_id = realm_id
 
                     # nu är vi i post-auth-fasen — process any remaining packets too
                     leftovers = [(rh, hh, pl) for (rh, hh, pl) in packets if hh is not h]
@@ -324,11 +335,26 @@ class ClientSimulator:
 
 
     def _recv_world_handshake(self, ws):
-        data = ws.recv(len(self.HANDSHAKE_SERVER))
+        fields = {
+            "magic0": self.HANDSHAKE_PREFIX,
+            "null0": 0,
+            "banner": self.HANDSHAKE_SERVER,
+        }
+        expected = EncoderHandler.encode_packet("HANDSHAKE_WORLD_S", fields)
+        data = ws.recv(len(expected))
+        decoded = self.decoder.decode("HANDSHAKE_WORLD_S", data) or {}
+        if decoded.get("banner") != self.HANDSHAKE_SERVER:
+            Logger.warning(f"[HANDSHAKE] Unexpected banner: {decoded.get('banner')!r}")
         Logger.info("[RECV] HANDSHAKE")
 
     def _send_world_handshake(self, ws):
-        ws.sendall(self.HANDSHAKE_CLIENT)
+        fields = {
+            "magic0": self.HANDSHAKE_PREFIX,
+            "null0": 0,
+            "banner": self.HANDSHAKE_CLIENT,
+        }
+        pkt = EncoderHandler.encode_packet("HANDSHAKE_WORLD_C", fields)
+        ws.sendall(pkt)
         Logger.info("[SEND] HANDSHAKE")
 
     def _recv_SMSG_AUTH_CHALLENGE(self, ws) -> int:
@@ -356,11 +382,12 @@ class ClientSimulator:
         addons_blob = bytes.fromhex(
             "30050000789c7593514ec3300c868b38051247403cf2be0d360dad5259bbbd222ff15aab695cb969c576134ec2f548858440725ef3fd76e23fbf1fb22c5b3aba5e41ecfbc234841376e8c3619bdd7cde7e3d65ffb89806901dd79704470f3a194d20f62a5b829c508686fb040ec1e199d0d99c3c75d06b22f2967cad377060da1ca4457daa1538f41644430db8086b1cf44a47d1aa1226b447108293c34193717782b0e33ac92afc083aecc1843d905d0b747af3c3ba103e937ef5339ec6ba62761a7cf186471f505e79140f4e916cdca56fd4d93779344737749397a34ca867643392b34bf06d9aaed807619716a864eb871e8dfea26dc06ee1e2a4904ce12c29d9c490a472342b0e7d2d6051e53be636d6ae59d28fccc108eb84272cc02aa4c0f0b3036a5da4e9ef9b93a356edf1cc52a726ade68dd09daca8c31c3cd4a8ed4bc52deaf656b36d654b4effd688c9a3a8ecc864cbc012efd41d3816eaf9db884358354c06153a77d4fb2dc6d0fc2efe5fc5dde37df10de06e9df7"
         )
-        addons_fields = self._build_addons_fields(addons_blob)
+        addons_path = self._addons_dir or (self.cfg.get("client") or {}).get("addons_path")
+        addons_fields = AddonsBuilder.build_fields(addons_path, addons_blob)
 
         fields = {
             "digest": digest_bytes,
-            "VirtualRealmID": 1,
+            "VirtualRealmID": self._realm_id if self._realm_id is not None else 1,
             "clientSeed": client_seed,
             "clientBuild": self.cfg["client"]["build"],
             **addons_fields,
@@ -373,7 +400,11 @@ class ClientSimulator:
         header = build_world_header_plain(WorldClientOpcodes.CMSG_AUTH_SESSION, payload)
 
         Logger.info("[SEND] CMSG_AUTH_SESSION")
-        ws.sendall(header + payload)
+        
+        raw = header + payload
+        print(f"raw: {raw}")
+
+        ws.sendall(raw)
 
     def _recv_SMSG_AUTH_RESPONSE(self, ws) -> Arc4CryptoHandler | None:
         crypto = Arc4CryptoHandler()
@@ -399,149 +430,6 @@ class ClientSimulator:
         Logger.success("Auth OK")
         return crypto
 
-    def _build_addons_fields(self, fallback_blob: bytes) -> dict:
-        cfg_client = self.cfg.get("client") or {}
-        addons_dir = getattr(self, "_addons_dir", None) or cfg_client.get("addons_path")
-        if addons_dir:
-            fields = self._build_addons_from_dir(Path(addons_dir))
-            if fields:
-                return fields
-        return self._parse_addons_blob(fallback_blob)
-
-    def _build_addons_from_dir(self, addons_dir: Path) -> dict | None:
-        if not addons_dir.exists():
-            Logger.warning(f"[ADDONS] AddOns dir not found: {addons_dir}")
-            return None
-
-        addons = []
-        for entry in sorted(addons_dir.iterdir(), key=lambda p: p.name.lower()):
-            if not entry.is_dir():
-                continue
-            addons.append(
-                {
-                    "name": entry.name,
-                    "enabled": 1,
-                    "crc": self._compute_addon_crc(entry),
-                    "unk": 0,
-                }
-            )
-
-        if not addons:
-            Logger.warning(f"[ADDONS] No addons found in {addons_dir}")
-            return None
-
-        payload = self._pack_addons_payload(addons)
-        addons_crc = zlib.crc32(payload) & 0xFFFFFFFF
-        uncompressed = payload + addons_crc.to_bytes(4, "little")
-        compressed = zlib.compress(uncompressed)
-
-        return {
-            "addonSize": len(compressed) + 4,
-            "addons_uncompressed_size": len(uncompressed),
-            "addons_count": len(addons),
-            "addons": addons,
-            "addons_crc": addons_crc,
-        }
-
-    def _pack_addons_payload(self, addons: list[dict]) -> bytes:
-        out = bytearray()
-        out.extend(len(addons).to_bytes(4, "little"))
-        for addon in addons:
-            name = (addon.get("name") or "").encode("ascii", errors="replace")
-            out.extend(name)
-            out.append(0)
-            out.append(int(addon.get("enabled", 0)) & 0xFF)
-            out.extend(int(addon.get("crc", 0)).to_bytes(4, "little"))
-            out.extend(int(addon.get("unk", 0)).to_bytes(4, "little"))
-        return bytes(out)
-
-    def _compute_addon_crc(self, addon_dir: Path) -> int:
-        preferred = [
-            addon_dir / f"{addon_dir.name}.pub",
-            addon_dir / f"{addon_dir.name}.toc",
-        ]
-        for path in preferred:
-            if path.exists():
-                try:
-                    return zlib.crc32(path.read_bytes()) & 0xFFFFFFFF
-                except Exception:
-                    return 0
-
-        for suffix in (".pub", ".toc"):
-            for path in addon_dir.glob(f"*{suffix}"):
-                try:
-                    return zlib.crc32(path.read_bytes()) & 0xFFFFFFFF
-                except Exception:
-                    return 0
-
-        return 0
-
-    def _parse_addons_blob(self, blob: bytes) -> dict:
-        if len(blob) < 4:
-            raise ValueError("addons blob too short")
-
-        expected_len = int.from_bytes(blob[:4], "little")
-        compressed = blob[4:]
-
-        data = zlib.decompress(compressed)
-        if expected_len and expected_len != len(data):
-            Logger.warning(
-                f"[ADDONS] Uncompressed size mismatch: {expected_len} != {len(data)}"
-            )
-
-        if len(data) < 8:
-            raise ValueError("addons data too short")
-
-        count = int.from_bytes(data[:4], "little")
-        idx = 4
-        addons = []
-
-        for _ in range(count):
-            end = data.find(b"\x00", idx)
-            if end == -1:
-                raise ValueError("addons data missing name terminator")
-
-            name = data[idx:end].decode("ascii", errors="replace")
-            idx = end + 1
-
-            if idx + 9 > len(data):
-                raise ValueError("addons data truncated")
-
-            enabled = data[idx]
-            idx += 1
-            crc = int.from_bytes(data[idx:idx + 4], "little")
-            idx += 4
-            unk = int.from_bytes(data[idx:idx + 4], "little")
-            idx += 4
-
-            addons.append(
-                {
-                    "name": name,
-                    "enabled": enabled,
-                    "crc": crc,
-                    "unk": unk,
-                }
-            )
-
-        trailer = 0
-        if idx + 4 <= len(data):
-            trailer = int.from_bytes(data[idx:idx + 4], "little")
-            idx += 4
-
-        if idx != len(data):
-            Logger.warning(
-                f"[ADDONS] Trailing bytes after addons list: {len(data) - idx}"
-            )
-
-        recompressed = zlib.compress(data)
-
-        return {
-            "addonSize": len(recompressed) + 4,
-            "addons_uncompressed_size": len(data),
-            "addons_count": len(addons),
-            "addons": addons,
-            "addons_crc": trailer,
-        }
     
     def _recv_world_packets(self, ws, crypto):
         while True:
@@ -613,12 +501,110 @@ class ClientSimulator:
 
         return None
 
+    def _randomize_appearance(self) -> dict:
+        return {
+            "skin": random.randint(0, 7),
+            "face": random.randint(0, 7),
+            "hair_style": random.randint(0, 7),
+            "hair_color": random.randint(0, 7),
+            "facial_hair": random.randint(0, 7),
+        }
+
+    def _send_char_create(self, ws, crypto, name: str, class_id: int, race_id: int, gender: int) -> None:
+        appearance = self._randomize_appearance()
+        fields = {
+            "outfit_id": 0,
+            "hair_style": appearance["hair_style"],
+            "class": int(class_id),
+            "skin": appearance["skin"],
+            "face": appearance["face"],
+            "race": int(race_id),
+            "facial_hair": appearance["facial_hair"],
+            "gender": int(gender),
+            "hair_color": appearance["hair_color"],
+            "name_lenght": len(name),
+            "unk": 0,
+            "name": name,
+        }
+
+        payload = EncoderHandler.encode_packet("CMSG_CHAR_CREATE", fields)
+        hdr = crypto.pack_data(WorldClientOpcodes.CMSG_CHAR_CREATE, len(payload))
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CMSG_CHAR_CREATE name={name} race={race_id} class={class_id} gender={gender}")
+
+    def _send_char_delete(self, ws, crypto, guid: int) -> None:
+        guid_val = int(guid) & 0xFFFFFFFFFFFFFFFF
+        guid_bytes = guid_val.to_bytes(8, "little", signed=False)
+        fields = {
+            "guid": guid_val & 0xFFFFFFFF,
+        }
+        for i in range(8):
+            mask = 1 if guid_bytes[i] != 0 else 0
+            fields[f"guid_{i}_mask"] = mask
+            if mask:
+                fields[f"guid_{i}"] = guid_bytes[i]
+
+        payload = EncoderHandler.encode_packet("CMSG_CHAR_DELETE", fields)
+        hdr = crypto.pack_data(WorldClientOpcodes.CMSG_CHAR_DELETE, len(payload))
+        ws.sendall(crypto.decrypt_recv(hdr) + payload)
+        Logger.info(f"[SEND] CMSG_CHAR_DELETE guid=0x{guid_val:016X}")
+
+    def _prompt_new_character(self) -> tuple[str, int, int, int] | None:
+        name = input("New character name: ").strip()
+        if not name:
+            Logger.error("Name is required")
+            return None
+
+        def _prompt_int(label, default):
+            raw = input(f"{label} (default {default}): ").strip()
+            if not raw:
+                return default
+            try:
+                return int(raw)
+            except ValueError:
+                Logger.error(f"Invalid {label} '{raw}', using default {default}")
+                return default
+
+        class_id = _prompt_int("Class ID", 1)
+        race_id = _prompt_int("Race ID", 1)
+        gender = _prompt_int("Gender (0=male,1=female)", 0)
+        return name, class_id, race_id, gender
+
     def _enter_world(self, ws, crypto, guid: int):
-        Logger.info(f"[WORLD] Entering world with GUID {guid} (0x{guid:016X})")
+        login_guid = self._normalize_player_login_guid(guid)
+        if login_guid is None:
+            Logger.error("[WORLD] Invalid GUID for player login")
+            return
+        try:
+            raw_guid_int = int(guid)
+        except (TypeError, ValueError):
+            raw_guid_int = None
+
+        if login_guid != guid:
+            Logger.info(
+                f"[WORLD] Entering world with GUID {login_guid} (0x{login_guid:016X})"
+            )
+        else:
+            Logger.info(f"[WORLD] Entering world with GUID {guid} (0x{guid:016X})")
+
+        upper = (login_guid >> 32) & 0xFFFF
+        high_id = (upper >> 8) & 0xFF
+        realm_id = upper & 0xFF
+        low_id = login_guid & 0xFFFFFFFF
+        login_bytes = login_guid.to_bytes(6, "little", signed=False)
+        Logger.info(
+            "[WORLD] Login GUID bytes "
+            f"{login_bytes.hex(' ')} (high={high_id}, realm={realm_id}, low={low_id})"
+        )
+        if raw_guid_int is not None:
+            raw_bytes = raw_guid_int.to_bytes(8, "little", signed=False)
+            Logger.info(
+                f"[WORLD] Raw GUID bytes {raw_bytes.hex(' ')}"
+            )
 
         payload = EncoderHandler.encode_packet(
             "CMSG_PLAYER_LOGIN",
-            {"guid": guid}
+            {"guid": login_guid}
         )
 
         plain_header = crypto.pack_data(
@@ -655,6 +641,7 @@ class ClientSimulator:
                 packets, pending_packets = pending_packets, []
 
             Logger.info(f"[WORLD] Post-auth received {len(packets)} packet(s)")
+            refresh_requested = False
             for _, h, payload in packets:
                 name = self.opcode_resolver.decode_opcode(h.cmd, "S")
                 Logger.info(f"[RECV] {name} (cmd=0x{h.cmd:04X} size={h.size})")
@@ -685,6 +672,24 @@ class ClientSimulator:
                         or decoded.get("list")
                         or []
                     )
+                    meta_list = decoded.get("chars_meta") or []
+                    if chars:
+                        Logger.info("[WORLD] Character GUID debug:")
+                        for idx, chx in enumerate(chars):
+                            cname = chx.get("name", "Unknown")
+                            guid_val = chx.get("guid")
+                            guid_bytes = [chx.get(f"guid_{i}") for i in range(8)]
+                            meta = meta_list[idx] if idx < len(meta_list) else {}
+                            guid_masks = {
+                                k: meta.get(k)
+                                for k in sorted(meta)
+                                if k.startswith("guid_") and k.endswith("_mask")
+                            }
+                            Logger.info(
+                                f"[WORLD]  idx={idx} name={cname} guid={guid_val} guid_bytes={guid_bytes}"
+                            )
+                            if guid_masks:
+                                Logger.info(f"[WORLD]  idx={idx} guid_masks={guid_masks}")
 
                     if not chars:
                         Logger.error("No characters returned by server")
@@ -711,7 +716,43 @@ class ClientSimulator:
                             cclass = chx.get("class", chx.get("cls", "?"))
                             print(f"{i}. {cname} (level {clevel}, class {cclass})")
 
-                        choice = input(f"\nSelect character [1-{len(chars)}] (default 1): ").strip()
+                        choice = input(
+                            f"\nSelect character [1-{len(chars)}] (default 1), 'n' new, 'd <name>' delete: "
+                        ).strip()
+                        lower = choice.lower()
+                        if lower == "n":
+                            data = self._prompt_new_character()
+                            if data:
+                                new_name, class_id, race_id, gender = data
+                                self._send_char_create(ws, crypto, new_name, class_id, race_id, gender)
+                                refresh_requested = True
+                                break
+                        if lower.startswith("d"):
+                            parts = choice.split(maxsplit=1)
+                            if len(parts) > 1 and parts[1].strip():
+                                del_name = parts[1].strip()
+                            else:
+                                del_name = input("Delete character name: ").strip()
+                            if not del_name:
+                                Logger.error("Delete name is required")
+                                refresh_requested = True
+                                break
+                            ch = next(
+                                (c for c in chars if c.get("name", "").lower() == del_name.lower()),
+                                None,
+                            )
+                            if not ch:
+                                Logger.error(f"No character named '{del_name}'")
+                                refresh_requested = True
+                                break
+                            del_guid = self._extract_guid(ch)
+                            if del_guid is None:
+                                Logger.error(f"Failed to extract GUID for '{del_name}'")
+                                refresh_requested = True
+                                break
+                            self._send_char_delete(ws, crypto, del_guid)
+                            refresh_requested = True
+                            break
                         try:
                             idx = int(choice) - 1 if choice else 0
                         except ValueError:
@@ -720,22 +761,24 @@ class ClientSimulator:
                         idx = max(0, min(idx, len(chars) - 1))
                         ch = chars[idx]
 
+                    if refresh_requested:
+                        Logger.info("[WORLD] Waiting for updated character list...")
+                        break
+
                     extracted_guid = self._extract_guid(ch)
                     if extracted_guid is not None:
                         Logger.info(f"[WORLD] Extracted GUID {extracted_guid} (0x{extracted_guid:016X})")
                     else:
-                        Logger.info(f"[WORLD] Failed to extract GUID; character keys: {list(ch.keys())}")
-
-                    # Använd hårdkodat GUID för enkelhet enligt önskemål
-                    guid_override = "3303978696704"
-                    Logger.info(f"[WORLD] Using GUID override {guid_override}")
-                    guid = int(guid_override)
+                        Logger.error(f"[WORLD] Failed to extract GUID; character keys: {list(ch.keys())}")
+                        return
 
                     Logger.success(f"[WORLD] Logging in as {ch.get('name', '<unknown>')}")
 
-                    self._enter_world(ws, crypto, guid)
+                    self._enter_world(ws, crypto, extracted_guid)
                     self._world_idle(ws, crypto)
                     return
+            if refresh_requested:
+                continue
             # No terminal packet yet; continue loop
             Logger.info("[WORLD] Still waiting for account data/enum packets…")
     def _join_channel(self, ws, crypto, name: str):
@@ -825,12 +868,11 @@ class ClientSimulator:
         if name == "SMSG_TIME_SYNC_REQUEST":
             decoded = self.decoder.decode(name, payload) or {}
 
-            seq = (
-                decoded.get("sequence_id")
-                or decoded.get("sequence")
-                or decoded.get("seq")
-                or decoded.get("I")
-            )
+            seq = None
+            for key in ("sequence_id", "sequence", "seq", "I"):
+                if key in decoded and decoded.get(key) is not None:
+                    seq = decoded.get(key)
+                    break
 
             if seq is None:
                 Logger.error("[WORLD] Missing sequence_id in SMSG_TIME_SYNC_REQUEST")

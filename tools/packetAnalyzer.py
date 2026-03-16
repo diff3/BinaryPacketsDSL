@@ -13,11 +13,28 @@ from utils.CliArgs import parse_args
 from utils.Logger import Logger
 from utils.PrintUtils import SessionPrint
 from utils.PathUtils import get_captures_root
-from pathlib import Path
 
-def load_focus_payloads(program, expansion, version, case_name: str):
+def load_focus_payloads(program, expansion, version, case_name: str, focus_file: Path | None = None):
     root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"
     out = []
+    if focus_file is not None:
+        candidate = focus_file
+        if not candidate.is_file():
+            candidate = root / focus_file.name
+        if not candidate.is_file():
+            return out
+        if not candidate.stem.startswith(case_name):
+            return out
+        try:
+            data = json.loads(candidate.read_text("utf-8"))
+            hex_payload = (data.get("hex_compact") or data.get("hex_spaced") or "").replace(" ", "")
+            if not hex_payload:
+                return out
+            payload = bytes.fromhex(hex_payload)
+            out.append((candidate, payload))
+        except Exception:
+            return []
+        return out
     if not root.is_dir():
         return out
     for f in sorted(root.glob(f"{case_name}*.json")):
@@ -32,6 +49,21 @@ def load_focus_payloads(program, expansion, version, case_name: str):
             continue
     return out
 
+def resolve_case_and_focus_file(program, expansion, version, file_arg: str | None) -> tuple[str | None, Path | None]:
+    if not file_arg:
+        return None, None
+    if file_arg.endswith(".json"):
+        candidate = Path(file_arg)
+        if not candidate.is_file():
+            candidate = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug" / file_arg
+        if candidate.is_file():
+            stem = candidate.stem
+            parts = stem.rsplit("_", 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                return parts[0], candidate
+            return stem, candidate
+        return file_arg[:-5], None
+    return file_arg, None
 
 # GLOBALS
 config = ConfigLoader.get_config()
@@ -95,8 +127,10 @@ if __name__ == "__main__":
     Logger.info(f"Parsing {program} {expansion} {version}\n")
 
     if args.file:
-        case_data = [load_case(program, version, args.file, expansion=expansion)]
+        case_name, focus_file = resolve_case_and_focus_file(program, expansion, version, args.file)
+        case_data = [load_case(program, version, case_name, expansion=expansion)]
     else:
+        focus_file = None
         case_data = load_all_cases(program, version, expansion=expansion)
 
     if not case_data:
@@ -111,7 +145,13 @@ if __name__ == "__main__":
         Logger.to_log('')
 
         # Fokusläge: decode alla sniffade varianter
-        focus_caps = load_focus_payloads(program, expansion, version, case[0]) if getattr(args, 'focus', False) else []
+        focus_caps = load_focus_payloads(
+            program,
+            expansion,
+            version,
+            case[0],
+            focus_file=focus_file,
+        ) if getattr(args, 'focus', False) else []
         if args.promote and not focus_caps:
             Logger.error(f"[PROMOTE] Hittade inga fokusfiler för {case[0]} att promota.")
             exit(1)

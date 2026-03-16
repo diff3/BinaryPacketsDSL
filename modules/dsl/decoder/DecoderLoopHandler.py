@@ -94,8 +94,18 @@ def handle_loop_block(
 
     out_all = []
     out_public = []
+    has_io_children = any(getattr(child, "has_io", True) for child in field.children)
 
     for idx in range(loop_count):
+        if has_io_children and bitstate.offset >= len(raw_data):
+            Logger.warning(
+                f"[handle_loop] Ran out of raw data in loop '{field.name}' at index {idx}"
+            )
+            break
+
+        before_offset = bitstate.offset
+        before_bit = bitstate.bit_pos
+
         scope.push()
         scope.set("i", idx)
 
@@ -108,6 +118,16 @@ def handle_loop_block(
             out_public.append(entry_state.public)
         finally:
             scope.pop()
+
+        if (
+            has_io_children
+            and bitstate.offset == before_offset
+            and bitstate.bit_pos == before_bit
+        ):
+            Logger.warning(
+                f"[handle_loop] Loop '{field.name}' made no progress at index {idx}"
+            )
+            break
 
     state.set_field(field, out_all, public_value=out_public)
     field.value = out_all

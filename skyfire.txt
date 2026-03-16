@@ -1,0 +1,4194 @@
+[INFO] [2026-03-15 23:19:29] Mist of Pandaria 5.4.8 ProxyServer
+
+[INFO] [2026-03-15 23:19:29] [Control] Listening on IPv6@127.0.0.1:1337, IPv6@::1:1337 (telnet)
+[INFO] [2026-03-15 23:19:29] Watching protocols/wow/mop/v18414/data/def for changes
+DSL runtime load AUTH_LOGON_CHALLENGE_C [1/90] (1%)DSL runtime load AUTH_LOGON_CHALLENGE_S [2/90] (2%)DSL runtime load AUTH_LOGON_PROOF_C [3/90] (3%)    DSL runtime load AUTH_LOGON_PROOF_S [4/90] (4%)DSL runtime load AUTH_RECONNECT_CHALLENGE_C [5/90] (5%)DSL runtime load AUTH_RECONNECT_CHALLENGE_S [6/90] (6%)DSL runtime load AUTH_RECONNECT_PROOF_C [7/90] (7%)    DSL runtime load AUTH_RECONNECT_PROOF_S [8/90] (8%)DSL runtime load CMSG_AUTH_SESSION [9/90] (10%)    DSL runtime load CMSG_BATTLE_PAY_GET_PURCHASE_LIST [10/90] (11%)DSL runtime load CMSG_CHAR_CREATE [11/90] (12%)                 DSL runtime load CMSG_CHAR_DELETE [12/90] (13%)DSL runtime load CMSG_CHAT_JOIN_CHANNEL [13/90] (14%)DSL runtime load CMSG_CREATURE_QUERY [14/90] (15%)   DSL runtime load CMSG_EMOTE [15/90] (16%)         DSL runtime load CMSG_ENUM_CHARACTERS [16/90] (17%)DSL runtime load CMSG_LOADING_SCREEN_NOTIFY [17/90] (18%)DSL runtime load CMSG_LOGOUT_REQUEST [18/90] (20%)       DSL runtime load CMSG_LOG_STREAMING_ERROR [19/90] (21%)DSL runtime load CMSG_MESSAGECHAT_EMOTE [20/90] (22%)  DSL runtime load CMSG_MESSAGECHAT_SAY [21/90] (23%)  DSL runtime load CMSG_MESSAGECHAT_WHISPER [22/90] (24%)DSL runtime load CMSG_MESSAGECHAT_YELL [23/90] (25%)   DSL runtime load CMSG_OBJECT_UPDATE_FAILED [24/90] (26%)DSL runtime load CMSG_PING [25/90] (27%)                DSL runtime load CMSG_PLAYER_LOGIN [26/90] (28%)DSL runtime load CMSG_QUERY_TIME [27/90] (30%)  DSL runtime load CMSG_READY_FOR_ACCOUNT_DATA_TIMES [28/90] (31%)DSL runtime load CMSG_REORDER_CHARACTERS [29/90] (32%)          DSL runtime load CMSG_REQUEST_HOTFIX [30/90] (33%)    DSL runtime load CMSG_SEND_TEXT_EMOTE [31/90] (34%)DSL runtime load CMSG_SET_ACTIVE_MOVER [32/90] (35%)DSL runtime load CMSG_TIME_SYNC_RESPONSE [33/90] (36%)DSL runtime load CMSG_UPDATE_ACCOUNT_DATA [34/90] (37%)DSL runtime load CMSG_VIOLENCE_LEVEL [35/90] (38%)     DSL runtime load HANDSHAKE_WORLD_C [36/90] (40%)  DSL runtime load HANDSHAKE_WORLD_S [37/90] (41%)DSL runtime load MSG_MOVE_HEARTBEAT [38/90] (42%)DSL runtime load REALM_LIST_C [39/90] (43%)      DSL runtime load REALM_LIST_S [40/90] (44%)DSL runtime load SMSG_ACCOUNT_DATA_TIMES [41/90] (45%)DSL runtime load SMSG_ALL_ACHIEVEMENT_DATA [42/90] (46%)DSL runtime load SMSG_AUTH_CHALLENGE [43/90] (47%)      DSL runtime load SMSG_AUTH_RESPONSE [44/90] (48%) DSL runtime load SMSG_BIND_POINT_UPDATE [45/90] (50%)DSL runtime load SMSG_CHAR_CREATE [46/90] (51%)      DSL runtime load SMSG_CHAR_DELETE [47/90] (52%)DSL runtime load SMSG_CLIENTCACHE_VERSION [48/90] (53%)DSL runtime load SMSG_CONTACT_LIST [49/90] (54%)       DSL runtime load SMSG_CREATURE_QUERY_RESPONSE [50/90] (55%)DSL runtime load SMSG_EMOTE [51/90] (56%)                  DSL runtime load SMSG_ENUM_CHARACTERS_RESULT [52/90] (57%)DSL runtime load SMSG_FEATURE_SYSTEM_STATUS [53/90] (58%) DSL runtime load SMSG_HOTFIX_NOTIFY_BLOB [54/90] (60%)   DSL runtime load SMSG_INITIALIZE_FACTIONS [55/90] (61%)DSL runtime load SMSG_INIT_WORLD_STATES [56/90] (62%)  DSL runtime load SMSG_LOAD_EQUIPMENT_SET [57/90] (63%)DSL runtime load SMSG_LOGIN_SET_TIME_SPEED [58/90] (64%)DSL runtime load SMSG_LOGIN_VERIFY_WORLD [59/90] (65%)  DSL runtime load SMSG_LOGOUT_RESPONSE [60/90] (66%)   DSL runtime load SMSG_MESSAGECHAT [61/90] (67%)    DSL runtime load SMSG_MOTD [62/90] (68%)       DSL runtime load SMSG_MOVE_SET_ACTIVE_MOVER [63/90] (70%)DSL runtime load SMSG_NOTIFICATION [64/90] (71%)         DSL runtime load SMSG_ON_MONSTER_MOVE [65/90] (72%)DSL runtime load SMSG_PHASE_SHIFT_CHANGE [66/90] (73%)DSL runtime load SMSG_PLAYED_TIME [67/90] (74%)       DSL runtime load SMSG_PLAYER_MOVE [68/90] (75%)DSL runtime load SMSG_PONG [69/90] (76%)       DSL runtime load SMSG_PVP_SEASON [70/90] (77%)DSL runtime load SMSG_QUERY_TIME_RESPONSE [71/90] (78%)DSL runtime load SMSG_QUESTGIVER_STATUS [72/90] (80%)  DSL runtime load SMSG_REQUEST_CEMETERY_LIST_RESPONSE [73/90] (81%)DSL runtime load SMSG_SEND_KNOWN_SPELLS [74/90] (82%)             DSL runtime load SMSG_SEND_UNLEARN_SPELLS [75/90] (83%)DSL runtime load SMSG_SETUP_CURRENCY [76/90] (84%)     DSL runtime load SMSG_SET_DUNGEON_DIFFICULTY [77/90] (85%)DSL runtime load SMSG_SET_FORCED_REACTIONS [78/90] (86%)  DSL runtime load SMSG_SET_PROFICIENCY [79/90] (87%)     DSL runtime load SMSG_SET_TIME_ZONE_INFORMATION [80/90] (88%)DSL runtime load SMSG_SPELL_EXECUTE_LOG [81/90] (90%)        DSL runtime load SMSG_TEXT_EMOTE [82/90] (91%)       DSL runtime load SMSG_TIME_SYNC_REQUEST [83/90] (92%)DSL runtime load SMSG_TUTORIAL_FLAGS [84/90] (93%)   DSL runtime load SMSG_UI_TIME [85/90] (94%)       DSL runtime load SMSG_UPDATE_OBJECT [86/90] (95%)DSL runtime load SMSG_UPDATE_TALENT_DATA [87/90] (96%)DSL runtime load SMSG_UPDATE_WORLD_STATE [88/90] (97%)DSL runtime load SMSG_WEATHER [89/90] (98%)           DSL runtime load SMSG_WORLD_SERVER_INFO [90/90] (100%)
+[INFO] [2026-03-15 23:19:29] [AuthProxy] DSL runtime ready (runtime mode, no JSON)
+[INFO][INFO] [2026-03-15 23:19:29] [WorldProxy] Listening on 0.0.0.0:8085 → 192.168.11.30:8095 [2026-03-15 23:19:29] [AuthProxy] Listening on 0.0.0.0:3724 → 192.168.11.30:3720
+
+[INFO] [2026-03-15 23:19:29] Database initialized (auth + characters + world)
+[SUCCESS] [2026-03-15 23:19:33] [AuthProxy] Client connected: ('192.168.11.30', 42786)
+[INFO] [2026-03-15 23:19:33] C→S AUTH_LOGON_CHALLENGE_C (0x00)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] AUTH_LOGON_CHALLENGE_C
+{
+  "cmd": 0,
+  "error": 8,
+  "size": 34,
+  "gamename": "WoW",
+  "version1": 5,
+  "version2": 4,
+  "version3": 8,
+  "build": 18414,
+  "platform": "x86",
+  "os": "Win",
+  "country": "enGB",
+  "timezone_bias": 60,
+  "ip": "192.168.11.30",
+  "I_len": 4,
+  "username": "MAPE"
+}
+[INFO] [2026-03-15 23:19:33] S→C AUTH_LOGON_CHALLENGE_S (0x00)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] AUTH_LOGON_CHALLENGE_S
+{
+  "cmd": 0,
+  "error": 0,
+  "success": 0,
+  "B": "5e16f3cf29f0a94df55a47c5a22c425a8fe5c2764ae4458c6558e9b4bc024b01",
+  "l": 1,
+  "g": 7,
+  "blob": 32,
+  "N": "b79b3e2a87823cab8f5ebfbf8eb10108535006298b5badbd5b53e1895e644b89",
+  "s": "db9696164201cf4e49bd93fe8d1ad98102ce050fee0796649c2cbbad11d7efd5",
+  "unk3": "a84670dd3b1204a99771ba2baf856241",
+  "securityFlags": 0
+}
+[INFO] [2026-03-15 23:19:33] C→S AUTH_LOGON_PROOF_C (0x01)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] AUTH_LOGON_PROOF_C
+{
+  "cmd": 1,
+  "A": "9e42e773216e4d32ee5569520f06cf6e578a679300d561d85420523eda3eaa84",
+  "M1": "a57f38a48d2b9a2eeab5db65ae8f7a77cfdf1e28",
+  "crc_hash": "b8ea74e7748d045d59e07e45aa3a116aa231fd58",
+  "number_of_keys": 0,
+  "security_flags": 0
+}
+[INFO] [2026-03-15 23:19:33] S→C AUTH_LOGON_PROOF_S (0x01)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] AUTH_LOGON_PROOF_S
+{
+  "cmd": 1,
+  "error": 0,
+  "M2": "a2ed3ee7334c2b11cb09f8fa5d45af08b2d352cd",
+  "unk1": 32768,
+  "unk2": 0,
+  "unk3": 0
+}
+[INFO] [2026-03-15 23:19:33] C→S REALM_LIST_C (0x10)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] REALM_LIST_C
+{
+  "cmd": 16,
+  "build": 0
+}
+[SUCCESS] [2026-03-15 23:19:33] [WorldProxy] Client connected from ('192.168.11.30', 39898)
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] HANDSHAKE
+[INFO] [2026-03-15 23:19:33] S→C REALM_LIST_S (0x10)
+[SUCCESS] [2026-03-15 23:19:33] [DSL] REALM_LIST_S
+{
+  "cmd": 16,
+  "size": 48,
+  "unk1": 0,
+  "realm_list_size": 1,
+  "realmlist": [
+    {
+      "icon": 0,
+      "lock": 0,
+      "flag": 0,
+      "name": "PyPandaria",
+      "address": "192.168.11.30:8085",
+      "pop": 0.0,
+      "characters": 2,
+      "timezone": 1,
+      "realmid": 1
+    }
+  ],
+  "unk2": 16,
+  "unk3": 0
+}
+[SUCCESS] [2026-03-15 23:19:33] [WorldProxy] Client connected from ('192.168.11.30', 39906)
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] HANDSHAKE
+[INFO] [2026-03-15 23:19:33] [WorldProxy Client → Server] HANDSHAKE
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_AUTH_CHALLENGE (0x0949), size=39{
+  "uint16_0": 0,
+  "uint32_zeros": [
+    713362070,
+    782572994,
+    4180166924,
+    1363541149,
+    943318414,
+    227124428,
+    79386019,
+    2740678668
+  ],
+  "uint8_value": 1,
+  "seed": 938069933
+}
+[INFO] [2026-03-15 23:19:33] [WorldProxy Client → Server] CMSG_AUTH_SESSION (0x00B2), size=443{
+  "VirtualRealmID": 1,
+  "clientSeed": 3414063318,
+  "clientBuild": 18414,
+  "addonSize": 379,
+  "digest": "22929235964975250148183752291861721581510818668229106",
+  "addons_uncompressed_size": 1328,
+  "addons_count": 44,
+  "addons": [
+    {
+      "name": "Blizzard_AchievementUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ArchaeologyUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ArenaUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_AuctionUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_BarbershopUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_BattlefieldMinimap",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_BindingUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_BlackMarketUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_Calendar",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ChallengesUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ClientSavedVariables",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_CombatLog",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_CombatText",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_CompactRaidFrames",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_CUFProfiles",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_DebugTools",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_EncounterJournal",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GlyphUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GMChatUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GMSurveyUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GuildBankUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GuildControlUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_GuildUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_InspectUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ItemAlterationUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ItemSocketingUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ItemUpgradeUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_LookingForGuildUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_MacroUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_MovePad",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_PetBattleUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_PetJournal",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_RaidUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_ReforgingUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_TalentUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_TimeManager",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_TokenUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_TradeSkillUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_TrainerUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_VoidStorageUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_PVPUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_QuestChoice",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_StoreUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    },
+    {
+      "name": "Blizzard_AuthChallengeUI",
+      "enabled": 1,
+      "crc": 917963673,
+      "unk": 0
+    }
+  ],
+  "addons_crc": 1344024089,
+  "hasAccountBit": 0,
+  "accountNameLength": 4,
+  "account": "MAPE"
+}
+[SUCCESS] [2026-03-15 23:19:33] [WorldProxy] CMSG_AUTH_SESSION detected
+[SUCCESS] [2026-03-15 23:19:33] [WorldProxy] ARC4 initialized — switching to encrypted mode
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_AUTH_RESPONSE (0x0ABA), size=117{
+  "auth_ok": 1,
+  "realm_count": 1,
+  "realm_meta_data": [
+    {
+      "name_len": 10,
+      "normalized_len": 10,
+      "is_home": 1,
+      "class_count": 11,
+      "unk21": 0,
+      "flag0": 0,
+      "flag1": 0,
+      "flag2": 0,
+      "flag3": 0,
+      "race_count": 15,
+      "empty_bit": 0,
+      "queued": 0
+    }
+  ],
+  "realm": [
+    {
+      "realm_id": 1,
+      "realm_name": "PyPandaria",
+      "normalized_name": "PyPandaria",
+      "races": [
+        {
+          "expansion": 0,
+          "race_id": 6
+        },
+        {
+          "expansion": 0,
+          "race_id": 5
+        },
+        {
+          "expansion": 0,
+          "race_id": 2
+        },
+        {
+          "expansion": 0,
+          "race_id": 7
+        },
+        {
+          "expansion": 3,
+          "race_id": 9
+        },
+        {
+          "expansion": 0,
+          "race_id": 1
+        },
+        {
+          "expansion": 0,
+          "race_id": 8
+        },
+        {
+          "expansion": 4,
+          "race_id": 24
+        },
+        {
+          "expansion": 1,
+          "race_id": 11
+        },
+        {
+          "expansion": 3,
+          "race_id": 22
+        },
+        {
+          "expansion": 1,
+          "race_id": 10
+        },
+        {
+          "expansion": 0,
+          "race_id": 4
+        },
+        {
+          "expansion": 0,
+          "race_id": 3
+        },
+        {
+          "expansion": 4,
+          "race_id": 25
+        },
+        {
+          "expansion": 4,
+          "race_id": 26
+        }
+      ],
+      "classes": [
+        {
+          "expansion": 4,
+          "class_id": 10
+        },
+        {
+          "expansion": 0,
+          "class_id": 1
+        },
+        {
+          "expansion": 0,
+          "class_id": 2
+        },
+        {
+          "expansion": 0,
+          "class_id": 3
+        },
+        {
+          "expansion": 0,
+          "class_id": 4
+        },
+        {
+          "expansion": 0,
+          "class_id": 5
+        },
+        {
+          "expansion": 0,
+          "class_id": 7
+        },
+        {
+          "expansion": 0,
+          "class_id": 8
+        },
+        {
+          "expansion": 0,
+          "class_id": 9
+        },
+        {
+          "expansion": 0,
+          "class_id": 11
+        },
+        {
+          "expansion": 2,
+          "class_id": 6
+        }
+      ],
+      "flag1_int": 0,
+      "expansion_active": 4,
+      "flag2_int": 0,
+      "flag3_int": 0,
+      "expansion_server": 4,
+      "flag4_int": 0,
+      "flag5_int": 0,
+      "flag6_int": 0,
+      "auth_result": 12
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_ADDON_INFO (0x160A), size=286
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_CLIENTCACHE_VERSION (0x002A), size=4{
+  "version": 5
+}
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_TUTORIAL_FLAGS (0x1B90), size=32{
+  "list": [
+    19,
+    2112,
+    1024,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}
+[INFO] [2026-03-15 23:19:33] [WorldProxy Server → Client] SMSG_SET_TIME_ZONE_INFORMATION (0x19C1), size=16{
+  "len1": 7,
+  "len2": 7,
+  "time_zone1": "Etc/UTC",
+  "time_zone2": "Etc/UTC"
+}
+[INFO] [2026-03-15 23:19:34] [WorldProxy Client → Server] CMSG_READY_FOR_ACCOUNT_DATA_TIMES (0x031C), size=0
+[INFO] [2026-03-15 23:19:34] [WorldProxy Client → Server] CMSG_ENUM_CHARACTERS (0x00E0), size=0
+[INFO] [2026-03-15 23:19:34] [WorldProxy Client → Server] CMSG_BATTLE_PAY_GET_PURCHASE_LIST (0x18B2), size=0
+[INFO] [2026-03-15 23:19:34] [WorldProxy Server → Client] SMSG_ACCOUNT_DATA_TIMES (0x162B), size=41{
+  "flag": 128,
+  "timestamps": [
+    1773605182,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "mask": 21,
+  "server_time": 1773613174
+}
+[INFO] [2026-03-15 23:19:34] [WorldProxy Client → Server] CMSG_UPDATE_ACCOUNT_DATA (0x0068), size=81
+[INFO] [2026-03-15 23:19:34] [WorldProxy Server → Client] SMSG_ENUM_CHARACTERS_RESULT (0x11C3), size=563{
+  "faction_mask_bits": 0,
+  "char_count_bits": 2,
+  "chars_meta": [
+    {
+      "guildguid_4_mask": "0x00",
+      "guid_0_mask": "0x01",
+      "guildguid_3_mask": "0x00",
+      "guid_3_mask": "0x00",
+      "guid_7_mask": "0x00",
+      "boosted": 0,
+      "at_login_first": 0,
+      "guid_6_mask": "0x00",
+      "guildguid_6_mask": "0x00",
+      "name_len": 6,
+      "guid_1_mask": "0x00",
+      "guildguid_1_mask": "0x00",
+      "guildguid_0_mask": "0x00",
+      "guid_4_mask": "0x00",
+      "guildguid_7_mask": "0x00",
+      "guid_2_mask": "0x00",
+      "guid_5_mask": "0x00",
+      "guildguid_2_mask": "0x00",
+      "guildguid_5_mask": "0x00"
+    },
+    {
+      "guildguid_4_mask": "0x00",
+      "guid_0_mask": "0x01",
+      "guildguid_3_mask": "0x00",
+      "guid_3_mask": "0x00",
+      "guid_7_mask": "0x00",
+      "boosted": 0,
+      "at_login_first": 0,
+      "guid_6_mask": "0x00",
+      "guildguid_6_mask": "0x00",
+      "name_len": 6,
+      "guid_1_mask": "0x00",
+      "guildguid_1_mask": "0x00",
+      "guildguid_0_mask": "0x00",
+      "guid_4_mask": "0x00",
+      "guildguid_7_mask": "0x00",
+      "guid_2_mask": "0x00",
+      "guid_5_mask": "0x00",
+      "guildguid_2_mask": "0x00",
+      "guildguid_5_mask": "0x00"
+    }
+  ],
+  "success": 1,
+  "chars": [
+    {
+      "unk02": 0,
+      "slot": 0,
+      "hair_style": 3,
+      "name": "Selene",
+      "x": 16227.98046875,
+      "unk00": 0,
+      "face": 7,
+      "class": 4,
+      "equipment": [
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 5,
+          "display_id": 33353
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 7,
+          "display_id": 33342
+        },
+        {
+          "enchant": 0,
+          "int_type": 8,
+          "display_id": 36764
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 21,
+          "display_id": 33304
+        },
+        {
+          "enchant": 0,
+          "int_type": 22,
+          "display_id": 37170
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        }
+      ],
+      "customizationFlag": 0,
+      "petFamily": 0,
+      "mapId": 1,
+      "race": 10,
+      "skin": 1,
+      "level": 1,
+      "guid_0": "0x03",
+      "hair_color": 0,
+      "gender": 1,
+      "facial_hair": 8,
+      "pet_level": 0,
+      "y": 16290.84375,
+      "petDisplayID": 0,
+      "unk3": 0,
+      "char_flags": 0,
+      "zone": 876,
+      "z": 31.71470069885254,
+      "guid": "0x03",
+      "guildguid": "0x00"
+    },
+    {
+      "unk02": 0,
+      "slot": 1,
+      "hair_style": 10,
+      "name": "Aalden",
+      "x": -3961.639892578125,
+      "unk00": 0,
+      "face": 2,
+      "class": 2,
+      "equipment": [
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 5,
+          "display_id": 36133
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 7,
+          "display_id": 36134
+        },
+        {
+          "enchant": 0,
+          "int_type": 8,
+          "display_id": 65745
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 17,
+          "display_id": 8688
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        },
+        {
+          "enchant": 0,
+          "int_type": 0,
+          "display_id": 0
+        }
+      ],
+      "customizationFlag": 0,
+      "petFamily": 0,
+      "mapId": 530,
+      "race": 11,
+      "skin": 7,
+      "level": 1,
+      "guid_0": "0x02",
+      "hair_color": 1,
+      "gender": 1,
+      "facial_hair": 6,
+      "pet_level": 0,
+      "y": -13931.2001953125,
+      "petDisplayID": 0,
+      "unk3": 0,
+      "char_flags": 0,
+      "zone": 3526,
+      "z": 100.61499786376953,
+      "guid": "0x02",
+      "guildguid": "0x00"
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:35] [WorldProxy Client → Server] CMSG_LOADING_SCREEN_NOTIFY (0x1DBD), size=5{
+  "mapId": 1,
+  "showing": 0,
+  "unk": 128
+}
+[INFO] [2026-03-15 23:19:35] [WorldProxy Client → Server] CMSG_VIOLENCE_LEVEL (0x0040), size=1{
+  "violence_level": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_PLAYER_LOGIN (0x158F), size=6{
+  "unk_float": 1000.0,
+  "guid_blob": "\u0001\u0003"
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_HOTFIX (0x158D), size=147{
+  "seed": 63050396455978170,
+  "ids_list": [
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 503316480
+    },
+    {
+      "ids": 570425344
+    },
+    {
+      "ids": 587202560
+    },
+    {
+      "ids": 603979776
+    },
+    {
+      "ids": 620756992
+    },
+    {
+      "ids": 637534208
+    },
+    {
+      "ids": 654311424
+    },
+    {
+      "ids": 671088640
+    },
+    {
+      "ids": 687865856
+    },
+    {
+      "ids": 704643072
+    },
+    {
+      "ids": 771751936
+    },
+    {
+      "ids": 788529152
+    },
+    {
+      "ids": 805306368
+    },
+    {
+      "ids": 855638016
+    },
+    {
+      "ids": 1006632960
+    },
+    {
+      "ids": 1073741824
+    },
+    {
+      "ids": 1157627904
+    },
+    {
+      "ids": 1174405120
+    },
+    {
+      "ids": 1191182336
+    },
+    {
+      "ids": 1358954496
+    },
+    {
+      "ids": 1375731712
+    },
+    {
+      "ids": 1392508928
+    },
+    {
+      "ids": 1409286144
+    },
+    {
+      "ids": 1459617792
+    },
+    {
+      "ids": 1476395008
+    },
+    {
+      "ids": 1493172224
+    },
+    {
+      "ids": 1509949440
+    },
+    {
+      "ids": 1526726656
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_HOTFIX (0x158D), size=297{
+  "seed": 58547896340235450,
+  "ids_list": [
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 0
+    },
+    {
+      "ids": 23552
+    },
+    {
+      "ids": 23808
+    },
+    {
+      "ids": 24064
+    },
+    {
+      "ids": 24320
+    },
+    {
+      "ids": 25088
+    },
+    {
+      "ids": 25856
+    },
+    {
+      "ids": 26112
+    },
+    {
+      "ids": 26880
+    },
+    {
+      "ids": 27136
+    },
+    {
+      "ids": 27904
+    },
+    {
+      "ids": 28160
+    },
+    {
+      "ids": 28928
+    },
+    {
+      "ids": 29184
+    },
+    {
+      "ids": 29440
+    },
+    {
+      "ids": 30208
+    },
+    {
+      "ids": 30464
+    },
+    {
+      "ids": 30720
+    },
+    {
+      "ids": 32256
+    },
+    {
+      "ids": 32512
+    },
+    {
+      "ids": 33280
+    },
+    {
+      "ids": 37376
+    },
+    {
+      "ids": 37888
+    },
+    {
+      "ids": 38656
+    },
+    {
+      "ids": 38912
+    },
+    {
+      "ids": 39168
+    },
+    {
+      "ids": 39424
+    },
+    {
+      "ids": 39680
+    },
+    {
+      "ids": 41216
+    },
+    {
+      "ids": 41472
+    },
+    {
+      "ids": 41728
+    },
+    {
+      "ids": 42496
+    },
+    {
+      "ids": 42752
+    },
+    {
+      "ids": 44288
+    },
+    {
+      "ids": 44544
+    },
+    {
+      "ids": 44800
+    },
+    {
+      "ids": 45056
+    },
+    {
+      "ids": 46080
+    },
+    {
+      "ids": 46336
+    },
+    {
+      "ids": 46592
+    },
+    {
+      "ids": 46848
+    },
+    {
+      "ids": 47104
+    },
+    {
+      "ids": 47360
+    },
+    {
+      "ids": 47616
+    },
+    {
+      "ids": 47872
+    },
+    {
+      "ids": 48128
+    },
+    {
+      "ids": 48384
+    },
+    {
+      "ids": 48640
+    },
+    {
+      "ids": 48896
+    },
+    {
+      "ids": 49152
+    },
+    {
+      "ids": 49408
+    },
+    {
+      "ids": 49920
+    },
+    {
+      "ids": 50176
+    },
+    {
+      "ids": 50688
+    },
+    {
+      "ids": 50944
+    },
+    {
+      "ids": 51200
+    },
+    {
+      "ids": 51456
+    },
+    {
+      "ids": 51712
+    },
+    {
+      "ids": 51968
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 82245,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 81,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 203,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 204,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 522,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 16384,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 2382,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 3050,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 2,
+  "subMask": 4
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 9078,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 35,
+  "subMask": 4
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 9125,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 81920,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 2567,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 81924,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 264,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 81932,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 266,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 344076,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 5011,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 674,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 344077,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 196,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 344205,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 201,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 376973,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 1180,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 385165,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 15590,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 39,
+  "subMask": 4
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 9077,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_PROFICIENCY (0x1440), size=5{
+  "proficiencyMask": 385181,
+  "subMask": 2
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 198,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 813,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 822,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 28877,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 79748,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 76273,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 76297,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 669,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_DUNGEON_DIFFICULTY (0x1283), size=4{
+  "difficultyID": 1
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_LOGIN_VERIFY_WORLD (0x1C0F), size=20{
+  "x": 16227.98046875,
+  "facing": 4.336276531219482,
+  "y": 16290.84375,
+  "map": 1,
+  "z": 31.71470069885254
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_ACCOUNT_DATA_TIMES (0x162B), size=41{
+  "flag": 128,
+  "timestamps": [
+    1773613174,
+    1769076351,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1769076352
+  ],
+  "mask": 234,
+  "server_time": 1773613176
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_FEATURE_SYSTEM_STATUS (0x16BB), size=35{
+  "voice": 0,
+  "browser": 0,
+  "scroll": 0,
+  "mountpreview": 2,
+  "complaint1": 4211712,
+  "complaint2": 16777216,
+  "flags1": 167772160,
+  "flags2": 1610612736,
+  "flags3": 234
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_MOTD (0x183B), size=30{
+  "line_count": 1700233235,
+  "lines_raw": "lcome to a SkyFire server."
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_PVP_SEASON (0x069B), size=8{
+  "current_season": 14,
+  "previous_season": 15
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_TIME_ZONE_INFORMATION (0x19C1), size=16{
+  "len1": 7,
+  "len2": 7,
+  "time_zone1": "Etc/UTC",
+  "time_zone2": "Etc/UTC"
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_HOTFIX_NOTIFY_BLOB (0x1EBA), size=3
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_CONTACT_LIST (0x1F22), size=8{
+  "flags": 7,
+  "count": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_BIND_POINT_UPDATE (0x0E3B), size=20{
+  "x": 10349.599609375,
+  "y": 33.4025993347168,
+  "z": -6357.2900390625,
+  "map_id": 3431,
+  "area_id": 530
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_TALENT_DATA (0x0A9B), size=23{
+  "active_spec_group": 0,
+  "spec_group_count": 1,
+  "spec_groups": [
+    {
+      "glyph_0": 0,
+      "glyph_1": 0,
+      "glyph_2": 0,
+      "glyph_3": 0,
+      "glyph_4": 0,
+      "glyph_5": 0,
+      "spec_id": 0,
+      "talent_count": 0,
+      "talents": []
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_WORLD_SERVER_INFO (0x0082), size=10{
+  "is_tournament_realm": 0,
+  "unk0": 0,
+  "weekly_reset_time": 1773522790,
+  "flags": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SEND_KNOWN_SPELLS (0x045A), size=223{
+  "initial_login": 0,
+  "spell_count": 55,
+  "spells": [
+    {
+      "spell_id": 134735
+    },
+    {
+      "spell_id": 196
+    },
+    {
+      "spell_id": 198
+    },
+    {
+      "spell_id": 1752
+    },
+    {
+      "spell_id": 6603
+    },
+    {
+      "spell_id": 201
+    },
+    {
+      "spell_id": 9125
+    },
+    {
+      "spell_id": 22027
+    },
+    {
+      "spell_id": 203
+    },
+    {
+      "spell_id": 204
+    },
+    {
+      "spell_id": 3018
+    },
+    {
+      "spell_id": 68398
+    },
+    {
+      "spell_id": 79748
+    },
+    {
+      "spell_id": 22810
+    },
+    {
+      "spell_id": 1180
+    },
+    {
+      "spell_id": 25046
+    },
+    {
+      "spell_id": 21651
+    },
+    {
+      "spell_id": 110503
+    },
+    {
+      "spell_id": 21652
+    },
+    {
+      "spell_id": 6233
+    },
+    {
+      "spell_id": 76273
+    },
+    {
+      "spell_id": 61437
+    },
+    {
+      "spell_id": 813
+    },
+    {
+      "spell_id": 522
+    },
+    {
+      "spell_id": 6246
+    },
+    {
+      "spell_id": 6247
+    },
+    {
+      "spell_id": 3050
+    },
+    {
+      "spell_id": 8386
+    },
+    {
+      "spell_id": 2567
+    },
+    {
+      "spell_id": 822
+    },
+    {
+      "spell_id": 45927
+    },
+    {
+      "spell_id": 2764
+    },
+    {
+      "spell_id": 2382
+    },
+    {
+      "spell_id": 76297
+    },
+    {
+      "spell_id": 9077
+    },
+    {
+      "spell_id": 9078
+    },
+    {
+      "spell_id": 5011
+    },
+    {
+      "spell_id": 3365
+    },
+    {
+      "spell_id": 28877
+    },
+    {
+      "spell_id": 15590
+    },
+    {
+      "spell_id": 264
+    },
+    {
+      "spell_id": 111621
+    },
+    {
+      "spell_id": 266
+    },
+    {
+      "spell_id": 6477
+    },
+    {
+      "spell_id": 6478
+    },
+    {
+      "spell_id": 7355
+    },
+    {
+      "spell_id": 81
+    },
+    {
+      "spell_id": 82245
+    },
+    {
+      "spell_id": 669
+    },
+    {
+      "spell_id": 7266
+    },
+    {
+      "spell_id": 7267
+    },
+    {
+      "spell_id": 113873
+    },
+    {
+      "spell_id": 674
+    },
+    {
+      "spell_id": 96220
+    },
+    {
+      "spell_id": 121733
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SEND_UNLEARN_SPELLS (0x10F1), size=3{
+  "count": 0,
+  "spells": []
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_ACTION_BUTTONS (0x081A), size=137
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_INITIALIZE_FACTIONS (0x0AAA), size=1312{
+  "count": 2,
+  "factions": [
+    {
+      "flags": 16384,
+      "standing": 131072
+    },
+    {
+      "flags": 33554432,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 0
+    },
+    {
+      "flags": 131072,
+      "standing": 1073741824
+    },
+    {
+      "flags": 0,
+      "standing": 22
+    },
+    {
+      "flags": 16384,
+      "standing": 786432
+    },
+    {
+      "flags": 234881024,
+      "standing": 0
+    },
+    {
+      "flags": 25,
+      "standing": 0
+    },
+    {
+      "flags": 1114112,
+      "standing": 285212672
+    },
+    {
+      "flags": 0,
+      "standing": 17
+    },
+    {
+      "flags": 4352,
+      "standing": 393216
+    },
+    {
+      "flags": 100663296,
+      "standing": 0
+    },
+    {
+      "flags": 6,
+      "standing": 1536
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 4
+    },
+    {
+      "flags": 1024,
+      "standing": 262144
+    },
+    {
+      "flags": 100663296,
+      "standing": 0
+    },
+    {
+      "flags": 64,
+      "standing": 1024
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 4
+    },
+    {
+      "flags": 1024,
+      "standing": 262144
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 131072,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 6
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 402653184,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 1536
+    },
+    {
+      "flags": 1048576,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 24
+    },
+    {
+      "flags": 1536,
+      "standing": 1048576
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 512
+    },
+    {
+      "flags": 131072,
+      "standing": 285212672
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 5242880
+    },
+    {
+      "flags": 469762048,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 5242880,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 0,
+      "standing": 131072
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 20,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 393216
+    },
+    {
+      "flags": 2550136832,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 393216,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 131072
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 6144
+    },
+    {
+      "flags": 524288,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 6
+    },
+    {
+      "flags": 0,
+      "standing": 393216
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 201326592
+    },
+    {
+      "flags": 0,
+      "standing": 12
+    },
+    {
+      "flags": 512,
+      "standing": 1048576
+    },
+    {
+      "flags": 33554432,
+      "standing": 0
+    },
+    {
+      "flags": 4,
+      "standing": 1024
+    },
+    {
+      "flags": 262144,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4352,
+      "standing": 393216
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4,
+      "standing": 0
+    },
+    {
+      "flags": 1048576,
+      "standing": 134217728
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4096,
+      "standing": 1048576
+    },
+    {
+      "flags": 469762048,
+      "standing": 0
+    },
+    {
+      "flags": 66,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 100663296
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 393216
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 2
+    },
+    {
+      "flags": 2048,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 1048576
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 0
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 1048576
+    },
+    {
+      "flags": 268435456,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 2550136832,
+      "standing": 0
+    },
+    {
+      "flags": 152,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 1048576,
+      "standing": 268435456
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 285212672,
+      "standing": 0
+    },
+    {
+      "flags": 6,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 67108864
+    },
+    {
+      "flags": 0,
+      "standing": 16
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 4096
+    },
+    {
+      "flags": 9437184,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 33554432
+    },
+    {
+      "flags": 0,
+      "standing": 144
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 335544320,
+      "standing": 0
+    },
+    {
+      "flags": 16,
+      "standing": 4096
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 4096,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    },
+    {
+      "flags": 0,
+      "standing": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_ALL_ACHIEVEMENT_DATA (0x180A), size=1015{
+  "criteria_count": 48,
+  "achievement_count": 65792
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_LOAD_EQUIPMENT_SET (0x18E2), size=2
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_LOGIN_SET_TIME_SPEED (0x082B), size=20{
+  "unk_1": 0,
+  "game_time_1": 438535635,
+  "unk_2": 0,
+  "game_time_2": 438535635,
+  "time_speed": 0.01666666939854622
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_FORCED_REACTIONS (0x068F), size=1{
+  "faction_count": 0,
+  "reactions": []
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SETUP_CURRENCY (0x1A8B), size=34{
+  "flags": 0,
+  "currency_count": 0,
+  "currencies": [],
+  "weekly_cap_total": 4120,
+  "weekly_amount": 390,
+  "cap_index": 0,
+  "cap_value": 165000,
+  "weighted_amount": 392,
+  "weighted_cap": 0,
+  "rate_mod": 395,
+  "season_total": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_MOVE_SET_ACTIVE_MOVER (0x0C6D), size=2{
+  "moverGUID": "0x0300",
+  "moverGUID_mask": "0x02"
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_ACCOUNT_DATA (0x1D8A), size=1
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_ACCOUNT_DATA (0x1D8A), size=1
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=1353{
+  "map_id": 1,
+  "update_count": 8,
+  "updates": [
+    {
+      "update_type": 1,
+      "guid": "0x400000000000000E",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000006000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          65,
+          66
+        ],
+        "bitcount": 11
+      },
+      "fields": {
+        "hex": "0e00000000000040030000007ee30000000000000000803f0200000002000000010000003700000037000000",
+        "u32": [
+          14,
+          1073741824,
+          3,
+          58238,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          55,
+          55
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x4000000000000010",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000006000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          65,
+          66
+        ],
+        "bitcount": 11
+      },
+      "fields": {
+        "hex": "100000000000004003000000a0510000000000000000803f0200000002000000010000002800000028000000",
+        "u32": [
+          16,
+          1073741824,
+          3,
+          20896,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          40,
+          40
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x4000000000000012",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000006000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          65,
+          66
+        ],
+        "bitcount": 11
+      },
+      "fields": {
+        "hex": "120000000000004003000000a2510000000000000000803f0200000002000000010000001900000019000000",
+        "u32": [
+          18,
+          1073741824,
+          3,
+          20898,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          25,
+          25
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x400000000000000C",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000006000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          65,
+          66
+        ],
+        "bitcount": 11
+      },
+      "fields": {
+        "hex": "0c0000000000004003000000f1510000000000000000803f0200000002000000010000002300000023000000",
+        "u32": [
+          12,
+          1073741824,
+          3,
+          20977,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          35,
+          35
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x4000000000000014",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000006000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          65,
+          66
+        ],
+        "bitcount": 11
+      },
+      "fields": {
+        "hex": "14000000000000400300000089c30000000000000000803f0200000002000000010000001900000019000000",
+        "u32": [
+          20,
+          1073741824,
+          3,
+          50057,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          25,
+          25
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x4000000000000016",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30581000000000000000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16,
+          23
+        ],
+        "bitcount": 10
+      },
+      "fields": {
+        "hex": "160000000000004003000000241b0000000000000000803f02000000020000000100000001000000",
+        "u32": [
+          22,
+          1073741824,
+          3,
+          6948,
+          0,
+          1065353216,
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x4000000000000021",
+      "guid_mask": "0x81",
+      "object_type": 1,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "transport_frames": [],
+      "mask_blocks": 3,
+      "mask": {
+        "hex": "f30501000000000000000000",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          10,
+          16
+        ],
+        "bitcount": 9
+      },
+      "fields": {
+        "hex": "2100000000000040030000006d510000000000000000803f020000000200000001000000",
+        "u32": [
+          33,
+          1073741824,
+          3,
+          20845,
+          0,
+          1065353216,
+          2,
+          2,
+          1
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 2,
+      "guid": "0x02",
+      "guid_mask": "0x01",
+      "object_type": 4,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 1,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 0,
+        "has_gameobject_rotation": 0,
+        "bit_fake2": 0,
+        "bit680": 1,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 0
+      },
+      "guid1_2_mask": "0x00",
+      "bit140": 0,
+      "has_pitch_bit": 1,
+      "has_transport_data": 0,
+      "bit_fake4": 0,
+      "has_timestamp_bit": 1,
+      "guid1_6_mask": "0x00",
+      "guid1_4_mask": "0x00",
+      "guid1_3_mask": "0x00",
+      "has_orientation_bit": 0,
+      "bit160_bit": 1,
+      "guid1_5_mask": "0x00",
+      "bits98": 0,
+      "has_movement_flags_bit": 1,
+      "bits168": 0,
+      "has_fall_data": 0,
+      "has_pitch": 0,
+      "has_timestamp": 0,
+      "has_orientation": 1,
+      "bit160": 0,
+      "has_movement_flags": 0,
+      "has_spline_elevation_bit": 1,
+      "has_spline_elevation": 0,
+      "has_spline_data": 0,
+      "bit141": 0,
+      "guid1_0_mask": "0x01",
+      "guid1_7_mask": "0x00",
+      "guid1_1_mask": "0x00",
+      "has_move_flags_extra_bit": 1,
+      "has_move_flags_extra": 0,
+      "transport_frames": [],
+      "fly_speed": 7.0,
+      "turn_speed": 3.1415939331054688,
+      "swim_speed": 4.5,
+      "pitch_speed": 3.140000104904175,
+      "unk_counter": [],
+      "pos_x": 16227.98046875,
+      "orientation": 4.336276531219482,
+      "walk_speed": 2.5,
+      "pos_y": 16290.84375,
+      "fly_back_speed": 4.5,
+      "guid1_0": "0x02",
+      "run_back_speed": 2.5,
+      "run_speed": 7.0,
+      "swim_back_speed": 4.722221851348877,
+      "pos_z": 31.71470069885254,
+      "guid1": "0x02",
+      "mask_blocks": 63,
+      "mask": {
+        "hex": "d10000dc8a028062ff0f1e7c0002008022060004c02900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a200800202601e007800780000000000000000000000000000000080ff010000000000000000000000000000fe010000000000000000000000000000fe0100000000000000000000000000000000000000000000007c7f01000001000010000000000000000000000000000000000000e807fc2f0100000008000000000080003f00000000000000",
+        "set_bits": [
+          0,
+          4,
+          6,
+          7,
+          26,
+          27,
+          28,
+          30,
+          31,
+          33,
+          35,
+          39,
+          41,
+          55,
+          57,
+          61,
+          62,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          81,
+          82,
+          83,
+          84,
+          90,
+          91,
+          92,
+          93,
+          94,
+          105,
+          127,
+          129,
+          133,
+          137,
+          138,
+          154,
+          166,
+          167,
+          168,
+          171,
+          173,
+          929,
+          933,
+          935,
+          951,
+          953,
+          961,
+          973,
+          974,
+          977,
+          978,
+          979,
+          980,
+          995,
+          996,
+          997,
+          998,
+          1011,
+          1012,
+          1013,
+          1014,
+          1151,
+          1152,
+          1153,
+          1154,
+          1155,
+          1156,
+          1157,
+          1158,
+          1159,
+          1160,
+          1281,
+          1282,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          1288,
+          1409,
+          1410,
+          1411,
+          1412,
+          1413,
+          1414,
+          1415,
+          1416,
+          1610,
+          1611,
+          1612,
+          1613,
+          1614,
+          1616,
+          1617,
+          1618,
+          1619,
+          1620,
+          1621,
+          1622,
+          1624,
+          1648,
+          1676,
+          1827,
+          1829,
+          1830,
+          1831,
+          1832,
+          1833,
+          1834,
+          1842,
+          1843,
+          1844,
+          1845,
+          1846,
+          1847,
+          1848,
+          1849,
+          1850,
+          1851,
+          1853,
+          1856,
+          1891,
+          1943,
+          1952,
+          1953,
+          1954,
+          1955,
+          1956,
+          1957
+        ],
+        "bitcount": 138
+      },
+      "fields": {
+        "hex": "0200000019000000000000000000803f0000000000000000000000000a0400010300000067000000640000006700000064000000010000004a06000008000000000800006c07000040060000d0070000022bc73e0000c03f733c0000733c000000000000c82df740a88322418e265040587c85400000803f0000803f0000803f0000803f12000000190000001400000018000000130000002100000053000000260000001000000025495240922489400000803f01070300080000010100000085200000020000007ee30000a0510000a2510000f151000089c30000010000000e00000000000040100000000000004012000000000000400c00000000000040140000000000004016000000000000402100000000000040c8000000900100002b002c002d002e0036005f006d0076008900a200ad00e2009e019f01d90199030100010001000100010001002c0101002c0101000100010001000100010005000500050005000500050005002c0105002c01050005000500010001000500050051f896410000a040553e2e41553e2e41553e2e4152491d3b52491d3b52491d3b52491d3b52491d3b52491d3b1e0000000000004108000000004000002c0100000e0000000e0000000e0000000e0000000e0000000e0000000000803f0000803f0000803f0000803f0000803f0000803f0000803f0e0000000000803f0000803f0000803f0000803fffffffff5a00000015000000160000001700000018000000190000001a000000",
+        "u32": [
+          2,
+          25,
+          0,
+          1065353216,
+          0,
+          0,
+          0,
+          16778250,
+          3,
+          103,
+          100,
+          103,
+          100,
+          1,
+          1610,
+          8,
+          2048,
+          1900,
+          1600,
+          2000,
+          1053240066,
+          1069547520,
+          15475,
+          15475,
+          0,
+          1089940936,
+          1092780968,
+          1078994574,
+          1082489944,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          18,
+          25,
+          20,
+          24,
+          19,
+          33,
+          83,
+          38,
+          16,
+          1079134501,
+          1082729618,
+          1065353216,
+          198401,
+          16777224,
+          1,
+          8325,
+          2,
+          58238,
+          20896,
+          20898,
+          20977,
+          50057,
+          1,
+          14,
+          1073741824,
+          16,
+          1073741824,
+          18,
+          1073741824,
+          12,
+          1073741824,
+          20,
+          1073741824,
+          22,
+          1073741824,
+          33,
+          1073741824,
+          200,
+          400,
+          2883627,
+          3014701,
+          6225974,
+          7733357,
+          10616969,
+          14811309,
+          27197854,
+          60359129,
+          65537,
+          65537,
+          65537,
+          65836,
+          65836,
+          65537,
+          65537,
+          327681,
+          327685,
+          327685,
+          327685,
+          327980,
+          327980,
+          327685,
+          65537,
+          327685,
+          1100413009,
+          1084227584,
+          1093549653,
+          1093549653,
+          1093549653,
+          991775058,
+          991775058,
+          991775058,
+          991775058,
+          991775058,
+          991775058,
+          30,
+          1090519040,
+          8,
+          16384,
+          300,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          14,
+          1065353216,
+          1065353216,
+          1065353216,
+          1065353216,
+          4294967295,
+          90,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_SET_ACTIVE_MOVER (0x09F0), size=3{
+  "raw": " \u0000\u0003"
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=570{
+  "map_id": 1,
+  "update_count": 6,
+  "updates": [
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000006",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -4391.54443359375,
+      "stationary_z": 152.76785278320312,
+      "stationary_orientation": 0.8706339597702026,
+      "stationary_x": 1833.5076904296875,
+      "unk472": 71438445,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "060000000000c01f21000000078402000000f4500000803fd70b0000280000000000803f0ee70300010f0000000000ff",
+        "u32": [
+          6,
+          532676608,
+          33,
+          164871,
+          1358168064,
+          1065353216,
+          3031,
+          40,
+          1065353216,
+          255758,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000007",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -3840.890869140625,
+      "stationary_z": 0.0,
+      "stationary_orientation": 2.0869128704071045,
+      "stationary_x": -1006.944580078125,
+      "unk472": 71441778,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "070000000000c01f21000000485100000000ac1e0000803fc70b0000280000000000803fc6860300010f0000000000ff",
+        "u32": [
+          7,
+          532676608,
+          33,
+          20808,
+          514588672,
+          1065353216,
+          3015,
+          40,
+          1065353216,
+          231110,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000008",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": 2441.197265625,
+      "stationary_z": 0.0,
+      "stationary_orientation": 4.662179946899414,
+      "stationary_x": -4352.34814453125,
+      "unk472": 71408350,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "080000000000c01f2100000051b402000000ac310000803faf1b0000280000000000803ff7df0300010f0000000000ff",
+        "u32": [
+          8,
+          532676608,
+          33,
+          177233,
+          833355776,
+          1065353216,
+          7087,
+          40,
+          1065353216,
+          253943,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000014",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -738.1724243164062,
+      "stationary_z": 210.6576385498047,
+      "stationary_orientation": 6.201721668243408,
+      "stationary_x": -691.3047485351562,
+      "unk472": 71408350,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "140000000000c01f2100000055e802000000a1fa0000803fd70b0000280000000000803fa5010900010f0000000000ff",
+        "u32": [
+          20,
+          532676608,
+          33,
+          190549,
+          4204855296,
+          1065353216,
+          3031,
+          40,
+          1065353216,
+          590245,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000017",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -5189.60791015625,
+      "stationary_z": 7.580000400543213,
+      "stationary_orientation": 3.7290494441986084,
+      "stationary_x": 1200.232177734375,
+      "unk472": 71431843,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "170000000000c01f21000000ca1a0300000018de0000803f3e250000280000000000803f9f060500010f0000000000ff",
+        "u32": [
+          23,
+          532676608,
+          33,
+          203466,
+          3726114816,
+          1065353216,
+          9534,
+          40,
+          1065353216,
+          329375,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    },
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000018",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -5900.0,
+      "stationary_z": 325.0880126953125,
+      "stationary_orientation": 1.9386810064315796,
+      "stationary_x": 3356.68994140625,
+      "unk472": 71423130,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "180000000000c01f210000006a1b030000000ffc0000803f7a1d0000280000000000803fee310800010f0000000000ff",
+        "u32": [
+          24,
+          532676608,
+          33,
+          203626,
+          4228841472,
+          1065353216,
+          7546,
+          40,
+          1065353216,
+          537070,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_PHASE_SHIFT_CHANGE (0x02A2), size=32{
+  "phase_mask": 128,
+  "terrain_swap": 768,
+  "phase_count": 393216,
+  "phase_ids": [
+    {
+      "phase_id": 35717120
+    },
+    {
+      "phase_id": 59638443
+    },
+    {
+      "phase_id": 4
+    },
+    {
+      "phase_id": 70386383
+    },
+    {
+      "phase_id": 8
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_INIT_WORLD_STATES (0x1560), size=95{
+  "map_id": 1,
+  "zone_id": 876,
+  "area_id": 876,
+  "_unk0": 0,
+  "states": [
+    {
+      "value": 80,
+      "state_id": 578304
+    },
+    {
+      "value": 0,
+      "state_id": 578560
+    },
+    {
+      "value": 0,
+      "state_id": 578816
+    },
+    {
+      "value": 0,
+      "state_id": 579072
+    },
+    {
+      "value": 0,
+      "state_id": 579328
+    },
+    {
+      "value": 0,
+      "state_id": 579584
+    },
+    {
+      "value": 0,
+      "state_id": 594432
+    },
+    {
+      "value": 0,
+      "state_id": 594688
+    },
+    {
+      "value": 0,
+      "state_id": 594944
+    },
+    {
+      "value": 0,
+      "state_id": 595200
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 1941
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 1942
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 1943
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 2851
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 3695
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 4273
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 5361
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 5360
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 2851
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 6306
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 6408
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 6436
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_WORLD_STATE (0x121B), size=9{
+  "hidden": 0,
+  "value": 0,
+  "state_id": 7671
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_WEATHER (0x06AB), size=9{
+  "weather_type": 0,
+  "density": 0.0,
+  "abrupt": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_TIME_SYNC_REQUEST (0x1A8F), size=4{
+  "sequence_id": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_LOAD_CUF_PROFILES (0x0E32), size=29
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_GO (0x09D8), size=49
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SPELL_EXECUTE_LOG (0x00D8), size=9{
+  "casterGUID": "0x80",
+  "spellID": 836,
+  "flags": 3
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_BATTLE_PET_JOURNAL (0x1542), size=16
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_BATTLE_PET_JOURNAL_LOCK_ACQUIRED (0x1A0F), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=295{
+  "map_id": 1,
+  "update_count": 1,
+  "updates": [
+    {
+      "update_type": 0,
+      "guid": "0x02",
+      "guid_mask": "0x01",
+      "mask_blocks": 63,
+      "mask": {
+        "hex": "4000001c00000080e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "set_bits": [
+          6,
+          26,
+          27,
+          28,
+          63,
+          69,
+          70,
+          71
+        ],
+        "bitcount": 8
+      },
+      "fields": {
+        "hex": "0000000000000000000000000000000000004000733c0000733c000000000000",
+        "u32": [
+          0,
+          0,
+          0,
+          0,
+          4194304,
+          15475,
+          15475,
+          0
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_ACCOUNT_DATA (0x0AAE), size=214
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UPDATE_ACCOUNT_DATA (0x0AAE), size=967
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_PLAYED_TIME (0x03F6), size=1
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_NAME_QUERY (0x0328), size=7
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_SET_ACTIVE_MOVER (0x09F0), size=3{
+  "raw": " \u0000\u0003"
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_UNREGISTER_ALL_ADDON_PREFIXES (0x029F), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_QUERY_TIME (0x0640), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_QUEST_NPC_QUERY (0x1DAE), size=204
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_QUEST_POI_QUERY (0x10C2), size=7
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_FORCED_REACTIONS (0x06F5), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_MAIL_QUERY_NEXT_TIME (0x077B), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_BATTLEFIELD_STATUS (0x1F9E), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] UNKNOWN_CMSG_0x044E (0x044E), size=4
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_CONQUEST_FORMULA_CONSTANTS (0x0365), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_LFG_GET_STATUS (0x032D), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_LFD_LOCK_INFO_REQUEST (0x006B), size=2
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_GUILD_BANK_MONEY_WITHDRAWN_QUERY (0x14DB), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_CALENDAR_GET_NUM_PENDING (0x0813), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_BATTLE_PET_REQUEST_JOURNAL (0x0A23), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_SET_ACTIONBAR_TOGGLES (0x0672), size=1
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_PLAYED_TIME (0x11E2), size=9{
+  "total_time": 80498,
+  "level_time": 80498,
+  "show_in_chat": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUERY_PLAYER_NAME_RESPONSE (0x169B), size=30
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUERY_TIME_RESPONSE (0x100F), size=8{
+  "server_time": 1773613176,
+  "unk": 24024
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUEST_NPC_QUERY_RESPONSE (0x036D), size=3
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUEST_POI_QUERY_RESPONSE (0x067F), size=206
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_SET_FORCED_REACTIONS (0x068F), size=1{
+  "faction_count": 0,
+  "reactions": []
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] UNKNOWN_SMSG_0x089B (0x089B), size=7
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_CONQUEST_FORMULA_CONSTANTS (0x0EAB), size=20
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_RAID_INFO (0x0A87), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_GM_TICKET_GET_TICKET (0x1F89), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_VOICE_SESSION_ENABLE (0x15A9), size=1
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_GUILD_SET_ACHIEVEMENT_TRACKING (0x0CF0), size=3
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_REQUEST_CATEGORY_COOLDOWNS (0x1203), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_LOADING_SCREEN_NOTIFY (0x1DBD), size=5{
+  "mapId": 1,
+  "showing": 0,
+  "unk": 0
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] MSG_MOVE_HEARTBEAT (0x01F2), size=51{
+  "z": 31.71470069885254,
+  "x": 16227.98046875,
+  "y": 16290.84375,
+  "move_flags": 2415919104,
+  "fall_time_ms": 134234181,
+  "sequence_id": 33783808,
+  "test": [
+    27,
+    110,
+    191
+  ],
+  "facing": -0.3673074543476105,
+  "pitch": 0.0,
+  "jump_vertical_speed": 0.0,
+  "fall_time_ms_2": 0,
+  "jump_cos": 4.336276531219482,
+  "client_time_2": 631659311
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_MOVE_TIME_SKIPPED (0x0150), size=6
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_TIME_SYNC_RESPONSE (0x01DB), size=8{
+  "sequence_id": 0,
+  "client_ticks": 631659372
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_MOVE_TIME_SKIPPED (0x0150), size=6
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_GM_TICKET_CASE_STATUS (0x15A8), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_LFD_PLAYER_INFO (0x1861), size=3653
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_WORLD_STATE_UI_TIMER_UPDATE (0x15AB), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] CMSG_QUEST_GIVER_STATUS_MULTIPLE_QUERY (0x02F1), size=0
+[INFO] [2026-03-15 23:19:36] [WorldProxy Client → Server] MSG_MOVE_FALL_LAND (0x08FA), size=28
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_CALENDAR_SEND_NUM_PENDING (0x0A3F), size=4
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_RAID_INSTANCE_INFO (0x16BF), size=3
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUERY_TIME_RESPONSE (0x100F), size=8{
+  "server_time": 1773613176,
+  "unk": 24024
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_GM_TICKET_GET_TICKET (0x129B), size=5
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_CATEGORY_COOLDOWN (0x01DB), size=3
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_GM_TICKET_CASE_STATUS (0x148E), size=11
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_UI_TIME (0x0027), size=4{
+  "server_time": 1773613176
+}
+[INFO] [2026-03-15 23:19:36] [WorldProxy Server → Client] SMSG_QUEST_GIVER_STATUS_MULTIPLE (0x06CE), size=3
+[INFO] [2026-03-15 23:19:37] [WorldProxy Client → Server] CMSG_REQUEST_CEMETERY_LIST (0x06E4), size=0
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:38] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_START_TURN_RIGHT (0x107B), size=32
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_STOP_TURN (0x1170), size=28
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_JUMP (0x1153), size=52
+[INFO] [2026-03-15 23:19:39] [WorldProxy Client → Server] MSG_MOVE_HEARTBEAT (0x01F2), size=51{
+  "z": 33.28108596801758,
+  "x": 16227.98046875,
+  "y": 16290.84375,
+  "move_flags": 2415919104,
+  "fall_time_ms": 134234181,
+  "sequence_id": 2248376320,
+  "test": [
+    252,
+    127,
+    63
+  ],
+  "facing": -0.010302047245204449,
+  "pitch": 0.0,
+  "jump_vertical_speed": -7.955547332763672,
+  "fall_time_ms_2": 500,
+  "jump_cos": 1.5810985565185547,
+  "client_time_2": 631662423
+}
+[INFO] [2026-03-15 23:19:40] [WorldProxy Client → Server] MSG_MOVE_FALL_LAND (0x08FA), size=36
+[INFO] [2026-03-15 23:19:41] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=100{
+  "map_id": 1,
+  "update_count": 1,
+  "updates": [
+    {
+      "update_type": 1,
+      "guid": "0x1FC0000000000004",
+      "guid_mask": "0xC1",
+      "object_type": 5,
+      "_": {
+        "bit676": 0,
+        "has_anim_kits": 0,
+        "is_living": 0,
+        "bit810": 0,
+        "bit_fake0": 0,
+        "transport_frames": 0,
+        "has_vehicle_data": 0,
+        "bit1044": 0,
+        "bit_fake1": 0,
+        "bit476": 1,
+        "has_gameobject_rotation": 1,
+        "bit_fake2": 0,
+        "bit680": 0,
+        "has_attacking_target": 0,
+        "has_scene_object_data": 0,
+        "bit1064": 0,
+        "bit_fake3": 0,
+        "bit668": 0,
+        "has_transport_position": 0,
+        "bit681": 0,
+        "has_stationary_position": 1
+      },
+      "transport_frames": [],
+      "stationary_y": -301.6734924316406,
+      "stationary_z": 0.0,
+      "stationary_orientation": 5.699505805969238,
+      "stationary_x": -3859.727294921875,
+      "unk472": 71446892,
+      "gameobject_rotation": 0,
+      "mask_blocks": 1,
+      "mask": {
+        "hex": "f38c0e00",
+        "set_bits": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11,
+          15,
+          17,
+          18,
+          19
+        ],
+        "bitcount": 12
+      },
+      "fields": {
+        "hex": "040000000000c01f2100000067b002000000d6820000803fc70b0000280000000000803fcb820300010f0000000000ff",
+        "u32": [
+          4,
+          532676608,
+          33,
+          176231,
+          2195062784,
+          1065353216,
+          3015,
+          40,
+          1065353216,
+          230091,
+          3841,
+          4278190080
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:43] [WorldProxy Client → Server] CMSG_MESSAGECHAT_SAY (0x0A9A), size=8{
+  "language": 1,
+  "msg_len": 3,
+  "msg": "hej"
+}
+[INFO] [2026-03-15 23:19:43] [WorldProxy Server → Client] SMSG_MESSAGECHAT (0x1A9A), size=15{
+  "raw": "hej"
+}
+[INFO] [2026-03-15 23:19:45] [WorldProxy Client → Server] CMSG_LOGOUT_REQUEST (0x1349), size=0
+[INFO] [2026-03-15 23:19:45] [WorldProxy Server → Client] SMSG_LOGOUT_RESPONSE (0x008F), size=5{
+  "logout_result": 0,
+  "instant_logout": 0
+}
+[INFO] [2026-03-15 23:19:45] [WorldProxy Server → Client] SMSG_STANDSTATE_UPDATE (0x1C12), size=1
+[INFO] [2026-03-15 23:19:45] [WorldProxy Server → Client] SMSG_MOVE_ROOT (0x15AE), size=6
+[INFO] [2026-03-15 23:19:45] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=299{
+  "map_id": 1,
+  "update_count": 1,
+  "updates": [
+    {
+      "update_type": 0,
+      "guid": "0x02",
+      "guid_mask": "0x01",
+      "mask_blocks": 63,
+      "mask": {
+        "hex": "4000001c00000020e0100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "set_bits": [
+          6,
+          26,
+          27,
+          28,
+          61,
+          69,
+          70,
+          71,
+          76
+        ],
+        "bitcount": 9
+      },
+      "fields": {
+        "hex": "0000000000000000000000000000000008000400733c0000733c00000000000001000000",
+        "u32": [
+          0,
+          0,
+          0,
+          0,
+          262152,
+          15475,
+          15475,
+          0,
+          1
+        ]
+      },
+      "dynamic_mask_blocks": 0
+    }
+  ]
+}
+[INFO] [2026-03-15 23:19:45] [WorldProxy Client → Server] CMSG_FORCE_MOVE_ROOT_ACK (0x107A), size=36
+[INFO] [2026-03-15 23:19:46] [WorldProxy Server → Client] SMSG_TIME_SYNC_REQUEST (0x1A8F), size=4{
+  "sequence_id": 20
+}
+[INFO] [2026-03-15 23:19:46] [WorldProxy Client → Server] CMSG_TIME_SYNC_RESPONSE (0x01DB), size=8{
+  "sequence_id": 20,
+  "client_ticks": 631668898
+}
+[INFO] [2026-03-15 23:19:47] [WorldProxy Client → Server] CMSG_DISCARDED_TIME_SYNC_ACKS (0x115B), size=5
+[INFO] [2026-03-15 23:19:47] [WorldProxy Client → Server] CMSG_CANCEL_TRADE (0x1941), size=0
+[INFO] [2026-03-15 23:19:47] [WorldProxy Client → Server] CMSG_CANCEL_TRADE (0x1941), size=0
+[INFO] [2026-03-15 23:19:47] [WorldProxy Client → Server] CMSG_CANCEL_TRADE (0x1941), size=0
+[INFO] [2026-03-15 23:19:47] [WorldProxy Client → Server] CMSG_LOG_DISCONNECT (0x10B3), size=4
+[INFO] [2026-03-15 23:19:56] [WorldProxy Server → Client] SMSG_TIME_SYNC_REQUEST (0x1A8F), size=4{
+  "sequence_id": 21
+}
+[INFO] [2026-03-15 23:20:05] [WorldProxy Server → Client] SMSG_CANCEL_COMBAT (0x0534), size=8
+[INFO] [2026-03-15 23:20:05] [WorldProxy Server → Client] SMSG_UPDATE_OBJECT (0x1792), size=39{
+  "map_id": 1,
+  "update_count": 1,
+  "updates": [
+    {
+      "update_type": 3,
+      "out_of_range_count": 7,
+      "out_of_range": [
+        {
+          "guid": "0x1FC0000000000004",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000006",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000007",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000008",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000014",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000017",
+          "guid_mask": "0xC1"
+        },
+        {
+          "guid": "0x1FC0000000000018",
+          "guid_mask": "0xC1"
+        }
+      ]
+    }
+  ]
+}
+[INFO] [2026-03-15 23:20:05] [WorldProxy Server → Client] SMSG_LOGOUT_COMPLETE (0x142F), size=1
+[SUCCESS] [2026-03-15 23:20:05] [WorldProxy S→C] RAW (0x142F), size=1
+[SUCCESS] [2026-03-15 23:20:05] 
+b'\x00'
+[INFO] [2026-03-15 23:20:05] [WorldProxy] Connection closed

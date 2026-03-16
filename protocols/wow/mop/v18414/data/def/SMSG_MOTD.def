@@ -1,7 +1,6 @@
-# SMSG_MOTD - Done
+# SMSG_MOTD - raw line_count + null-terminated lines
 endian: little
 header:
 data:
-    meta1: B  
-    meta2: B  
-    motd: R. r
+    line_count: I
+    lines_raw: R, r

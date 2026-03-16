@@ -39,7 +39,7 @@ class PacketInterpreter:
         if active_policy.allows(name):
             if active_policy.update:
                 self.dumper.update(name, raw_header, payload, safe)
-            if active_policy.dump:
+            if active_policy.dump or active_policy.focus_dump is not None:
                 # Focus mode: dump into protocol-specific captures/focus with timestamp and debug-only JSON.
                 root = get_captures_root(focus=True) if active_policy.focus_dump is not None else None
                 ts = active_policy.timestamp() if active_policy.focus_dump is not None else None

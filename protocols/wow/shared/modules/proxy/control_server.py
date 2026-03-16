@@ -378,7 +378,7 @@ class _ControlHandler(socketserver.StreamRequestHandler):
                     candidates, prefix = choose(["on", "off"], sub)
             elif cmd == "focus":
                 if pos == 2:
-                    candidates, prefix = choose(["on", "off", "add", "rm", "clear", "list", "promote"], sub)
+                    candidates, prefix = choose(["on", "off", "all", "add", "rm", "clear", "list", "promote"], sub)
                 elif pos == 3 and sub in ("add", "rm"):
                     candidates, prefix = choose(self.server.opcodes_all, arg)
                 elif pos == 3 and sub == "promote":
@@ -749,37 +749,52 @@ class ControlServer:
     # ------------------------------------------------------------------ #
     def _handle_focus(self, args: List[str]) -> List[str]:
         if not args:
-            return ["usage: focus on|off|add <opcode>|rm <opcode>|clear|list"]
+            return ["usage: focus on|off|all|add <opcode>|rm <opcode>|clear|list"]
 
         sub = args[0].lower()
+
         if sub == "on":
             self.control_state.focus_on()
             return ["focus: on"]
+
         if sub == "off":
             self.control_state.focus_off()
             return ["focus: off"]
+
+        if sub == "all":
+            # None = wildcard (focus everything)
+            self.control_state.focus_all()
+            self.control_state.focus_on()
+            return ["focus: all"]
+
         if sub == "clear":
             self.control_state.focus_clear()
             self.control_state.focus_on()
             return ["focus: cleared"]
+
         if sub == "list":
             snap = self.control_state.snapshot()
             if snap.focus is None:
-                return ["focus: off"]
-            return ["focus: on"] + [f" - {op}" for op in sorted(snap.focus)]
+                return ["focus: all"]
+            if not snap.focus:
+                return ["focus: empty"]
+            return ["focus:"] + [f" - {op}" for op in sorted(snap.focus)]
+
         if sub == "promote" and len(args) >= 2:
             op_name = " ".join(args[1:])
             return promoter.promote_focus_opcode(op_name)
+
         if sub in ("add", "+") and len(args) >= 2:
             op_name = " ".join(args[1:])
             self.control_state.focus_add(op_name)
             return [f"focus added: {op_name}"]
+
         if sub in ("rm", "del", "-") and len(args) >= 2:
             op_name = " ".join(args[1:])
             self.control_state.focus_rm(op_name)
             return [f"focus removed: {op_name}"]
 
-        return ["usage: focus on|off|add <opcode>|rm <opcode>|clear|list"]
+        return ["usage: focus on|off|all|add <opcode>|rm <opcode>|clear|list"]
 
     # ------------------------------------------------------------------ #
     def _handle_filter(self, args: List[str]) -> List[str]:
@@ -859,11 +874,12 @@ class ControlServer:
             "  dump on | off            toggle dumping",
             "  raw on  | off            toggle raw payload logging",
             "  debug on | off           toggle decoded JSON logging",
-            "  focus on | off           enable/disable focus filtering",
+            "  focus on | off | all     enable focus, disable focus, or focus everything",
             "  focus add <op>           add opcode name to focus",
             "  focus rm  <op>           remove opcode name from focus",
             "  focus clear              empty focus list (leaves focus on)",
             "  focus list               list focused opcodes",
+            "  focus all                focus ALL opcodes (wildcard)",
             "  focus promote <op>       promote focus capture into protocols",
             "  filter add <pat>         show only packets matching pattern (e.g. CMSG_*)",
             "  filter remove <pat>      remove a filter pattern",

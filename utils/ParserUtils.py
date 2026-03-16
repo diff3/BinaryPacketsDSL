@@ -109,8 +109,9 @@ class ParserUtils:
                 raise ValueError(f"Missing ':' or '=' in field definition: '{line}'")
 
             default_val = None
-            if "=" in rest:
-                rest, default_raw = [x.strip() for x in rest.split("=", 1)]
+            default_match = re.search(r"\s=\s", rest)
+            if default_match:
+                rest, default_raw = [x.strip() for x in re.split(r"\s=\s", rest, maxsplit=1)]
                 # basic default parsing: int/hex/int-string/quoted string
                 if default_raw.startswith(("'", '"')) and default_raw.endswith(("'", '"')):
                     default_val = default_raw.strip("'\"")

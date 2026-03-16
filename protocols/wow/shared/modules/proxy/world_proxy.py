@@ -246,6 +246,7 @@ class WorldProxy:
 
                 if not state["encrypted"]:
                     # Pre-AUTH: per recv-chunk
+                    assert len(data) >= 4
                     packets = parse_plain_packets(data, "C")
                 else:
                     # Post-AUTH: stream mode
@@ -258,7 +259,6 @@ class WorldProxy:
 
                 for raw_header, h, payload in packets:
                     name = self.opcode_resolver.decode_opcode(h.cmd, "C")
-
                     opcode_int = h.cmd
                     policy, filters, ignore, whitelist, show_raw_flag, show_debug_flag = self._state_snapshot()
                     decoded_safe = self.interpreter.interpret(name, raw_header, payload, policy=policy)

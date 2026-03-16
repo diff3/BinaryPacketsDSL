@@ -89,6 +89,11 @@ class ControlState:
             self._focus.clear()
             self._persist()
 
+    def focus_all(self) -> None:
+        with self._lock:
+            self._focus = None
+            self._persist()
+
     def filter_add(self, pattern: str) -> None:
         with self._lock:
             self._filters.add(pattern)
@@ -165,7 +170,11 @@ class ControlState:
     # ---------------------------- snapshots ----------------------------
     def snapshot(self) -> ControlSnapshot:
         with self._lock:
-            focus = set(self._focus) if self._focus_enabled else None
+            if not self._focus_enabled:
+                focus = None
+            else:
+                # None betyder "all"
+                focus = None if self._focus is None else set(self._focus)
             return ControlSnapshot(
                 dump=self._dump,
                 focus=focus,

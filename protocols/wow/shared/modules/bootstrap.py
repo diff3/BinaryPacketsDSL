@@ -33,10 +33,12 @@ def load_world_handlers() -> Dict[str, Any]:
     mod = importlib.import_module(
         f"protocols.{program}.{expansion}.{version}.modules.handlers.WorldHandlers"
     )
+    print(f"protocols.{program}.{expansion}.{version}.modules.handlers.WorldHandlers")
     return {
         "opcode_handlers": getattr(mod, "opcode_handlers", {}),
         "get_auth_challenge": getattr(mod, "get_auth_challenge", None),
         "reset_state": getattr(mod, "reset_state", None),
+        "preload_cache": getattr(mod, "preload_cache", None),
     }
 
 
