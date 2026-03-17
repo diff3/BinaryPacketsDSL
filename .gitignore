@@ -16,3 +16,6 @@ protocols/**/data/json/
 
 !.keep
 !requirements.txt
+
+skyfire.txt
+PyPandaria.txt
