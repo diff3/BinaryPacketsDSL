@@ -9,6 +9,19 @@ Each packet is defined through a .def file, describing its binary layout using a
 When executed, the system parses the binary data according to the structure defined in the .def file and compares the result with the expected .json data. This allows for automated validation of protocol definitions and regression testing across protocol versions.
 
 
+## ⚠️ Project Status
+
+BinaryPacketsDSL is no longer a standalone application.
+
+It has been refactored into a modular library and is now intended to be used as part of a larger system (e.g. server + proxy setup). It does not provide a complete runtime environment on its own.
+
+If you are looking for a working setup, use the template repository which wires together DSL, server, proxy, and shared components.
+
+The last standalone version is available under the tag:
+
+    standalone-final
+
+
 **Intended Use**
 
 BinaryPacketsDSL is designed for protocol analysts, reverse engineers, and developers working with undocumented binary formats. Its DSL syntax prioritizes clarity, precision, and testability over abstraction – making it ideal for debugging live traffic or decoding archival packet captures. 
