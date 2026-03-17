@@ -6,11 +6,16 @@ data:
     language: I
     sender_guid: Q
     flags: I
-    sender_name_len: I
+
+    sender_name_len: B
     sender_name: €sender_name_len's
+
     target_guid: Q
-    target_name_len: I
+
+    target_name_len: B
     target_name: €target_name_len's
-    message_len: I
+
+    message_len: H
     message: €message_len's
+
     chat_tag: B

@@ -62,7 +62,62 @@ from .worldLogin import (
 )
 
 _LOGIN_UPDATE_OBJECT_CAPTURE_DIR = Path(__file__).resolve().parents[2] / "captures" / "focus" / "debug"
+_ACCOUNT_DATA_CAPTURE_DIR = Path(__file__).resolve().parents[2] / "captures" / "focus" / "debug"
+_ACCOUNT_DATA_BINDINGS_CAPTURE = _ACCOUNT_DATA_CAPTURE_DIR / "SMSG_UPDATE_ACCOUNT_DATA_1773657568_0001.json"
+_ACCOUNT_DATA_CAPTURE_GLOB = "SMSG_UPDATE_ACCOUNT_DATA_*.json"
 LOGIN_REPLAY_PLAYER_GUID = 0x03000100000002
+TELEPORT_DESTINATIONS: dict[str, dict[str, float | int]] = {
+    "dustquillravine": {"map_id": 530, "x": -758.534, "y": 4401.98, "z": 79.563, "orientation": 2.88658},
+    "dustfirevalley": {"map_id": 0, "x": -6440.73, "y": -1987.77, "z": 244.718, "orientation": 0.464476},
+    "duskwood": {"map_id": 0, "x": -10898.3, "y": -364.784, "z": 39.2681, "orientation": 3.04614},
+    "duskwitherspire": {"map_id": 530, "x": 9317.38, "y": -7856.4, "z": 63.2953, "orientation": 5.35693},
+    "duskwithergrounds": {"map_id": 530, "x": 9496.84, "y": -7862.65, "z": 16.1435, "orientation": 5.20221},
+    "dunemaulcompound": {"map_id": 1, "x": -7068.01, "y": -3775.59, "z": 8.75309, "orientation": 2.4421},
+    "dunmorogh": {"map_id": 0, "x": -5602.77, "y": -482.704, "z": 396.98, "orientation": 5.2341},
+    "durnholdekeep": {"map_id": 0, "x": -489.74, "y": -148.42, "z": 58.12, "orientation": 2.128},
+    "dustwallowmarsh": {"map_id": 1, "x": -3821.03, "y": -4525.71, "z": 10.52, "orientation": 1.102},
+    "eastvale": {"map_id": 0, "x": -9445.11, "y": -2231.34, "z": 69.43, "orientation": 3.48},
+    "eastplaguelands": {"map_id": 0, "x": 2280.12, "y": -5290.11, "z": 82.91, "orientation": 4.15},
+    "evergrove": {"map_id": 530, "x": 2987.12, "y": 5536.77, "z": 146.8, "orientation": 1.32},
+    "everlook": {"map_id": 1, "x": 6723.06, "y": -4659.92, "z": 720.70, "orientation": 4.72},
+    "felwood": {"map_id": 1, "x": 5483.9, "y": -749.88, "z": 335.62, "orientation": 0.98},
+    "feralas": {"map_id": 1, "x": -4841.19, "y": 1030.43, "z": 103.42, "orientation": 2.14},
+    "fireplumeridge": {"map_id": 1, "x": -7500.44, "y": -1045.33, "z": -273.11, "orientation": 5.12},
+    "gadgetzan": {"map_id": 1, "x": -7146.45, "y": -3745.91, "z": 8.75, "orientation": 0.45},
+    "gilneas": {"map_id": 0, "x": -1460.1, "y": 1665.34, "z": 20.21, "orientation": 1.73},
+    "goldshire": {"map_id": 0, "x": -9464.0, "y": 62.32, "z": 56.77, "orientation": 2.89},
+    "grimtotempost": {"map_id": 1, "x": -4695.2, "y": -1725.11, "z": 86.33, "orientation": 0.45},
+    "hammerfall": {"map_id": 0, "x": -918.22, "y": -3538.45, "z": 72.21, "orientation": 1.93},
+    "hellfire": {"map_id": 530, "x": -247.51, "y": 946.12, "z": 84.38, "orientation": 3.12},
+    "hellfirecitadel": {"map_id": 530, "x": -360.42, "y": 3073.11, "z": -15.0, "orientation": 1.77},
+    "hillsbrad": {"map_id": 0, "x": -437.12, "y": -583.19, "z": 53.1, "orientation": 0.92},
+    "honorshold": {"map_id": 530, "x": -676.98, "y": 2713.52, "z": 94.3, "orientation": 2.02},
+    "hyjal": {"map_id": 1, "x": 4673.33, "y": -3845.92, "z": 944.21, "orientation": 3.14},
+    "icecrown": {"map_id": 571, "x": 6153.77, "y": -2077.5, "z": 569.23, "orientation": 3.88},
+    "ironforge": {"map_id": 0, "x": -4981.25, "y": -881.54, "z": 502.66, "orientation": 5.40},
+    "isleofquel": {"map_id": 530, "x": 12806.5, "y": -6911.11, "z": 41.11, "orientation": 0.77},
+    "karazhan": {"map_id": 0, "x": -11118.9, "y": -2010.33, "z": 47.08, "orientation": 0.64},
+    "lakeshire": {"map_id": 0, "x": -9256.33, "y": -2211.66, "z": 64.89, "orientation": 2.13},
+    "menethilharbor": {"map_id": 0, "x": -3749.2, "y": -734.41, "z": 10.92, "orientation": 3.71},
+    "moonglade": {"map_id": 1, "x": 7996.11, "y": -2670.34, "z": 512.15, "orientation": 5.44},
+    "mulgore": {"map_id": 1, "x": -2473.87, "y": -501.22, "z": -9.42, "orientation": 4.55},
+    "nagrand": {"map_id": 530, "x": -1500.32, "y": 7090.11, "z": 36.44, "orientation": 1.77},
+    "netherstorm": {"map_id": 530, "x": 3083.77, "y": 3681.32, "z": 142.11, "orientation": 5.11},
+    "orgrimmar": {"map_id": 1, "x": 1502.78, "y": -4415.66, "z": 22.55, "orientation": 0.12},
+    "ratchet": {"map_id": 1, "x": -956.66, "y": -3754.71, "z": 5.33, "orientation": 0.60},
+    "redridge": {"map_id": 0, "x": -9205.11, "y": -2211.66, "z": 65.3, "orientation": 1.72},
+    "senjin": {"map_id": 1, "x": -1004.11, "y": -4701.44, "z": 4.92, "orientation": 0.94},
+    "shattrath": {"map_id": 530, "x": -1887.62, "y": 5359.09, "z": -12.43, "orientation": 2.13},
+    "silvermooncity": {"map_id": 530, "x": 9485.25, "y": -7279.06, "z": 14.29, "orientation": 6.16},
+    "stonetalon": {"map_id": 1, "x": 899.12, "y": 901.44, "z": 126.3, "orientation": 0.32},
+    "stormwind": {"map_id": 0, "x": -8833.07, "y": 622.778, "z": 93.9317, "orientation": 0.6771},
+    "stranglethorn": {"map_id": 0, "x": -11916.2, "y": -1215.72, "z": 92.28, "orientation": 4.31},
+    "tanaris": {"map_id": 1, "x": -6941.23, "y": -3725.88, "z": 8.83, "orientation": 2.88},
+    "teldrassil": {"map_id": 1, "x": 9945.12, "y": 2285.34, "z": 1341.11, "orientation": 1.55},
+    "thunderbluff": {"map_id": 1, "x": -1277.37, "y": 124.80, "z": 131.29, "orientation": 5.22},
+    "undercity": {"map_id": 0, "x": 1831.36, "y": 238.54, "z": 60.52, "orientation": 3.61},
+    "westfall": {"map_id": 0, "x": -10684.2, "y": 1033.63, "z": 34.12, "orientation": 1.77},
+}
 LOGIN_UPDATE_SEQUENCE = (
     "SMSG_UPDATE_OBJECT_1773586161_0001.json",
     "SMSG_UPDATE_OBJECT_1773586161_0002.json",
@@ -87,6 +142,14 @@ MOVEMENT_FOCUS_SEQUENCE = (
     ("SMSG_UPDATE_OBJECT", "SMSG_UPDATE_OBJECT_1773613205_0007.json"),
 )
 USE_RAW_ACTIVE_MOVER = False
+EXACT_UPDATE_OBJECT_BUILDERS = {
+    "SMSG_UPDATE_OBJECT_1773613176_0002.json": "SMSG_UPDATE_OBJECT_1773613176_0002",
+    "SMSG_UPDATE_OBJECT_1773613176_0003.json": "SMSG_UPDATE_OBJECT_1773613176_0003",
+    "SMSG_UPDATE_OBJECT_1773613176_0004.json": "SMSG_UPDATE_OBJECT_1773613176_0004",
+    "SMSG_UPDATE_OBJECT_1773613181_0005.json": "SMSG_UPDATE_OBJECT_1773613181_0005",
+    "SMSG_UPDATE_OBJECT_1773613185_0006.json": "SMSG_UPDATE_OBJECT_1773613185_0006",
+    "SMSG_UPDATE_OBJECT_1773613205_0007.json": "SMSG_UPDATE_OBJECT_1773613205_0007",
+}
 
 
 def _assert_player_object_sent() -> None:
@@ -113,6 +176,8 @@ def _reset_login_flow_state(*, preserve_loading_screen_done: bool = False) -> No
     session.post_loading_sent = False
     session.player_object_sent = False
     session.pending_account_data_requests = []
+    session.account_data_times_sent = False
+    session.account_data_captures_sent = False
     session.skyfire_login_stage = 0
     session.teleport_pending = False
     session.teleport_destination = None
@@ -518,6 +583,19 @@ def _build_dynamic_active_mover_packet() -> tuple[str, bytes]:
     return "SMSG_MOVE_SET_ACTIVE_MOVER", payload
 
 
+def _build_exact_update_object_packet(path: Path, *, update_index: int) -> tuple[str, bytes]:
+    builder_name = EXACT_UPDATE_OBJECT_BUILDERS.get(path.name)
+    if not builder_name:
+        raise RuntimeError(f"No exact UPDATE_OBJECT builder registered for {path.name}")
+    payload = build_login_packet(builder_name, _build_world_login_context())
+    if payload is None:
+        raise RuntimeError(f"Missing exact UPDATE_OBJECT builder for {builder_name}")
+    Logger.info(
+        f"[UPDATE_OBJECT MODE] exact source={path.name} payload={len(payload)} bytes"
+    )
+    return _make_update_object_response(payload, update_index=update_index)
+
+
 def replay_movement_focus_sequence(session: WorldSession) -> list[tuple[str, bytes]]:
     entries = [
         (opcode_name, _LOGIN_UPDATE_OBJECT_CAPTURE_DIR / filename)
@@ -553,6 +631,14 @@ def replay_movement_focus_sequence(session: WorldSession) -> list[tuple[str, byt
             f"[WorldLoginReplay] sending movement focus packet {index}/{total_packets} "
             f"opcode={opcode_name}"
         )
+        if path.name in EXACT_UPDATE_OBJECT_BUILDERS:
+            responses.append(
+                _build_exact_update_object_packet(
+                    path,
+                    update_index=index,
+                )
+            )
+            continue
         responses.append(
             send_raw_sniff_packet(
                 session,
@@ -621,6 +707,8 @@ def _queue_world_bootstrap_transition(ctx: WorldLoginContext) -> list[tuple[str,
         Logger.info(f"[WorldLogin] sending {opcode_name}")
         if opcode_name == "SMSG_LOGIN_SET_TIME_SPEED":
             Logger.info("[WorldLogin] sending SMSG_LOGIN_SETTIMESPEED")
+        if opcode_name == "SMSG_ACCOUNT_DATA_TIMES":
+            session.account_data_times_sent = True
         responses.append((opcode_name, payload))
     responses.extend(update_packets)
     for opcode_name, payload in post_update_packets:
@@ -736,6 +824,30 @@ def _encode_messagechat_payload(
     target_name: str,
     message: str,
 ) -> bytes:
+    if int(chat_type) == CHAT_MSG_SAY:
+        message_bytes = str(message or "").encode("utf-8", errors="strict")
+        # SkyFire MoP self-say uses a compact fixed header plus raw message bytes.
+        encoded_len = 0x30 + (len(message_bytes) * 0x40)
+        return (
+            bytes(
+                [
+                    0x97,
+                    0x00,
+                    0x04,
+                    0x18,
+                    0x08,
+                    (encoded_len >> 8) & 0xFF,
+                    encoded_len & 0xFF,
+                    0x00,
+                    0x03,
+                    0x01,
+                    0x03,
+                    0x01,
+                ]
+            )
+            + message_bytes
+        )
+
     sender_name_bytes = str(sender_name or "").encode("utf-8", errors="strict") + b"\x00"
     target_name_bytes = str(target_name or "").encode("utf-8", errors="strict") + b"\x00"
     message_bytes = str(message or "").encode("utf-8", errors="strict") + b"\x00"
@@ -760,35 +872,182 @@ def _encode_messagechat_payload(
 
 def _handle_chat_command(message: str) -> Optional[list[tuple[str, bytes]]]:
     command = str(message or "").strip()
+
+    # -----------------------------
+    # DEBUG POSITION
+    # -----------------------------
+    if command.lower() == ".getxy":
+        Logger.info(
+            "[GETXY] "
+            f"map={int(getattr(session, 'map_id', 0) or 0)} "
+            f"x={float(getattr(session, 'x', 0.0) or 0.0):.2f} "
+            f"y={float(getattr(session, 'y', 0.0) or 0.0):.2f} "
+            f"z={float(getattr(session, 'z', 0.0) or 0.0):.2f} "
+            f"o={float(getattr(session, 'orientation', 0.0) or 0.0):.2f}"
+        )
+        return []
+
+    # -----------------------------
+    # SPEED COMMAND
+    # -----------------------------
+    if command.lower().startswith(".speed"):
+        parts = command.split()
+
+        if len(parts) != 2:
+            Logger.info("[Speed] Usage: .speed <multiplier>")
+            return []
+
+        try:
+            speed = float(parts[1])
+        except ValueError:
+            Logger.info(f"[Speed] Invalid value command={command!r}")
+            return []
+
+        if speed <= 0:
+            Logger.info(f"[Speed] Non-positive speed command={command!r}")
+            return []
+
+        session.walk_speed = 2.5 * speed
+        session.run_speed = 7.0 * speed
+        session.run_back_speed = 4.5 * speed
+        session.swim_speed = 4.7 * speed
+        session.swim_back_speed = 2.5 * speed
+        session.fly_speed = 7.0 * speed
+        session.fly_back_speed = 4.5 * speed
+
+        Logger.info(
+            f"[Speed] multiplier={speed:.2f} "
+            f"walk={session.walk_speed:.2f} "
+            f"run={session.run_speed:.2f} "
+            f"fly={session.fly_speed:.2f}"
+        )
+
+        return []
+
+    # -----------------------------
+    # FLY COMMAND
+    # -----------------------------
+    if command.lower().startswith(".fly"):
+        parts = command.split()
+
+        if len(parts) != 2:
+            Logger.info("[Fly] Usage: .fly on|off")
+            return []
+
+        state = parts[1].lower()
+
+        if state == "on":
+            session.can_fly = True
+            session.fly_speed = max(session.fly_speed, 14.0)
+            Logger.info("[Fly] enabled")
+            return []
+
+        if state == "off":
+            session.can_fly = False
+            session.fly_speed = 7.0
+            Logger.info("[Fly] disabled")
+            return []
+
+        Logger.info("[Fly] Usage: .fly on|off")
+        return []
+
+    # -----------------------------
+    # TELEPORT XYZ
+    # -----------------------------
+    if command.lower().startswith(".telxyz"):
+        parts = command.split()
+
+        player_name = (
+            str(getattr(session, "player_name", "") or "").strip()
+            or f"Player{int(getattr(session, 'char_guid', 0) or 0)}"
+        )
+
+        if len(parts) != 6:
+            Logger.info(f"[Teleport] Invalid .telxyz syntax command={command!r}")
+            payload_out = _encode_messagechat_payload(
+                chat_type=CHAT_MSG_SAY,
+                language=0,
+                sender_guid=int(getattr(session, "player_guid", 0) or getattr(session, "world_guid", 0) or 0),
+                sender_name=player_name,
+                target_guid=0,
+                target_name="",
+                message="Usage: .telxyz <map> <x> <y> <z> <orientation>",
+            )
+            return [("SMSG_MESSAGECHAT", payload_out)]
+
+        try:
+            map_id = int(parts[1])
+            x = float(parts[2])
+            y = float(parts[3])
+            z = float(parts[4])
+            orientation = float(parts[5])
+        except (TypeError, ValueError):
+            Logger.info(f"[Teleport] Invalid .telxyz args command={command!r}")
+            return []
+
+        session.x = float(x)
+        session.y = float(y)
+        session.z = float(z)
+        session.orientation = float(orientation)
+        session.map_id = int(map_id)
+        session.instance_id = 0
+        session.teleport_pending = True
+        session.teleport_destination = f"manual:{map_id}:{x:.2f}:{y:.2f}:{z:.2f}:{orientation:.2f}"
+
+        Logger.info(
+            f"[Teleport] {player_name} -> manual ({map_id} {x:.2f} {y:.2f} {z:.2f} {orientation:.2f})"
+        )
+
+        return [
+            ("SMSG_TRANSFER_PENDING", _build_transfer_pending_payload(map_id)),
+            ("SMSG_NEW_WORLD", _build_new_world_payload(map_id, x, y, z, orientation)),
+        ]
+
+    # -----------------------------
+    # TELEPORT PRESET
+    # -----------------------------
     if not command.startswith(".tel"):
         return None
 
-    if command.lower() != ".tel stormwind":
+    parts = command.split(maxsplit=1)
+
+    if len(parts) != 2:
         Logger.info(f"[Teleport] Unknown destination command={command!r}")
         return []
 
-    map_id = 0
-    x = -8833.38
-    y = 628.62
-    z = 94.0
-    orientation = 1.06
+    destination_key = parts[1].strip().lower().replace(" ", "_")
+    destination = TELEPORT_DESTINATIONS.get(destination_key)
+
+    if destination is None:
+        Logger.info(f"[Teleport] Unknown destination command={command!r}")
+        return []
+
+    map_id = int(destination["map_id"])
+    x = float(destination["x"])
+    y = float(destination["y"])
+    z = float(destination["z"])
+    orientation = float(destination["orientation"])
 
     session.x = float(x)
     session.y = float(y)
     session.z = float(z)
     session.orientation = float(orientation)
     session.map_id = int(map_id)
-    session.zone = 1519
+
+    if "zone" in destination:
+        session.zone = int(destination["zone"])
+
     session.instance_id = 0
     session.teleport_pending = True
-    session.teleport_destination = "stormwind"
+    session.teleport_destination = destination_key
 
     player_name = (
         str(getattr(session, "player_name", "") or "").strip()
         or f"Player{int(getattr(session, 'char_guid', 0) or 0)}"
     )
+
     Logger.info(
-        f"[Teleport] {player_name} -> Stormwind ({x:.2f} {y:.2f} {z:.2f})"
+        f"[Teleport] {player_name} -> {destination_key} ({x:.2f} {y:.2f} {z:.2f})"
     )
 
     return [
@@ -816,66 +1075,29 @@ def _handle_chat_command(message: str) -> Optional[list[tuple[str, bytes]]]:
     ]
 
 
-def _handle_chat_message(opcode_name: str, payload: bytes) -> Tuple[int, Optional[list[tuple[str, bytes]]]]:
+def _handle_chat_message(opcode_name: str, payload: bytes):
+
     chat = _decode_chat_message(opcode_name, payload)
     message = chat["message"]
     if not message:
         return 0, None
 
-    command_responses = _handle_chat_command(message)
-    if command_responses is not None:
-        return 0, command_responses
+    player_name = session.player_name
+    sender_guid = session.player_guid
 
-    player_name = (
-        str(getattr(session, "player_name", "") or "").strip()
-        or f"Player{int(getattr(session, 'char_guid', 0) or 0)}"
-    )
-    chat_type = int(_CHAT_TYPE_BY_OPCODE.get(opcode_name, CHAT_MSG_SAY))
-    language = int(chat.get("language", 0) or 0)
-    sender_guid = int(getattr(session, "player_guid", 0) or getattr(session, "world_guid", 0) or 0)
-    target_guid = 0
-    target_name = str(chat.get("target", "") or "").strip()
     Logger.info(f"[CHAT] {player_name}: {message}")
 
-    try:
-        name_suffix = bytearray()
-        name_suffix.extend(str(player_name or "").encode("utf-8", errors="strict") + b"\x00")
-        name_suffix.extend(str(_get_realm_name() or "").encode("utf-8", errors="strict") + b"\x00")
-        name_suffix.extend(
-            struct.pack(
-                "<III",
-                int(getattr(session, "race", 0) or 0),
-                int(getattr(session, "gender", 0) or 0),
-                int(getattr(session, "class_id", 0) or 0),
-            )
-        )
-        name_suffix.append(0)
-        name_response = EncoderHandler.encode_packet(
-            "SMSG_QUERY_PLAYER_NAME_RESPONSE",
-            {
-                "guid": int(sender_guid),
-                "raw": bytes(name_suffix),
-            },
-        )
-        payload_out = _encode_messagechat_payload(
-            chat_type=chat_type,
-            language=language,
-            sender_guid=sender_guid,
-            sender_name=player_name,
-            target_guid=target_guid,
-            target_name=target_name,
-            message=message,
-        )
-        Logger.info(
-            f"[CHAT SEND] type={chat_type} sender={player_name} message={message}"
-        )
-        return 0, [
-            ("SMSG_QUERY_PLAYER_NAME_RESPONSE", name_response),
-            ("SMSG_MESSAGECHAT", payload_out),
-        ]
-    except Exception as exc:
-        Logger.error(f"[WorldHandlers] SMSG_MESSAGECHAT build failed: {exc}")
-        return 1, None
+    payload_out = _encode_messagechat_payload(
+        chat_type=CHAT_MSG_SAY,
+        language=1,
+        sender_guid=sender_guid,
+        sender_name=player_name,
+        target_guid=0,
+        target_name="",
+        message=message,
+    )
+
+    return 0, [("SMSG_MESSAGECHAT", payload_out)]
 
 # -----------------------------------------------------------------------------
 # Config / opcode maps
@@ -1025,10 +1247,20 @@ def _guid_mask_bits(raw: bytes, order: tuple[int, ...]) -> bytes:
     return bits.getvalue()
 
 
-def _decode_simple_query_type(payload: bytes) -> int:
+def _decode_simple_query_type_old(payload: bytes) -> int:
     if not payload:
         return 0
     return (payload[0] >> 5) & 0x07
+
+def _decode_simple_query_type(payload: bytes) -> int:
+    # MoP sends a uint32 data_type
+    if len(payload) >= 4:
+        return struct.unpack_from("<I", payload, 0)[0]
+
+    if payload:
+        return payload[0]
+
+    return 0
 
 
 def _build_update_account_data_payload(data_type: int, account_data: str = "") -> bytes:
@@ -1050,6 +1282,29 @@ def _build_update_account_data_payload(data_type: int, account_data: str = "") -
     prefix = bits.getvalue()
     payload[0 : len(prefix)] = prefix
     return bytes(payload)
+
+
+def _load_sniffed_update_account_data_payloads() -> list[tuple[str, bytes]]:
+    if not _ACCOUNT_DATA_CAPTURE_DIR.exists():
+        return []
+
+    seen_payloads: set[bytes] = set()
+    results: list[tuple[str, bytes]] = []
+    for path in sorted(_ACCOUNT_DATA_CAPTURE_DIR.glob(_ACCOUNT_DATA_CAPTURE_GLOB)):
+        payload = load_sniff_payload(path)
+        if payload in seen_payloads:
+            continue
+        seen_payloads.add(payload)
+        results.append((path.name, payload))
+    return results
+
+
+def _account_data_text_for_type(data_type: int, account_name: str = "") -> str:
+    if int(data_type) in (0, 1):
+        name = str(account_name or "").strip() or "sandbox"
+        safe_name = name.replace("\\", "\\\\").replace('"', '\\"')
+        return f'SET accountName "{safe_name}"'
+    return ""
 
 
 _ACCOUNT_DATA_PAYLOAD_CACHE: dict[tuple[int, int], bytes] = {}
@@ -2029,26 +2284,22 @@ def handle_CMSG_CREATURE_QUERY(sock: Any, opcode: int, payload: bytes) -> Tuple[
     return 0, [("SMSG_CREATURE_QUERY_RESPONSE", response)]
 
 
-def handle_CMSG_REQUEST_ACCOUNT_DATA(
-    sock: Any,
-    opcode: int,
-    payload: bytes,
-) -> Tuple[int, Optional[list[tuple[str, bytes]]]]:
-    data_type = _decode_simple_query_type(payload)
-    Logger.info(f"[WorldHandlers] CMSG_REQUEST_ACCOUNT_DATA type={data_type}")
-    if (
-        int(getattr(session, "char_guid", 0) or 0) == 2
-        and int(getattr(session, "map_id", 0) or 0) == 1
-        and int(getattr(session, "zone", 0) or 0) == 876
-    ):
-        session.pending_account_data_requests.append(int(data_type))
-        return 0, None
+def handle_CMSG_REQUEST_ACCOUNT_DATA(sock, opcode, payload):
+    data_type = payload[0]
+
+    Logger.info(f"[ACCOUNT_DATA] request type={data_type}")
+
     response = EncoderHandler.encode_packet(
         "SMSG_UPDATE_ACCOUNT_DATA",
-        {"raw": _build_update_account_data_payload(data_type, "")},
+        {
+            "type": data_type,
+            "timestamp": 0,
+            "size": 0,
+            "data": b"",
+        },
     )
-    return 0, [("SMSG_UPDATE_ACCOUNT_DATA", response)]
 
+    return 0, [("SMSG_UPDATE_ACCOUNT_DATA", response)]
 
 def handle_CMSG_REQUEST_CEMETERY_LIST(
     sock: Any,
@@ -2167,14 +2418,88 @@ def handle_CMSG_QUEST_GIVER_STATUS_QUERY(
     response = _build_questgiver_status_payload(int(guid or 0), 0)
     return 0, [("SMSG_QUESTGIVER_STATUS", response)]
 
-def handle_CMSG_MESSAGECHAT_SAY(
+def handle_CMSG_MESSAGECHAT_SAY_old(
     sock: Any,
     opcode: int,
     payload: bytes,
 ) -> Tuple[int, Optional[list[tuple[str, bytes]]]]:
     return _handle_chat_message("CMSG_MESSAGECHAT_SAY", payload)
 
+def build_query_player_name_response(guid: int) -> bytes:
+    """
+    Build SMSG_QUERY_PLAYER_NAME_RESPONSE similar to SkyFire.
+    """
 
+    name = session.player_name.encode("utf-8") + b"\x00"
+    realm = _get_realm_name().encode("utf-8") + b"\x00"
+
+    race = int(getattr(session, "race", 0))
+    gender = int(getattr(session, "gender", 0))
+    class_id = int(getattr(session, "class_id", 0))
+
+    raw = bytearray()
+    raw += name
+    raw += realm
+    raw += struct.pack("<III", race, gender, class_id)
+    raw += b"\x00"  # name_declension / padding (MoP clients expect this)
+
+    payload = EncoderHandler.encode_packet(
+        "SMSG_QUERY_PLAYER_NAME_RESPONSE",
+        {
+            "guid": guid,
+            "raw": bytes(raw),
+        },
+    )
+
+    return payload
+
+def handle_CMSG_MESSAGECHAT_SAY(sock, opcode, payload):
+
+    chat = _decode_chat_message("CMSG_MESSAGECHAT_SAY", payload)
+    message = chat["message"]
+
+    if not message:
+        return 0, None
+
+    # run chat commands
+    command_result = _handle_chat_command(message)
+    if command_result is not None:
+        return 0, command_result
+
+    name_payload = build_query_player_name_response(session.player_guid)
+    chat_payload = build_smsg_messagechat_say(message)
+
+    return 0, [
+        ("SMSG_QUERY_PLAYER_NAME_RESPONSE", name_payload),
+        ("SMSG_MESSAGECHAT", chat_payload),
+    ]
+
+def build_smsg_messagechat_say(message: str) -> bytes:
+
+    name = session.player_name.encode("utf-8")
+    msg = message.encode("utf-8")
+
+    payload = bytearray()
+
+    payload += struct.pack("<B", 0)      # CHAT_MSG_SAY
+    payload += struct.pack("<I", 1)      # language
+
+    payload += struct.pack("<Q", session.player_guid)
+    payload += struct.pack("<I", 0)      # flags
+
+    payload += struct.pack("<I", len(name))
+    payload += name
+
+    payload += struct.pack("<Q", 0)      # target guid
+
+    payload += struct.pack("<I", 0)      # target name len
+
+    payload += struct.pack("<I", len(msg))
+    payload += msg
+
+    payload += struct.pack("<B", 0)      # chat_tag
+
+    return bytes(payload)
 def handle_CMSG_MESSAGECHAT_YELL(
     sock: Any,
     opcode: int,
@@ -2207,18 +2532,18 @@ def handle_CMSG_REQUEST_HOTFIX(sock, opcode, payload):
 def handle_CMSG_READY_FOR_ACCOUNT_DATA_TIMES(sock, opcode: int, payload: bytes):
     Logger.info("[WORLD] Client ready for account data times")
 
-    packets = []
-
-    # 1. Account data times (stub räcker)
     payload = EncoderHandler.encode_packet(
         "SMSG_ACCOUNT_DATA_TIMES",
         {
-            "flag": 0x80,
+            "flag": 0,
             "timestamps": [0] * 8,
-            "mask": 0xFF,
+            "mask": 0,
             "server_time": int(time.time()),
         },
     )
+
+    session.account_data_times_sent = True
+
     return 0, [("SMSG_ACCOUNT_DATA_TIMES", payload)]
 
 def handle_CMSG_UPDATE_ACCOUNT_DATA(sock, opcode, payload):
@@ -2297,7 +2622,7 @@ opcode_handlers: Dict[str, Callable[[object, int, bytes], Tuple[int, Optional[by
     "CMSG_DISCARDED_TIME_SYNC_ACKS": handle_CMSG_DISCARDED_TIME_SYNC_ACKS,
     "CMSG_OBJECT_UPDATE_FAILED": handle_CMSG_OBJECT_UPDATE_FAILED,
     "CMSG_CREATURE_QUERY": handle_CMSG_CREATURE_QUERY,
-    "CMSG_REQUEST_ACCOUNT_DATA": handle_CMSG_REQUEST_ACCOUNT_DATA,
+  #  "CMSG_REQUEST_ACCOUNT_DATA": handle_CMSG_REQUEST_ACCOUNT_DATA,
     "CMSG_REQUEST_CEMETERY_LIST": handle_CMSG_REQUEST_CEMETERY_LIST,
     "CMSG_REQUEST_PLAYED_TIME": handle_CMSG_REQUEST_PLAYED_TIME,
     "CMSG_QUERY_TIME": handle_CMSG_QUERY_TIME,
