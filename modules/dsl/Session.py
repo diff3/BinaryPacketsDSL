@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from modules.dsl.GlobalScope import GlobalScope
+from DSL.modules.dsl.GlobalScope import GlobalScope
 
 
 class BaseNode:

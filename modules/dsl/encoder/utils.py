@@ -4,7 +4,7 @@
 import ast
 import re
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 def preprocess_condition(expr: str) -> str:

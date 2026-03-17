@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from modules.dsl.Session import get_session
-from modules.dsl.decoder.DecoderConditions import evaluate_condition
-from utils.DebugHelper import DebugHelper
+from DSL.modules.dsl.Session import get_session
+from DSL.modules.dsl.decoder.DecoderConditions import evaluate_condition
+from DSL.utils.DebugHelper import DebugHelper
 
 
 DecodeProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]

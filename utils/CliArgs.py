@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from utils.ConfigLoader import ConfigLoader
+from shared.ConfigLoader import ConfigLoader
 try:
     import argcomplete
 except ImportError:

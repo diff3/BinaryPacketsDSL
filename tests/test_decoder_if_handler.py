@@ -10,8 +10,8 @@ from typing import Any, List
 import unittest
 from unittest.mock import patch
 
-from modules.dsl.Session import BaseNode, IfNode, get_session
-from modules.dsl.decoder.DecoderIfHandler import handle_if_block
+from DSL.modules.dsl.Session import BaseNode, IfNode, get_session
+from DSL.modules.dsl.decoder.DecoderIfHandler import handle_if_block
 
 
 @dataclass

@@ -17,14 +17,14 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from modules.dsl.DecoderHandler import DecoderHandler
-from modules.dsl.EncoderHandler import EncoderHandler
-from modules.dsl.NodeTreeParser import NodeTreeParser
-from modules.dsl.Processor import load_case
-from modules.dsl.Session import get_session
-from utils.ConfigLoader import ConfigLoader
-from utils.FileUtils import FileHandler
-from utils.Logger import Logger
+from DSL.modules.dsl.DecoderHandler import DecoderHandler
+from DSL.modules.dsl.EncoderHandler import EncoderHandler
+from DSL.modules.dsl.NodeTreeParser import NodeTreeParser
+from DSL.modules.dsl.Processor import load_case
+from DSL.modules.dsl.Session import get_session
+from shared.ConfigLoader import ConfigLoader
+from shared.FileUtils import FileHandler
+from shared.Logger import Logger
 
 SIGNATURE_CHUNK_COUNT = 3
 FIELD_WIDTH_NAME = 22
@@ -259,7 +259,7 @@ class EncoderDebug:
             pass
 
         debug_file = Path(
-            f"protocols/{program}/{expansion}/{version}/data/debug/{def_name}.json"
+            f"server/data/debug/{def_name}.json"
         )
         if not debug_file.exists():
             return None

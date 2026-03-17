@@ -13,8 +13,8 @@ import ast
 import re
 from typing import Any
 
-from modules.dsl.Session import get_session
-from utils.Logger import Logger
+from DSL.modules.dsl.Session import get_session
+from shared.Logger import Logger
 
 
 def preprocess_condition(condition: str | None) -> str | None:

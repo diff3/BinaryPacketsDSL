@@ -10,9 +10,9 @@ from typing import Any
 import unittest
 from unittest.mock import patch
 
-from modules.dsl.Session import BaseNode, BitmaskNode
-from modules.dsl.bitsHandler import BitState
-from modules.dsl.decoder.DecoderBitHandlers import decode_bits_field, handle_bitmask
+from DSL.modules.dsl.Session import BaseNode, BitmaskNode
+from DSL.modules.dsl.bitsHandler import BitState
+from DSL.modules.dsl.decoder.DecoderBitHandlers import decode_bits_field, handle_bitmask
 
 
 @dataclass

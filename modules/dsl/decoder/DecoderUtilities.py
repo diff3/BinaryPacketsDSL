@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 def split_print_args(expression: str) -> list[str]:

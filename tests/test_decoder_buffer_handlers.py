@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Any
 import unittest
 
-from modules.dsl.Session import BaseNode
-from modules.dsl.decoder.DecoderBufferHandlers import (
+from DSL.modules.dsl.Session import BaseNode
+from DSL.modules.dsl.decoder.DecoderBufferHandlers import (
     handle_buffer_allocation,
     handle_buffer_assign,
     handle_buffer_io,

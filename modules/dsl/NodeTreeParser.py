@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
 
-from modules.dsl.Session import (
+from DSL.modules.dsl.Session import (
     BaseNode,
     IfNode,
     VariableNode,
@@ -28,9 +28,9 @@ from modules.dsl.Session import (
     SliceNode,
     get_session,
 )
-from modules.dsl.ModifierParser import ModifierUtils
-from utils.ParserUtils import ParserUtils
-from utils.Logger import Logger
+from DSL.modules.dsl.ModifierParser import ModifierUtils
+from DSL.utils.ParserUtils import ParserUtils
+from shared.Logger import Logger
 
 session = get_session()
 

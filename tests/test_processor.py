@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from modules.dsl import Processor
+from DSL.modules.dsl import Processor
 
 
 class ProcessorTest(unittest.TestCase):

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from modules.dsl.Session import get_session
-from utils.Logger import Logger
+from DSL.modules.dsl.Session import get_session
+from shared.Logger import Logger
 
 
 DecodeProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]

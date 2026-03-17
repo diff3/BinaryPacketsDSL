@@ -11,9 +11,9 @@ import unittest
 from unittest.mock import patch
 import zlib
 
-from modules.dsl.Session import BaseNode, get_session
-from modules.dsl.bitsHandler import BitState
-from modules.dsl.decoder.DecoderPacketHandlers import (
+from DSL.modules.dsl.Session import BaseNode, get_session
+from DSL.modules.dsl.bitsHandler import BitState
+from DSL.modules.dsl.decoder.DecoderPacketHandlers import (
     combine_guid,
     handle_packed_guid,
     handle_uncompress,

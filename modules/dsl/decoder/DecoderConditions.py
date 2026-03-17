@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from modules.dsl.decoder.DecoderExpressions import (
+from DSL.modules.dsl.decoder.DecoderExpressions import (
     preprocess_condition,
     build_eval_context,
 )

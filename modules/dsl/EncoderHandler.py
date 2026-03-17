@@ -6,13 +6,13 @@ import copy
 import zlib
 import re
 
-from modules.dsl.Processor import load_case
-from modules.dsl.NodeTreeParser import NodeTreeParser
-from modules.dsl.Session import get_session
-from modules.dsl.ModifierMapping import ModifierInterPreter
-from utils.ConfigLoader import ConfigLoader
-from modules.dsl.bitsHandler import BitWriter
-from modules.dsl.encoder.utils import (
+from DSL.modules.dsl.Processor import load_case
+from DSL.modules.dsl.NodeTreeParser import NodeTreeParser
+from DSL.modules.dsl.Session import get_session
+from DSL.modules.dsl.ModifierMapping import ModifierInterPreter
+from shared.ConfigLoader import ConfigLoader
+from DSL.modules.dsl.bitsHandler import BitWriter
+from DSL.modules.dsl.encoder.utils import (
     preprocess_condition,
     split_print_args,
     eval_print_expr,

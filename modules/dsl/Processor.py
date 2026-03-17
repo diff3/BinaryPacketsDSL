@@ -10,20 +10,18 @@ import json
 import os
 from typing import Any
 
-from modules.dsl.Session import get_session
-from protocols.wow.shared.utils.OpcodesFilter import filter_opcode
-from utils.ConfigLoader import ConfigLoader
-from utils.FileUtils import FileHandler
-from utils.Logger import Logger
+from DSL.modules.dsl.Session import get_session
+from server.modules.OpcodesFilter import filter_opcode
+from shared.ConfigLoader import ConfigLoader
+from shared.FileUtils import FileHandler
+from shared.Logger import Logger
 
 config = ConfigLoader.load_config()
 
 
 def _build_base_path(program: str, version: str, expansion: str | None) -> str:
     """Build the base protocols path for a program/version/expansion."""
-    if expansion:
-        return f"protocols/{program}/{expansion}/{version}"
-    return f"protocols/{program}/{version}"
+    return "server/"
 
 def process_case(
     program: str,

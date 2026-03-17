@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-from utils.ConfigLoader import ConfigLoader
+from shared.ConfigLoader import ConfigLoader
 
 
 def get_protocol_root(

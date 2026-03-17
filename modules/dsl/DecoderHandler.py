@@ -16,28 +16,28 @@ import re
 import struct
 from typing import Any, Callable, Optional
 
-from modules.dsl.ModifierMapping import modifiers_operation_mapping
-from modules.dsl.Session import VariableNode, get_session
-from modules.dsl.bitsHandler import BitState
-from modules.dsl.decoder.DecoderBitHandlers import decode_bits_field, handle_bitmask
-from modules.dsl.decoder.DecoderBufferHandlers import (
+from DSL.modules.dsl.ModifierMapping import modifiers_operation_mapping
+from DSL.modules.dsl.Session import VariableNode, get_session
+from DSL.modules.dsl.bitsHandler import BitState
+from DSL.modules.dsl.decoder.DecoderBitHandlers import decode_bits_field, handle_bitmask
+from DSL.modules.dsl.decoder.DecoderBufferHandlers import (
     handle_buffer_allocation,
     handle_buffer_assign,
     handle_buffer_io,
     resolve_length_expression,
 )
-from modules.dsl.decoder.DecoderExpressions import eval_expr, resolve_variable
-from modules.dsl.decoder.DecoderIfHandler import handle_if_block
-from modules.dsl.decoder.DecoderLoopHandler import handle_loop_block
-from modules.dsl.decoder.DecoderPacketHandlers import (
+from DSL.modules.dsl.decoder.DecoderExpressions import eval_expr, resolve_variable
+from DSL.modules.dsl.decoder.DecoderIfHandler import handle_if_block
+from DSL.modules.dsl.decoder.DecoderLoopHandler import handle_loop_block
+from DSL.modules.dsl.decoder.DecoderPacketHandlers import (
     combine_guid,
     handle_packed_guid,
     handle_uncompress,
 )
-from modules.dsl.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
-from modules.dsl.decoder.DecoderUtilities import split_print_args, log_print_message
-from utils.DebugHelper import DebugHelper
-from utils.Logger import Logger
+from DSL.modules.dsl.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
+from DSL.modules.dsl.decoder.DecoderUtilities import split_print_args, log_print_message
+from DSL.utils.DebugHelper import DebugHelper
+from shared.Logger import Logger
 
 
 class DecodeState:

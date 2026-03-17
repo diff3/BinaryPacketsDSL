@@ -4,7 +4,7 @@
 import importlib
 from types import ModuleType
 
-from utils.ConfigLoader import ConfigLoader
+from shared.ConfigLoader import ConfigLoader
 
 
 def load_bootstrap() -> ModuleType:

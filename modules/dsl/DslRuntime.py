@@ -15,12 +15,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from modules.dsl.DecoderHandler import DecoderHandler
-from modules.dsl.NodeTreeParser import NodeTreeParser
-from modules.dsl.Session import BlockDefinition, get_session
-from utils.ConfigLoader import ConfigLoader
-from utils.FileUtils import FileHandler
-from utils.Logger import Logger
+from DSL.modules.dsl.DecoderHandler import DecoderHandler
+from DSL.modules.dsl.NodeTreeParser import NodeTreeParser
+from DSL.modules.dsl.Session import BlockDefinition, get_session
+from shared.ConfigLoader import ConfigLoader
+from shared.FileUtils import FileHandler
+from shared.Logger import Logger
 
 try:
     from watchdog.events import FileSystemEventHandler
@@ -105,12 +105,14 @@ class DslRuntime:
         self.expansion = expansion or cfg.get("expansion")
         self.version = version or cfg["version"]
 
-        if self.expansion:
-            base = Path("protocols") / self.program / self.expansion / self.version
-        else:
-            base = Path("protocols") / self.program / self.version
-        self.def_dir = base / "data" / "def"
-        self.json_dir = base / "data" / "json"
+        # if self.expansion:
+          #  base = Path("protocols") / self.program / self.expansion / self.version
+        #else:
+         #   base = Path("protocols") / self.program / self.version
+        #self.def_dir = base / "data" / "def"
+        # self.json_dir = base / "data" / "json"
+        self.def_dir = Path("server/data/def")
+        self.json_dir = Path("server/data/json")
 
         self.cache: dict[str, CompiledDefinition] = {}
         self.lock = threading.RLock()

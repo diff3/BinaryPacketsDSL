@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.dsl.Session import (
+from DSL.modules.dsl.Session import (
     PacketSession, BaseNode, IfNode, LoopNode,
     BlockDefinition, BitmaskNode
 )
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 class SessionPrint:

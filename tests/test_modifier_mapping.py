@@ -8,7 +8,7 @@ from __future__ import annotations
 import struct
 import unittest
 
-from modules.dsl.ModifierMapping import ModifierInterPreter
+from DSL.modules.dsl.ModifierMapping import ModifierInterPreter
 
 
 class ModifierMappingTest(unittest.TestCase):

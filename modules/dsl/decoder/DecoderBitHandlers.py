@@ -8,9 +8,9 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
-from modules.dsl.ModifierMapping import modifiers_operation_mapping
-from modules.dsl.bitsHandler import BitState
-from utils.DebugHelper import DebugHelper
+from DSL.modules.dsl.ModifierMapping import modifiers_operation_mapping
+from DSL.modules.dsl.bitsHandler import BitState
+from DSL.utils.DebugHelper import DebugHelper
 
 
 ProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 import pprint
 
 

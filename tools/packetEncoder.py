@@ -4,12 +4,12 @@
 import json
 from pathlib import Path
 
-from utils.CliArgs import parse_args
-from utils.ConfigLoader import ConfigLoader
-from utils.Logger import Logger
-from utils.PathUtils import get_captures_root
-from modules.dsl.Processor import load_case
-from modules.dsl.EncoderDebug import EncoderDebug
+from DSL.utils.CliArgs import parse_args
+from shared.ConfigLoader import ConfigLoader
+from shared.Logger import Logger
+from shared.PathUtils import get_captures_root
+from DSL.modules.dsl.Processor import load_case
+from DSL.modules.dsl.EncoderDebug import EncoderDebug
 
 
 def load_json_fields(program, expansion, version, def_name):

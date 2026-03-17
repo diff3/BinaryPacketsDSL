@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, List
 import unittest
 
-from modules.dsl.Session import BaseNode, LoopNode, get_session
-from modules.dsl.decoder.DecoderLoopHandler import handle_loop_block
+from DSL.modules.dsl.Session import BaseNode, LoopNode, get_session
+from DSL.modules.dsl.decoder.DecoderLoopHandler import handle_loop_block
 
 
 @dataclass

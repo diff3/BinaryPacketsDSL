@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from modules.dsl.ModifierMapping import modifiers_operation_mapping
-from modules.dsl.decoder.DecoderExpressions import eval_expr
+from DSL.modules.dsl.ModifierMapping import modifiers_operation_mapping
+from DSL.modules.dsl.decoder.DecoderExpressions import eval_expr
 
 
 ResolveVariable = Callable[[str, dict[str, Any]], Any]

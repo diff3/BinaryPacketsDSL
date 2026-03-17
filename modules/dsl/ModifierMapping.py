@@ -9,7 +9,7 @@ import re
 import struct
 from typing import Any, Optional
 
-from modules.dsl.bitsHandler import BitInterPreter
+from DSL.modules.dsl.bitsHandler import BitInterPreter
 
 
 class ModifierInterPreter:

@@ -4,15 +4,15 @@
 from pathlib import Path
 import json
 
-from modules.dsl.DecoderHandler import DecoderHandler
-from modules.dsl.NodeTreeParser import NodeTreeParser
-from modules.dsl.Processor import load_case, load_all_cases, handle_add
-from modules.dsl.Session import get_session
-from utils.ConfigLoader import ConfigLoader
-from utils.CliArgs import parse_args
-from utils.Logger import Logger
-from utils.PrintUtils import SessionPrint
-from utils.PathUtils import get_captures_root
+from DSL.modules.dsl.DecoderHandler import DecoderHandler
+from DSL.modules.dsl.NodeTreeParser import NodeTreeParser
+from DSL.modules.dsl.Processor import load_case, load_all_cases, handle_add
+from DSL.modules.dsl.Session import get_session
+from shared.ConfigLoader import ConfigLoader
+from DSL.utils.CliArgs import parse_args
+from shared.Logger import Logger
+from DSL.utils.PrintUtils import SessionPrint
+from shared.PathUtils import get_captures_root
 
 def load_focus_payloads(program, expansion, version, case_name: str, focus_file: Path | None = None):
     root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"

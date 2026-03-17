@@ -10,7 +10,7 @@ writer that mirrors the decoder semantics.
 
 from __future__ import annotations
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 class BitInterPreter:

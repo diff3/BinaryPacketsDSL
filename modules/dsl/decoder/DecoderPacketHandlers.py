@@ -9,11 +9,11 @@ import re
 import zlib
 from typing import Any, Callable
 
-from modules.dsl.Session import BaseNode, get_session
-from modules.dsl.bitsHandler import BitState
-from modules.dsl.decoder.DecoderExpressions import eval_expr
-from utils.DebugHelper import DebugHelper
-from utils.Logger import Logger
+from DSL.modules.dsl.Session import BaseNode, get_session
+from DSL.modules.dsl.bitsHandler import BitState
+from DSL.modules.dsl.decoder.DecoderExpressions import eval_expr
+from DSL.utils.DebugHelper import DebugHelper
+from shared.Logger import Logger
 
 
 ProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]
