@@ -14,7 +14,7 @@ import re
 from typing import Any
 
 from DSL.modules.Session import get_session
-from shared.Logger import Logger
+from DSL.utils.DebugHelper import dsl_debug
 
 
 def preprocess_condition(condition: str | None) -> str | None:
@@ -86,11 +86,11 @@ def resolve_variable(key: str, result: dict[str, Any] | None) -> Any:
 
         match = re.match(r"^(\w+)(?:\[(\w+)\])?(?:\.(\w+))?$", key)
         if not match:
-            Logger.debug(f"[resolve_variable] regex miss: {original_key}")
+            dsl_debug(f"[resolve_variable] regex miss: {original_key}")
             return None
 
         base, index, subkey = match.groups()
-        Logger.debug(
+        dsl_debug(
             f"[resolve_variable] key={original_key} → base={base}, index={index}, subkey={subkey}"
         )
 
@@ -106,24 +106,24 @@ def resolve_variable(key: str, result: dict[str, Any] | None) -> Any:
             else:
                 index_value = scope.get(index, result.get(index))
 
-            Logger.debug(f"[resolve_variable] index={index!r} → {index_value!r}")
+            dsl_debug(f"[resolve_variable] index={index!r} → {index_value!r}")
             if not isinstance(index_value, int):
                 return None
 
             try:
                 value = value[index_value]
             except Exception:
-                Logger.debug(f"[resolve_variable] index error {base}[{index_value}]")
+                dsl_debug(f"[resolve_variable] index error {base}[{index_value}]")
                 return None
 
         if subkey is not None:
             try:
                 value = value[subkey]
             except Exception:
-                Logger.debug(f"[resolve_variable] subkey error {base}.{subkey}")
+                dsl_debug(f"[resolve_variable] subkey error {base}.{subkey}")
                 return None
 
-        Logger.debug(f"[resolve_variable] resolved {original_key!r} → {value!r}")
+        dsl_debug(f"[resolve_variable] resolved {original_key!r} → {value!r}")
         return value
 
     try:

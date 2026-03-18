@@ -4,6 +4,7 @@
 import ast
 import re
 
+from DSL.utils.DebugHelper import dsl_debug
 from shared.Logger import Logger
 
 
@@ -149,4 +150,4 @@ def log_print_message(level: str, msg: str):
     elif lvl in ("script", "sc"):
         Logger.script(msg)
     else:
-        Logger.debug(msg)
+        dsl_debug(msg)

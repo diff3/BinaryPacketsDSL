@@ -18,9 +18,10 @@ from typing import Any, Optional
 from DSL.modules.DecoderHandler import DecoderHandler
 from DSL.modules.NodeTreeParser import NodeTreeParser
 from DSL.modules.Session import BlockDefinition, get_session
+from DSL.utils.DebugHelper import dsl_debug
 from shared.FileUtils import FileHandler
 from shared.Logger import Logger
-from shared.PathUtils import get_def_root, get_json_root
+from shared.PathUtils import get_def_root, get_json_root, get_project_root
 
 try:
     from watchdog.events import FileSystemEventHandler
@@ -130,23 +131,31 @@ class DslRuntime:
             self.compile_file(path)
             Logger.progress("DSL load", idx, total, inline=True, detail=path.stem)
 
-    def load_runtime_all(self) -> None:
+    def load_runtime_all(self, progress: bool = False) -> tuple[int, int]:
         """Compile all .def files without loading expected JSON."""
         if not self.def_dir.exists():
             Logger.warning(f"DEF directory not found: {self.def_dir}")
-            return
+            return 0, 0
 
         paths = sorted(self.def_dir.glob("*.def"))
         if not paths:
             Logger.warning(f"No def files found in {self.def_dir}")
-            return
+            return 0, 0
 
         total = len(paths)
         for idx, path in enumerate(paths, start=1):
-            self.compile_file_runtime(path)
-            Logger.progress("DSL runtime load", idx, total, inline=True, detail=path.stem)
+            self.compile_file_runtime(path, log_cache=False)
+            if progress:
+                Logger.progress("DSL runtime load", idx, total, inline=True, detail=path.stem)
+        return total, total
 
-    def decode(self, name: str, payload: bytes, silent: bool = False) -> dict[str, Any]:
+    def decode(
+        self,
+        name: str,
+        payload: bytes,
+        silent: bool = False,
+        warn: bool = True,
+    ) -> dict[str, Any]:
         """Decode a packet payload using the cached definition.
 
         Args:
@@ -158,7 +167,8 @@ class DslRuntime:
             dict[str, Any]: Decoded public fields.
         """
         compiled = self.cache.get(name) or self.compile_file(
-            self.def_dir / f"{name}.def"
+            self.def_dir / f"{name}.def",
+            warn_missing=warn,
         )
         if not compiled:
             raise FileNotFoundError(f"Missing def for {name}")
@@ -183,6 +193,7 @@ class DslRuntime:
             return DecoderHandler.decode(
                 (name, compiled.lines, payload, compiled.expected or {}),
                 silent=silent,
+                warn=warn,
             )
 
     def stop(self) -> None:
@@ -197,11 +208,14 @@ class DslRuntime:
         path: Path,
         force: bool = False,
         log_prefix: str = "",
+        log_cache: bool = True,
+        warn_missing: bool = True,
     ) -> Optional[CompiledDefinition]:
         """Compile a .def file and cache it along with expected JSON."""
         path = Path(path)
         if not path.exists():
-            Logger.warning(f"{log_prefix} Missing def file: {path}")
+            if warn_missing:
+                Logger.warning(f"{log_prefix} Missing file {path.name}")
             return None
 
         name = path.stem
@@ -242,7 +256,8 @@ class DslRuntime:
             )
 
             self.cache[name] = compiled
-            Logger.debug(f"{log_prefix}Cached {name} ({len(compiled.fields)} fields)")
+            if log_cache:
+                dsl_debug(f"{log_prefix}Cached {name} ({len(compiled.fields)} fields)")
             return compiled
 
     def compile_file_runtime(
@@ -250,11 +265,12 @@ class DslRuntime:
         path: Path,
         force: bool = False,
         log_prefix: str = "",
+        log_cache: bool = True,
     ) -> Optional[CompiledDefinition]:
         """Compile a .def file without loading expected JSON."""
         path = Path(path)
         if not path.exists():
-            Logger.warning(f"{log_prefix} Missing def file: {path}")
+            Logger.warning(f"{log_prefix} Missing file {path.name}")
             return None
 
         name = path.stem
@@ -289,7 +305,8 @@ class DslRuntime:
             )
 
             self.cache[name] = compiled
-            Logger.debug(f"{log_prefix}Runtime cached {name} ({len(compiled.fields)} fields)")
+            if log_cache:
+                dsl_debug(f"{log_prefix}Runtime cached {name} ({len(compiled.fields)} fields)")
             return compiled
 
     def drop(self, name: str) -> None:
@@ -313,7 +330,12 @@ class DslRuntime:
         self.observer = Observer()
         self.observer.schedule(handler, str(self.def_dir), recursive=False)
         self.observer.start()
-        Logger.info(f"Watching {self.def_dir} for changes")
+        try:
+            relative = self.def_dir.relative_to(get_project_root())
+            watch_path = f"[{relative.as_posix()}]"
+        except Exception:
+            watch_path = f"[{self.def_dir}]"
+        Logger.info(f"Watching {watch_path} for changes")
 
 
 __all__ = ["DslRuntime", "CompiledDefinition"]

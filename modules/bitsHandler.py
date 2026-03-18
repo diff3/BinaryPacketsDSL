@@ -10,7 +10,7 @@ writer that mirrors the decoder semantics.
 
 from __future__ import annotations
 
-from shared.Logger import Logger
+from DSL.utils.DebugHelper import dsl_debug
 
 
 class BitInterPreter:
@@ -170,7 +170,7 @@ class BitState:
         self.bit_pos = new_bit_pos
 
     def debug(self, label: str = "") -> None:
-        Logger.debug(f"[BitState] {label} → offset={self.offset}, bit_pos={self.bit_pos}")
+        dsl_debug(f"[BitState] {label} → offset={self.offset}, bit_pos={self.bit_pos}")
 
 
 class BitWriter:

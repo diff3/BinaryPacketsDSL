@@ -212,6 +212,9 @@ class PacketSession:
         self.fields: list[BaseNode] = []
         self.blocks: dict[str, BlockDefinition] = {}
         self.variables: dict[str, Any] = {}
+        self.case_name: str = ""
+        self.silent: bool = False
+        self.warn: bool = True
         self.scope = GlobalScope()
 
     def reset(self) -> None:
@@ -219,6 +222,9 @@ class PacketSession:
         self.fields = []
         self.blocks = {}
         self.variables = {}
+        self.case_name = ""
+        self.silent = False
+        self.warn = True
         self.scope = GlobalScope()
 
 

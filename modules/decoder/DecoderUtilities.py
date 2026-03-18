@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from DSL.utils.DebugHelper import dsl_debug
 from shared.Logger import Logger
 
 
@@ -98,4 +99,4 @@ def log_print_message(level: str, message: str) -> None:
     elif normalized_level in ("script", "sc"):
         Logger.script(message)
     else:
-        Logger.debug(message)
+        dsl_debug(message)

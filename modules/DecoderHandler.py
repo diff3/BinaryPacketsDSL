@@ -36,7 +36,7 @@ from DSL.modules.decoder.DecoderPacketHandlers import (
 )
 from DSL.modules.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
 from DSL.modules.decoder.DecoderUtilities import split_print_args, log_print_message
-from DSL.utils.DebugHelper import DebugHelper
+from DSL.utils.DebugHelper import DebugHelper, dsl_debug, dsl_debug_enabled
 from shared.Logger import Logger
 
 
@@ -657,7 +657,7 @@ class DecoderHandler:
         return field, True, endian
 
     @staticmethod
-    def decode(case: tuple, silent: bool = False) -> dict[str, Any]:
+    def decode(case: tuple, silent: bool = False, warn: bool = True) -> dict[str, Any]:
         """Decode a case tuple into a public field dictionary.
 
         Args:
@@ -677,20 +677,23 @@ class DecoderHandler:
 
         session.scope.global_vars.clear()
         session.scope.scope_stack.clear()
+        session.silent = silent
+        session.warn = warn
 
-        Logger.debug("\n[RAW NODE TREE BEFORE DECODING]\n")
+        if dsl_debug_enabled():
+            dsl_debug("\n[RAW NODE TREE BEFORE DECODING]\n")
 
-        for idx, field in enumerate(session.fields, start=1):
-            Logger.debug(f"[{idx}] {field.__class__.__name__}  name='{field.name}'  interp='{field.interpreter}' fmt='{field.format}' ignore={field.ignore}")
-            
-            # Show all attributes from BaseNode.
-            Logger.debug("    " + ", ".join(f"{k}={v!r}" for k,v in field.__dict__.items() if k not in ("children","nodes")))
+            for idx, field in enumerate(session.fields, start=1):
+                dsl_debug(f"[{idx}] {field.__class__.__name__}  name='{field.name}'  interp='{field.interpreter}' fmt='{field.format}' ignore={field.ignore}")
+                
+                # Show all attributes from BaseNode.
+                dsl_debug("    " + ", ".join(f"{k}={v!r}" for k,v in field.__dict__.items() if k not in ("children","nodes")))
 
-            # Show children for LoopNode/IfNode/Bitmask/BlockDefinition/RandSeq.
-            if hasattr(field, "children"):
-                Logger.debug("    CHILDREN:")
-                for cidx, child in enumerate(field.children, start=1):
-                    Logger.debug(f"        [{cidx}] {child.__class__.__name__} name='{child.name}' fmt='{child.format}' interp='{child.interpreter}'")
+                # Show children for LoopNode/IfNode/Bitmask/BlockDefinition/RandSeq.
+                if hasattr(field, "children"):
+                    dsl_debug("    CHILDREN:")
+                    for cidx, child in enumerate(field.children, start=1):
+                        dsl_debug(f"        [{cidx}] {child.__class__.__name__} name='{child.name}' fmt='{child.format}' interp='{child.interpreter}'")
 
         i = 0
         while i < len(fields):
@@ -709,7 +712,8 @@ class DecoderHandler:
                     fields[i] = field
                     i += 1
                     continue
-                Logger.warning(f"Ran out of raw data before field '{getattr(field, 'name', '?')}'")
+                if session.warn:
+                    Logger.warning(f"Ran out of raw data before field '{getattr(field, 'name', '?')}'")
                 break
             
             field, _, endian = DecoderHandler._process_field(
@@ -728,35 +732,39 @@ class DecoderHandler:
         except TypeError:
             Logger.error("FAILED RESULT (non-serializable type)")
 
-        Logger.debug("[FINAL STATE DUMP]")
+        if dsl_debug_enabled():
+            dsl_debug("[FINAL STATE DUMP]")
 
-        # 1. Dump all global vars
-        if session.scope.global_vars:
-            Logger.debug("Global Vars:")
-            for k, v in session.scope.global_vars.items():
-                Logger.debug(f"    {k} = {v}")
-        else:
-            Logger.debug("Global Vars: (empty)")
+            # 1. Dump all global vars
+            if session.scope.global_vars:
+                dsl_debug("Global Vars:")
+                for k, v in session.scope.global_vars.items():
+                    dsl_debug(f"    {k} = {v}")
+            else:
+                dsl_debug("Global Vars: (empty)")
 
-        # 2. Dump all local scopes
-        if session.scope.scope_stack:
-            Logger.debug("Local Scopes:")
-            for idx, frame in enumerate(session.scope.scope_stack):
-                Logger.debug(f"  Frame {idx}:")
-                for k, v in frame.items():
-                    Logger.debug(f"      {k} = {v}")
-        else:
-            Logger.debug("Local Scopes: (empty)")
+            # 2. Dump all local scopes
+            if session.scope.scope_stack:
+                dsl_debug("Local Scopes:")
+                for idx, frame in enumerate(session.scope.scope_stack):
+                    dsl_debug(f"  Frame {idx}:")
+                    for k, v in frame.items():
+                        dsl_debug(f"      {k} = {v}")
+            else:
+                dsl_debug("Local Scopes: (empty)")
 
-        # 3. Dump the RESULT dict (this is the real parsed data)
-        if state.public:
-            Logger.debug("Result Fields:")
-            for k, v in state.public.items():
-                Logger.debug(f"    {k} = {v}")
-        else:
-            Logger.debug("Result Fields: (empty)")
+            # 3. Dump the RESULT dict (this is the real parsed data)
+            if state.public:
+                dsl_debug("Result Fields:")
+                for k, v in state.public.items():
+                    dsl_debug(f"    {k} = {v}")
+            else:
+                dsl_debug("Result Fields: (empty)")
 
-        Logger.debug("===================================================")
+            dsl_debug("===================================================")
+
+        session.silent = False
+        session.warn = True
 
         return state.public
 
@@ -876,8 +884,10 @@ class DecoderHandler:
                 value = struct.unpack_from(f"{endian}{fmt}", raw_data, start)[0]
 
         except struct.error as e:
-            Logger.warning("Struct unpack error")
-            Logger.debug(f"fmt={fmt} error={e}")
+            session = get_session()
+            if getattr(session, "warn", True) and not getattr(session, "silent", False):
+                Logger.warning("Struct unpack error")
+            dsl_debug(f"fmt={fmt} error={e}")
             field.value = None
             field.raw_offset = start
             field.raw_length = 0

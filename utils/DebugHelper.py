@@ -1,8 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from shared.ConfigLoader import ConfigLoader
 from shared.Logger import Logger
 import pprint
+
+
+def dsl_debug_enabled() -> bool:
+    """Return True when internal DSL debug output is enabled."""
+    try:
+        cfg = ConfigLoader.get_config()
+        return bool(cfg.get("dsl", {}).get("debug", False))
+    except Exception:
+        return False
+
+
+def dsl_debug(message: str) -> None:
+    """Emit a debug message only when DSL debug is explicitly enabled."""
+    if dsl_debug_enabled():
+        Logger.debug(message)
 
 
 class DebugHelper:
@@ -18,19 +34,19 @@ class DebugHelper:
         """
 
         if node is None:
-            Logger.debug(f"[NODE STATE @ {label}] <None>")
+            dsl_debug(f"[NODE STATE @ {label}] <None>")
             return
 
-        Logger.debug(f"\n[NODE STATE @ {label}] type={type(node).__name__}")
+        dsl_debug(f"\n[NODE STATE @ {label}] type={type(node).__name__}")
 
         # dump node.__dict__ in readable form
         try:
             pretty = pprint.pformat(node.__dict__, indent=4, width=120)
-            Logger.debug(pretty)
+            dsl_debug(pretty)
         except Exception as e:
-            Logger.debug(f"Failed to print node: {e}")
+            dsl_debug(f"Failed to print node: {e}")
 
-        Logger.debug("")  # extra spacing
+        dsl_debug("")  # extra spacing
 
     @staticmethod
     def trace_field(field, bitstate=None, label_prefix="after"):

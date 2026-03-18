@@ -77,6 +77,7 @@ class NodeTreeParser:
         session.fields = []
         session.blocks = {}
         session.variables = {}
+        session.case_name = name
 
         # Remove comments, strip reserved keywords
         lines = ParserUtils.remove_comments_and_reserved(lines)
@@ -284,7 +285,8 @@ class NodeTreeParser:
             node.value = N
             return node
 
-        Logger.warning(f"Malformed padding '{line}'")
+        suffix = f" in {session.case_name}.def" if getattr(session, "case_name", "") else ""
+        Logger.warning(f"Malformed padding '{line}'{suffix}")
         return None
 
     # =====================================================================
