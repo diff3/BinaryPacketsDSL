@@ -7,13 +7,13 @@ from pathlib import Path
 from DSL.utils.CliArgs import parse_args
 from shared.ConfigLoader import ConfigLoader
 from shared.Logger import Logger
-from shared.PathUtils import get_captures_root
-from DSL.modules.dsl.Processor import load_case
-from DSL.modules.dsl.EncoderDebug import EncoderDebug
+from shared.PathUtils import get_captures_root, get_json_root
+from DSL.modules.Processor import load_case
+from DSL.modules.EncoderDebug import EncoderDebug
 
 
-def load_json_fields(program, expansion, version, def_name):
-    path = Path(f"protocols/{program}/{expansion}/{version}/data/json/{def_name}.json")
+def load_json_fields(def_name):
+    path = get_json_root() / f"{def_name}.json"
     if not path.exists():
         Logger.error(f"[encode_debug] Ingen JSON-data hittades: {path}")
         return None
@@ -25,8 +25,8 @@ def load_json_fields(program, expansion, version, def_name):
         return None
 
 
-def load_focus_fields(program, expansion, version, stem: str, def_name: str, fallback_path: Path) -> dict | None:
-    root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "json"
+def load_focus_fields(stem: str, fallback_path: Path) -> dict | None:
+    root = get_captures_root(focus=True) / "json"
     focus_path = root / f'{stem}.json'
     if focus_path.exists():
         try:
@@ -43,8 +43,8 @@ def load_focus_fields(program, expansion, version, stem: str, def_name: str, fal
         return None
 
 
-def load_focus_payloads(program, expansion, version, def_name):
-    root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"
+def load_focus_payloads(def_name):
+    root = get_captures_root(focus=True) / "debug"
     out = []
     if not root.is_dir():
         return out
@@ -78,10 +78,6 @@ def main():
     if args.silent:
         cfg["Logging"]["logging_levels"] = "None"
 
-    program = args.program or cfg["program"]
-    expansion = args.expansion or cfg.get("expansion")
-    version = args.version or cfg["version"]
-
     def_name = args.file
     if not def_name:
         Logger.error("Ange paketnamn med --file")
@@ -89,31 +85,30 @@ def main():
 
     # Säkerställ def finns
     try:
-        load_case(program, version, def_name, expansion=expansion)
+        load_case(None, None, def_name, expansion=None)
     except Exception as e:
         Logger.error(f"[encode_debug] DEF {def_name} kunde inte laddas: {e}")
         return 1
 
-    base_fields_path = Path(f"protocols/{program}/{expansion}/{version}/data/json/{def_name}.json")
-    fields = load_json_fields(program, expansion, version, def_name)
+    base_fields_path = get_json_root() / f"{def_name}.json"
+    fields = load_json_fields(def_name)
     if fields is None:
         Logger.error("[encode_debug] Avbryter — ingen fältdata.")
         return 1
 
-    captures = load_focus_payloads(program, expansion, version, def_name) if args.focus else []
+    captures = load_focus_payloads(def_name) if args.focus else []
 
     if captures:
         for fpath, payload in captures:
             Logger.success(f"[encode_debug] Fokus: {fpath.name}")
             stem = fpath.stem
-            focus_fields = load_focus_fields(program, expansion, version, stem, def_name, base_fields_path)
+            focus_fields = load_focus_fields(stem, base_fields_path)
             if focus_fields is None:
                 Logger.error(f"[encode_debug] Ingen fältdata för {stem}")
                 continue
             EncoderDebug.dump_encoding(def_name, focus_fields, reference_override=payload)
     else:
         Logger.success(f"[encode_debug] Bör encodas: {def_name}")
-        Logger.success(f"Program={program}, Expansion={expansion}, Version={version}")
         EncoderDebug.dump_encoding(def_name, fields)
     return 0
 

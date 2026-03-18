@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from DSL.modules.dsl.Session import (
+from DSL.modules.Session import (
     PacketSession, BaseNode, IfNode, LoopNode,
     BlockDefinition, BitmaskNode
 )

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import unittest
 
-from DSL.modules.dsl.Session import get_session
-from DSL.modules.dsl.decoder.DecoderExpressions import (
+from DSL.modules.Session import get_session
+from DSL.modules.decoder.DecoderExpressions import (
     build_eval_context,
     eval_expr,
     preprocess_condition,

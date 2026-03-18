@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Any
 import unittest
 
-from DSL.modules.dsl.Session import BaseNode
-from DSL.modules.dsl.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
+from DSL.modules.Session import BaseNode
+from DSL.modules.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
 
 
 @dataclass

@@ -4,18 +4,18 @@
 from pathlib import Path
 import json
 
-from DSL.modules.dsl.DecoderHandler import DecoderHandler
-from DSL.modules.dsl.NodeTreeParser import NodeTreeParser
-from DSL.modules.dsl.Processor import load_case, load_all_cases, handle_add
-from DSL.modules.dsl.Session import get_session
+from DSL.modules.DecoderHandler import DecoderHandler
+from DSL.modules.NodeTreeParser import NodeTreeParser
+from DSL.modules.Processor import load_case, load_all_cases, handle_add
+from DSL.modules.Session import get_session
 from shared.ConfigLoader import ConfigLoader
 from DSL.utils.CliArgs import parse_args
 from shared.Logger import Logger
 from DSL.utils.PrintUtils import SessionPrint
-from shared.PathUtils import get_captures_root
+from shared.PathUtils import get_captures_root, get_json_root
 
-def load_focus_payloads(program, expansion, version, case_name: str, focus_file: Path | None = None):
-    root = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug"
+def load_focus_payloads(case_name: str, focus_file: Path | None = None):
+    root = get_captures_root(focus=True) / "debug"
     out = []
     if focus_file is not None:
         candidate = focus_file
@@ -49,13 +49,13 @@ def load_focus_payloads(program, expansion, version, case_name: str, focus_file:
             continue
     return out
 
-def resolve_case_and_focus_file(program, expansion, version, file_arg: str | None) -> tuple[str | None, Path | None]:
+def resolve_case_and_focus_file(file_arg: str | None) -> tuple[str | None, Path | None]:
     if not file_arg:
         return None, None
     if file_arg.endswith(".json"):
         candidate = Path(file_arg)
         if not candidate.is_file():
-            candidate = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "debug" / file_arg
+            candidate = get_captures_root(focus=True) / "debug" / file_arg
         if candidate.is_file():
             stem = candidate.stem
             parts = stem.rsplit("_", 1)
@@ -78,34 +78,17 @@ if __name__ == "__main__":
     session.reset()
 
     tool_name = config['tool_name']
-    program = config['program']
-    expansion = config.get("expansion")
-    version = config['version']
     friendly_name = config['friendly_name']
 
     if args.verbose:
         config["Logging"]["logging_levels"] = "All"
 
-    if args.program:
-        program = args.program
-        friendly_name = "manuell"
-
-    if args.expansion:
-        expansion = args.expansion
-        friendly_name = "manuell"
-
-    if args.version:
-        version = args.version
-        friendly_name = "manuell"
-
     if args.add:
-        if not program or not expansion or not version or not args.file or not args.bin:
-            Logger.error(
-                "Missing required arguments for --add: --program, --expansion, --version, --file, and --bin"
-            )
+        if not args.file or not args.bin:
+            Logger.error("Missing required arguments for --add: --file and --bin")
             exit(1)
 
-        if handle_add(program, version, args.file, args.bin, expansion=expansion):
+        if handle_add("", "", args.file, args.bin, expansion=None):
             Logger.success(f"Successfully added packet: {args.file}")
             exit(0)
         else:
@@ -124,14 +107,14 @@ if __name__ == "__main__":
         exit(1)
    
     Logger.info(f"{tool_name} - {friendly_name}")
-    Logger.info(f"Parsing {program} {expansion} {version}\n")
+    Logger.info(f"Parsing {get_json_root().parent}\n")
 
     if args.file:
-        case_name, focus_file = resolve_case_and_focus_file(program, expansion, version, args.file)
-        case_data = [load_case(program, version, case_name, expansion=expansion)]
+        case_name, focus_file = resolve_case_and_focus_file(args.file)
+        case_data = [load_case(None, None, case_name, expansion=None)]
     else:
         focus_file = None
-        case_data = load_all_cases(program, version, expansion=expansion)
+        case_data = load_all_cases()
 
     if not case_data:
         Logger.error("No .def files found.")
@@ -146,9 +129,6 @@ if __name__ == "__main__":
 
         # Fokusläge: decode alla sniffade varianter
         focus_caps = load_focus_payloads(
-            program,
-            expansion,
-            version,
             case[0],
             focus_file=focus_file,
         ) if getattr(args, 'focus', False) else []
@@ -168,14 +148,12 @@ if __name__ == "__main__":
                 NodeTreeParser.parse(focus_case)
                 result = DecoderHandler.decode(focus_case, silent=args.silent)
             if args.promote:
-                out_dir = Path(f"protocols/{program}/{expansion}/{version}/data/json")
-                out_dir.mkdir(parents=True, exist_ok=True)
+                out_dir = get_json_root()
                 out_path = out_dir / f"{case[0]}.json"
                 out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
                 Logger.success(f"[PROMOTE] Wrote expected JSON → {out_path}")
             elif args.update:
-                out_dir = get_captures_root(program=program, expansion=expansion, version=version, focus=True) / "json"
-                out_dir.mkdir(parents=True, exist_ok=True)
+                out_dir = get_captures_root(focus=True) / "json"
                 stem = fpath.stem
                 out_path = out_dir / f"{stem}.json"
                 out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
@@ -187,10 +165,7 @@ if __name__ == "__main__":
 
         # Uppdatera expected-json om flaggan --update är satt
         if args.update:
-            base = f"protocols/{program}/{expansion}/{version}/data/json"
-            out_path = f"{base}/{case[0]}.json"
-            import os
-            os.makedirs(base, exist_ok=True)
+            out_path = get_json_root() / f"{case[0]}.json"
             with open(out_path, "w", encoding="utf-8") as jf:
                 json.dump(result, jf, indent=2, ensure_ascii=False)
             Logger.success(f"[UPDATE] Wrote expected JSON → {out_path}")

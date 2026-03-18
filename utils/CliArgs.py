@@ -3,24 +3,18 @@
 
 import argparse
 from shared.ConfigLoader import ConfigLoader
+from shared.PathUtils import get_def_root
 try:
     import argcomplete
 except ImportError:
     argcomplete = None
-from pathlib import Path
 
 # GLOBALS
 config = ConfigLoader.get_config()
 
 class DefFileNameCompleter:
     def __call__(self, prefix, parsed_args, **kwargs):
-        program = parsed_args.program or config.get("program")
-        expansion = getattr(parsed_args, "expansion", None) or config.get("expansion")
-        version = parsed_args.version or config.get("version")
-        if expansion:
-            base_path = Path(f"protocols/{program}/{expansion}/{version}/data/def")
-        else:
-            base_path = Path(f"protocols/{program}/{version}/data/def")
+        base_path = get_def_root()
         if not base_path.is_dir():
             return []
         return [
@@ -32,7 +26,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="BinaryPacketsDSL CLI")
     parser.add_argument("-u", "--update", action="store_true", help="Update .json output from .bin + .def")
     parser.add_argument("-a", "--add", action="store_true", help="Create new empty packet definition set")
-    parser.add_argument("-P", "--promote", action="store_true", help="In focus mode, promote decoded output into protocols expected JSON")
+    parser.add_argument("-P", "--promote", action="store_true", help="In focus mode, promote decoded output into runtime expected JSON")
     parser.add_argument(
         "-f",
         "--file",
@@ -48,7 +42,7 @@ def parse_args():
     parser.add_argument(
         "--focus",
         action="store_true",
-        help="Use focus captures (protocols/<program>/<expansion>/<version>/captures/focus)",
+        help="Use focus captures from the configured capture directory",
     )
 
     if argcomplete is not None:

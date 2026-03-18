@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from DSL.modules.dsl.ModifierParser import ModifierUtils
+from DSL.modules.ModifierParser import ModifierUtils
 from shared.Logger import Logger
 
 class ParserUtils:

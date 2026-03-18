@@ -4,14 +4,14 @@
 import argparse
 from pathlib import Path
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 STUBS = {
     "modules/database/DatabaseConnection.py": """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 
 class DatabaseConnection:
@@ -23,7 +23,7 @@ class DatabaseConnection:
     "modules/handlers/AuthHandlers.py": """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 # Map opcode int -> handler function
 opcode_handlers = {}
@@ -35,7 +35,7 @@ def _not_implemented(*_args, **_kwargs):
     "modules/handlers/WorldHandlers.py": """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from utils.Logger import Logger
+from shared.Logger import Logger
 
 # Map opcode int -> handler function
 opcode_handlers = {}
