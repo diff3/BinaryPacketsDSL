@@ -36,7 +36,6 @@ from DSL.modules.decoder.DecoderPacketHandlers import (
 )
 from DSL.modules.decoder.DecoderStringHandlers import handle_read_rest, resolve_string_format
 from DSL.modules.decoder.DecoderUtilities import split_print_args, log_print_message
-from DSL.utils.DebugHelper import DebugHelper, dsl_debug, dsl_debug_enabled
 from shared.Logger import Logger
 
 
@@ -125,6 +124,13 @@ class DecoderHandler:
     """Core DSL decoder dispatcher."""
 
     @staticmethod
+    def _trace_field_state(field: Any) -> None:
+        Logger.trace(
+            f"{getattr(field, 'name', None)} fmt={getattr(field, 'format', None)} value={getattr(field, 'value', None)}",
+            scope="dsl",
+        )
+
+    @staticmethod
     def is_visible(field: Any) -> bool:
         """Return True when a field should appear in public output."""
         return bool(getattr(field, "visible", True)) and not getattr(field, "ignore", False)
@@ -180,6 +186,7 @@ class DecoderHandler:
                 field.raw_data = b""
                 state.set_field(field, None)
                 field.processed = True
+                DecoderHandler._trace_field_state(field)
                 return field, True, endian
 
         if isinstance(field, VariableNode):
@@ -191,15 +198,18 @@ class DecoderHandler:
             field, raw_data, bitstate, endian, state
         )
         if handler_result is not None:
+            DecoderHandler._trace_field_state(handler_result[0])
             return handler_result
 
         if field.name == "endian":
             endian = "<" if field.format == "little" else ">"
             field.processed = True
+            DecoderHandler._trace_field_state(field)
             return field, True, endian
 
         if field.interpreter == "dynamic":
             if not DecoderHandler._handle_dynamic(field, scope):
+                DecoderHandler._trace_field_state(field)
                 return field, True, endian
 
         if field.format == "S":
@@ -209,11 +219,14 @@ class DecoderHandler:
             field = handle_read_rest(field, raw_data, bitstate)
             val = DecoderHandler.apply_modifiers(field)
             state.set_field(field, val)
+            DecoderHandler._trace_field_state(field)
             return field, True, endian
 
-        return DecoderHandler._handle_struct_default(
+        result = DecoderHandler._handle_struct_default(
             field, raw_data, bitstate, endian, state
         )
+        DecoderHandler._trace_field_state(result[0])
+        return result
 
     @staticmethod
     def _dispatch_interpreter(
@@ -241,7 +254,10 @@ class DecoderHandler:
         try:
             val = eval_expr(raw_expr, state.all, raw_data)
         except Exception as exc:
-            Logger.error(f"Failed evaluating variable '{field.name}' = {raw_expr}: {exc}")
+            Logger.error(
+                f"Failed evaluating variable '{field.name}' = {raw_expr}: {exc}",
+                scope="dsl",
+            )
             val = None
 
         field.value = val
@@ -301,7 +317,7 @@ class DecoderHandler:
             return field, True, endian
 
         except Exception as exc:
-            Logger.error(f"slice failed: {exc}")
+            Logger.error(f"slice failed: {exc}", scope="dsl")
             field.value = None
             field.processed = True
             return field, True, endian
@@ -351,7 +367,10 @@ class DecoderHandler:
         try:
             val = eval_expr(expr, state.all, raw_data)
         except Exception as exc:
-            Logger.error(f"Failed evaluating expr for field '{field.name}' = {expr}: {exc}")
+            Logger.error(
+                f"Failed evaluating expr for field '{field.name}' = {expr}: {exc}",
+                scope="dsl",
+            )
             val = None
 
         for mod in getattr(field, "modifiers", []) or []:
@@ -429,7 +448,7 @@ class DecoderHandler:
 
         if not pattern:
             if not getattr(field, "optional", False):
-                Logger.warning("seek next: empty pattern")
+                Logger.warning("seek next: empty pattern", scope="dsl")
                 bitstate.advance_to(len(raw_data), 0)
             field.processed = True
             return field, True, endian
@@ -439,7 +458,8 @@ class DecoderHandler:
             if not getattr(field, "optional", False):
                 Logger.warning(
                     "seek next: pattern not found "
-                    f"({getattr(field, 'pattern_desc', '')})"
+                    f"({getattr(field, 'pattern_desc', '')})",
+                    scope="dsl",
                 )
                 bitstate.advance_to(len(raw_data), 0)
             field.processed = True
@@ -528,7 +548,7 @@ class DecoderHandler:
             length = None
 
         if length is None:
-            Logger.warning(f"Failed to resolve dynamic field: {field.name}")
+            Logger.warning(f"Failed to resolve dynamic field: {field.name}", scope="dsl")
             return False
 
         field.interpreter = "struct"
@@ -680,20 +700,28 @@ class DecoderHandler:
         session.silent = silent
         session.warn = warn
 
-        if dsl_debug_enabled():
-            dsl_debug("\n[RAW NODE TREE BEFORE DECODING]\n")
-
+        if Logger.is_enabled("TRACE", scope="dsl"):
+            Logger.trace("[RAW NODE TREE BEFORE DECODING]", scope="dsl")
             for idx, field in enumerate(session.fields, start=1):
-                dsl_debug(f"[{idx}] {field.__class__.__name__}  name='{field.name}'  interp='{field.interpreter}' fmt='{field.format}' ignore={field.ignore}")
-                
-                # Show all attributes from BaseNode.
-                dsl_debug("    " + ", ".join(f"{k}={v!r}" for k,v in field.__dict__.items() if k not in ("children","nodes")))
-
-                # Show children for LoopNode/IfNode/Bitmask/BlockDefinition/RandSeq.
+                Logger.trace(
+                    f"[{idx}] {field.__class__.__name__} name='{field.name}' interp='{field.interpreter}' fmt='{field.format}' ignore={field.ignore}",
+                    scope="dsl",
+                )
+                Logger.trace(
+                    "    " + ", ".join(
+                        f"{k}={v!r}"
+                        for k, v in field.__dict__.items()
+                        if k not in ("children", "nodes")
+                    ),
+                    scope="dsl",
+                )
                 if hasattr(field, "children"):
-                    dsl_debug("    CHILDREN:")
+                    Logger.trace("    CHILDREN:", scope="dsl")
                     for cidx, child in enumerate(field.children, start=1):
-                        dsl_debug(f"        [{cidx}] {child.__class__.__name__} name='{child.name}' fmt='{child.format}' interp='{child.interpreter}'")
+                        Logger.trace(
+                            f"        [{cidx}] {child.__class__.__name__} name='{child.name}' fmt='{child.format}' interp='{child.interpreter}'",
+                            scope="dsl",
+                        )
 
         i = 0
         while i < len(fields):
@@ -704,7 +732,7 @@ class DecoderHandler:
                 continue
 
             needs_io = getattr(field, "has_io", True)
-            if needs_io and bitstate.offset >= len(raw_data):
+            if field.name != "endian" and needs_io and bitstate.offset >= len(raw_data):
                 if getattr(field, "optional", False):
                     field, _, endian = DecoderHandler._process_field(
                         field, raw_data, bitstate, endian, state
@@ -713,7 +741,10 @@ class DecoderHandler:
                     i += 1
                     continue
                 if session.warn:
-                    Logger.warning(f"Ran out of raw data before field '{getattr(field, 'name', '?')}'")
+                    Logger.warning(
+                        f"Ran out of raw data before field '{getattr(field, 'name', '?')}'",
+                        scope="dsl",
+                    )
                 break
             
             field, _, endian = DecoderHandler._process_field(
@@ -721,47 +752,45 @@ class DecoderHandler:
             )
 
             fields[i] = field
-            DebugHelper.trace_field(field, bitstate, label_prefix=field.name)
-            Logger.to_log('')
             i += 1
 
         try:
             json_output = json.dumps(state.public, indent=4)
-            if not silent:
-                Logger.success(f"{case[0]}\n{json_output}")
+            if not silent and Logger.is_enabled("DEBUG", scope="dsl"):
+                for line in json_output.splitlines():
+                    Logger.debug(line, scope="dsl")
         except TypeError:
-            Logger.error("FAILED RESULT (non-serializable type)")
+            Logger.error("FAILED RESULT (non-serializable type)", scope="dsl")
 
-        if dsl_debug_enabled():
-            dsl_debug("[FINAL STATE DUMP]")
-
-            # 1. Dump all global vars
+        if Logger.is_enabled("TRACE", scope="dsl"):
+            Logger.trace("[FINAL STATE DUMP]", scope="dsl")
             if session.scope.global_vars:
-                dsl_debug("Global Vars:")
+                Logger.trace("Global Vars:", scope="dsl")
                 for k, v in session.scope.global_vars.items():
-                    dsl_debug(f"    {k} = {v}")
+                    Logger.trace(f"    {k} = {v}", scope="dsl")
             else:
-                dsl_debug("Global Vars: (empty)")
+                Logger.trace("Global Vars: (empty)", scope="dsl")
 
-            # 2. Dump all local scopes
             if session.scope.scope_stack:
-                dsl_debug("Local Scopes:")
+                Logger.trace("Local Scopes:", scope="dsl")
                 for idx, frame in enumerate(session.scope.scope_stack):
-                    dsl_debug(f"  Frame {idx}:")
+                    Logger.trace(f"  Frame {idx}:", scope="dsl")
                     for k, v in frame.items():
-                        dsl_debug(f"      {k} = {v}")
+                        Logger.trace(f"      {k} = {v}", scope="dsl")
             else:
-                dsl_debug("Local Scopes: (empty)")
+                Logger.trace("Local Scopes: (empty)", scope="dsl")
 
-            # 3. Dump the RESULT dict (this is the real parsed data)
             if state.public:
-                dsl_debug("Result Fields:")
+                Logger.trace("Result Fields:", scope="dsl")
                 for k, v in state.public.items():
-                    dsl_debug(f"    {k} = {v}")
+                    Logger.trace(f"    {k} = {v}", scope="dsl")
             else:
-                dsl_debug("Result Fields: (empty)")
+                Logger.trace("Result Fields: (empty)", scope="dsl")
 
-            dsl_debug("===================================================")
+            Logger.trace("===================================================", scope="dsl")
+
+        if not silent:
+            Logger.info(f"{case[0]} decoded ({len(state.public)} fields)", scope="dsl")
 
         session.silent = False
         session.warn = True
@@ -886,8 +915,8 @@ class DecoderHandler:
         except struct.error as e:
             session = get_session()
             if getattr(session, "warn", True) and not getattr(session, "silent", False):
-                Logger.warning("Struct unpack error")
-            dsl_debug(f"fmt={fmt} error={e}")
+                Logger.warning("Struct unpack error", scope="dsl")
+            Logger.trace(f"fmt={fmt} error={e}", scope="dsl")
             field.value = None
             field.raw_offset = start
             field.raw_length = 0

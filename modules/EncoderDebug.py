@@ -38,12 +38,30 @@ class EncoderDebug:
     """Verbose encoder pipeline with reference comparisons."""
 
     @staticmethod
+    def _should_emit(verbosity: str, minimum: str) -> bool:
+        ranks = {"summary": 0, "debug": 1, "trace": 2}
+        return ranks.get((verbosity or "summary").lower(), 0) >= ranks.get(minimum, 0)
+
+    @staticmethod
+    def _log(message: Any, *, verbosity: str, minimum: str, level: str = "debug") -> None:
+        if not EncoderDebug._should_emit(verbosity, minimum):
+            return
+
+        logger = getattr(Logger, level)
+        text = str(message)
+        lines = text.splitlines() or [text]
+        for line in lines:
+            if line:
+                logger(line, scope="dsl")
+
+    @staticmethod
     def dump_encoding(
         def_name: str,
         fields: dict[str, Any],
         reference_override: bytes | None = None,
+        verbosity: str = "summary",
     ) -> bytes | dict[str, Any]:
-        """Encode a packet and print the full debug pipeline.
+        """Encode a packet and log the encoder pipeline.
 
         Args:
             def_name (str): Definition name to encode.
@@ -61,17 +79,17 @@ class EncoderDebug:
         )
 
         if debug.get("payload_len") == 0 and debug.get("size_matches_payload") is True:
-            Logger.success("Header only, done")
+            Logger.info("Header only, done", scope="dsl")
             return {
                 "encoded": b"",
                 "debug": "header-only packet; skipping encoding",
             }
 
-        print("\n================ DSL ================\n")
+        EncoderDebug._log("================ DSL ================", verbosity=verbosity, minimum="trace")
         for line in def_lines:
-            print(line.rstrip())
+            EncoderDebug._log(line.rstrip(), verbosity=verbosity, minimum="trace")
 
-        print("\n=========== PARSING =============\n")
+        EncoderDebug._log("=========== PARSING =============", verbosity=verbosity, minimum="trace")
 
         session = get_session()
         session.reset()
@@ -79,22 +97,22 @@ class EncoderDebug:
         NodeTreeParser.parse((case_name, def_lines, b"", expected))
         nodes = copy.deepcopy(session.fields)
 
-        print("RAW NODE TREE:\n")
-        EncoderDebug._dump_nodes(nodes)
+        EncoderDebug._log("RAW NODE TREE:", verbosity=verbosity, minimum="trace")
+        EncoderDebug._dump_nodes(nodes, verbosity=verbosity)
 
         flat = EncoderHandler._flatten_blocks(nodes)
-        print("\n=========== FLATTENED =============\n")
-        EncoderDebug._dump_nodes(flat)
+        EncoderDebug._log("=========== FLATTENED =============", verbosity=verbosity, minimum="trace")
+        EncoderDebug._dump_nodes(flat, verbosity=verbosity)
 
         expanded = EncoderHandler._expand_loops(flat, fields)
-        print("\n=========== LOOPS EXPANDED =============\n")
-        EncoderDebug._dump_nodes(expanded)
+        EncoderDebug._log("=========== LOOPS EXPANDED =============", verbosity=verbosity, minimum="trace")
+        EncoderDebug._dump_nodes(expanded, verbosity=verbosity)
 
         cleaned = EncoderHandler._cleanup(expanded, fields)
-        print("\n=========== CLEANED =============\n")
-        EncoderDebug._dump_cleaned(cleaned)
+        EncoderDebug._log("=========== CLEANED =============", verbosity=verbosity, minimum="trace")
+        EncoderDebug._dump_cleaned(cleaned, verbosity=verbosity)
 
-        print("\n=========== ENCODE STEPS =============\n")
+        EncoderDebug._log("=========== ENCODE STEPS =============", verbosity=verbosity, minimum="debug")
         encoded = EncoderDebug._encode_with_debug(
             case_name,
             def_name,
@@ -102,28 +120,31 @@ class EncoderDebug:
             cleaned,
             fields,
             reference_override=reference_override,
+            verbosity=verbosity,
         )
 
-        print("\n=========== FINAL BYTE STREAM =============\n")
-        print(encoded.hex(" "))
-        print("\n===========================================\n")
+        EncoderDebug._log("=========== FINAL BYTE STREAM =============", verbosity=verbosity, minimum="summary", level="info")
+        EncoderDebug._log(encoded.hex(" "), verbosity=verbosity, minimum="summary", level="info")
+        EncoderDebug._log("===========================================", verbosity=verbosity, minimum="summary", level="info")
         return encoded
 
     @staticmethod
-    def _dump_nodes(nodes: Iterable[Any]) -> None:
-        """Print a compact summary of each node."""
+    def _dump_nodes(nodes: Iterable[Any], *, verbosity: str) -> None:
+        """Log a compact summary of each node."""
         for node in nodes:
-            print(
+            EncoderDebug._log(
                 f"{node.__class__.__name__}: "
                 f"name={getattr(node, 'name', None)}, "
                 f"fmt={getattr(node, 'format', None)}, "
-                f"interp={getattr(node, 'interpreter', None)}"
+                f"interp={getattr(node, 'interpreter', None)}",
+                verbosity=verbosity,
+                minimum="trace",
             )
         return None
 
     @staticmethod
-    def _dump_cleaned(cleaned: Iterable[tuple[Any, ...]]) -> None:
-        """Print cleaned nodes with modifiers and values."""
+    def _dump_cleaned(cleaned: Iterable[tuple[Any, ...]], *, verbosity: str) -> None:
+        """Log cleaned nodes with modifiers and values."""
         for entry in cleaned:
             if len(entry) == 3:
                 node, name, fmt = entry
@@ -134,10 +155,12 @@ class EncoderDebug:
             else:
                 raise RuntimeError(f"Unexpected cleaned entry structure: {entry}")
 
-            print(
+            EncoderDebug._log(
                 "BaseNode: "
                 f"name={name}, fmt={fmt}, server={server_mods}, "
-                f"encode={encode_mods}, value={node.value}"
+                f"encode={encode_mods}, value={node.value}",
+                verbosity=verbosity,
+                minimum="trace",
             )
         return None
 
@@ -272,6 +295,8 @@ class EncoderDebug:
     def _align_reference(
         reference_full: bytes | None,
         pipeline: list[tuple[str, bytes, Any, Any]],
+        *,
+        verbosity: str,
     ) -> bytes | None:
         """Align the reference payload by matching the first pipeline chunks."""
         if not reference_full or not pipeline:
@@ -283,10 +308,18 @@ class EncoderDebug:
         idx = reference_full.find(signature)
 
         if idx != -1:
-            print(f"[ALIGN] Found signature {signature.hex(' ')} at offset {idx}")
+            EncoderDebug._log(
+                f"[ALIGN] Found signature {signature.hex(' ')} at offset {idx}",
+                verbosity=verbosity,
+                minimum="debug",
+            )
             return reference_full[idx:]
 
-        print("[ALIGN] No signature match found - using full reference.")
+        EncoderDebug._log(
+            "[ALIGN] No signature match found - using full reference.",
+            verbosity=verbosity,
+            minimum="debug",
+        )
         return reference_full
 
     @staticmethod
@@ -294,6 +327,8 @@ class EncoderDebug:
         case_name: str,
         def_lines: list[str],
         reference: bytes | None,
+        *,
+        verbosity: str,
     ) -> Any | None:
         """Decode the reference payload with the decoder for comparison."""
         if not reference:
@@ -321,10 +356,18 @@ class EncoderDebug:
         try:
             case = (case_name, def_lines, reference, None)
             result = DecoderHandler.decode(case, silent=True)
-            print(f"[DECODE] Decoded original OK -> type={type(result).__name__}")
+            EncoderDebug._log(
+                f"[DECODE] Decoded original OK -> type={type(result).__name__}",
+                verbosity=verbosity,
+                minimum="debug",
+            )
             return result
         except Exception as exc:
-            print(f"[DECODE] Could not decode original with DecoderHandler: {exc}")
+            EncoderDebug._log(
+                f"[DECODE] Could not decode original with DecoderHandler: {exc}",
+                verbosity=verbosity,
+                minimum="debug",
+            )
             return None
 
     @staticmethod
@@ -413,14 +456,24 @@ class EncoderDebug:
     def _print_pipeline(
         encoded: list[tuple[str, bytes, Any, Any]],
         original: list[bytes],
+        *,
+        verbosity: str,
     ) -> None:
-        """Print the encoded pipeline and the aligned reference."""
-        print("\n--- ENCODED PIPELINE ---")
-        print(" | ".join(chunk.hex(" ") for (_, chunk, _, _) in encoded))
+        """Log the encoded pipeline and the aligned reference."""
+        EncoderDebug._log("--- ENCODED PIPELINE ---", verbosity=verbosity, minimum="debug")
+        EncoderDebug._log(
+            " | ".join(chunk.hex(" ") for (_, chunk, _, _) in encoded),
+            verbosity=verbosity,
+            minimum="debug",
+        )
 
         if original:
-            print("\n--- ORIGINAL PIPELINE ---")
-            print(" | ".join(chunk.hex(" ") for chunk in original))
+            EncoderDebug._log("--- ORIGINAL PIPELINE ---", verbosity=verbosity, minimum="trace")
+            EncoderDebug._log(
+                " | ".join(chunk.hex(" ") for chunk in original),
+                verbosity=verbosity,
+                minimum="trace",
+            )
         return None
 
     @staticmethod
@@ -428,22 +481,26 @@ class EncoderDebug:
         pipeline: list[tuple[str, bytes, Any, Any]],
         orig_blocks: list[bytes],
         fields: dict[str, Any],
+        *,
+        verbosity: str,
     ) -> None:
-        """Print a per-field comparison table between encoded and reference."""
+        """Log a per-field comparison table between encoded and reference."""
         if not orig_blocks:
             return None
 
-        print("\n\nField compare:\n")
+        EncoderDebug._log("Field compare:", verbosity=verbosity, minimum="trace")
 
-        print(
+        EncoderDebug._log(
             "Field".ljust(FIELD_WIDTH_NAME)
             + "Format".ljust(FIELD_WIDTH_FORMAT)
             + "Value".ljust(FIELD_WIDTH_VALUE)
             + "Encoded".ljust(FIELD_WIDTH_ENCODED)
             + "Original".ljust(FIELD_WIDTH_ORIGINAL)
-            + "Status"
+            + "Status",
+            verbosity=verbosity,
+            minimum="trace",
         )
-        print(
+        EncoderDebug._log(
             "-" * (
                 FIELD_WIDTH_NAME
                 + FIELD_WIDTH_FORMAT
@@ -451,7 +508,9 @@ class EncoderDebug:
                 + FIELD_WIDTH_ENCODED
                 + FIELD_WIDTH_ORIGINAL
                 + 6
-            )
+            ),
+            verbosity=verbosity,
+            minimum="trace",
         )
 
         for idx, (name, enc, fmt, node) in enumerate(pipeline):
@@ -476,55 +535,100 @@ class EncoderDebug:
                 except Exception:
                     value = "-"
 
-            print(
+            EncoderDebug._log(
                 f"{(name + ':').ljust(FIELD_WIDTH_NAME)}"
                 f"{str(fmt).ljust(FIELD_WIDTH_FORMAT)}"
                 f"{str(value).ljust(FIELD_WIDTH_VALUE)}"
                 f"{enc_hex.ljust(FIELD_WIDTH_ENCODED)}"
                 f"{orig_hex.ljust(FIELD_WIDTH_ORIGINAL)}"
-                f"{status}"
+                f"{status}",
+                verbosity=verbosity,
+                minimum="trace",
             )
 
         return None
 
     @staticmethod
-    def _print_compare_summary(raw: bytes, reference: bytes | None) -> None:
-        """Print a high-level comparison summary."""
+    def _print_compare_summary(raw: bytes, reference: bytes | None, *, verbosity: str) -> None:
+        """Log a high-level comparison summary."""
         if not reference:
-            print("\n(No reference found, skipping comparison.)")
+            EncoderDebug._log(
+                "(No reference found, skipping comparison.)",
+                verbosity=verbosity,
+                minimum="debug",
+            )
             return None
 
-        print("\n--- REFERENCE COMPARISON ---")
-        print("Original size:", len(reference))
-        print("Encoded  size:", len(raw))
+        EncoderDebug._log("--- REFERENCE COMPARISON ---", verbosity=verbosity, minimum="debug")
+        EncoderDebug._log(f"Original size: {len(reference)}", verbosity=verbosity, minimum="debug")
+        EncoderDebug._log(f"Encoded  size: {len(raw)}", verbosity=verbosity, minimum="debug")
 
         if raw == reference:
-            print("OK PERFECT MATCH")
+            EncoderDebug._log("OK PERFECT MATCH", verbosity=verbosity, minimum="debug")
             return None
 
-        print("MISMATCH detected!")
+        EncoderDebug._log("MISMATCH detected!", verbosity=verbosity, minimum="debug")
         for idx in range(min(len(raw), len(reference))):
             if raw[idx] != reference[idx]:
-                print("First difference at index", idx)
-                print(" encoded =", f"{raw[idx]:02X}")
-                print(" original =", f"{reference[idx]:02X}")
+                EncoderDebug._log(
+                    f"First difference at index {idx}",
+                    verbosity=verbosity,
+                    minimum="debug",
+                )
+                EncoderDebug._log(
+                    f" encoded = {raw[idx]:02X}",
+                    verbosity=verbosity,
+                    minimum="debug",
+                )
+                EncoderDebug._log(
+                    f" original = {reference[idx]:02X}",
+                    verbosity=verbosity,
+                    minimum="debug",
+                )
                 break
 
         return None
 
     @staticmethod
-    def _print_final_hex(raw_bytes: bytes, reference_full: bytes | None) -> None:
-        """Print the encoded bytes and the full reference payload."""
-        print("\n--- ENCODED PACKET ---")
-        print(" ".join(f"{byte:02X}" for byte in raw_bytes))
+    def _print_final_hex(raw_bytes: bytes, reference_full: bytes | None, *, verbosity: str) -> None:
+        """Log the encoded bytes and the full reference payload."""
+        EncoderDebug._log(
+            "--- ENCODED PACKET ---",
+            verbosity=verbosity,
+            minimum="summary",
+            level="info",
+        )
+        EncoderDebug._log(
+            " ".join(f"{byte:02X}" for byte in raw_bytes),
+            verbosity=verbosity,
+            minimum="summary",
+            level="info",
+        )
 
         if reference_full:
-            print("\n--- ORIGINAL PACKET ---")
-            print(" ".join(f"{byte:02X}" for byte in reference_full))
+            EncoderDebug._log(
+                "--- ORIGINAL PACKET ---",
+                verbosity=verbosity,
+                minimum="trace",
+            )
+            EncoderDebug._log(
+                " ".join(f"{byte:02X}" for byte in reference_full),
+                verbosity=verbosity,
+                minimum="trace",
+            )
 
-        print("\n=========== FINAL BYTE STREAM =============\n")
-        print(raw_bytes.hex(" "))
-        print()
+        EncoderDebug._log(
+            "=========== FINAL BYTE STREAM =============",
+            verbosity=verbosity,
+            minimum="summary",
+            level="info",
+        )
+        EncoderDebug._log(
+            raw_bytes.hex(" "),
+            verbosity=verbosity,
+            minimum="summary",
+            level="info",
+        )
         return None
 
     @staticmethod
@@ -536,8 +640,9 @@ class EncoderDebug:
         fields: dict[str, Any],
         endian: str = "<",
         reference_override: bytes | None = None,
+        verbosity: str = "summary",
     ) -> bytes:
-        """Encode a packet with verbose debug output."""
+        """Encode a packet with logger-based debug output."""
         reference_full = reference_override or EncoderDebug._load_original_reference(def_name)
 
         cleaned_list = list(cleaned)
@@ -551,15 +656,29 @@ class EncoderDebug:
         raw_bytes = bytes(raw_bytes)
 
         pipeline = EncoderDebug._build_pipeline(cleaned_list, raw_bytes, fields, endian)
-        reference_aligned = EncoderDebug._align_reference(reference_full, pipeline)
+        reference_aligned = EncoderDebug._align_reference(
+            reference_full,
+            pipeline,
+            verbosity=verbosity,
+        )
 
-        EncoderDebug._decode_reference(case_name, def_lines, reference_aligned)
+        EncoderDebug._decode_reference(
+            case_name,
+            def_lines,
+            reference_aligned,
+            verbosity=verbosity,
+        )
 
         orig_blocks = EncoderDebug._build_original_pipeline(reference_aligned, pipeline)
 
-        EncoderDebug._print_pipeline(pipeline, orig_blocks)
-        EncoderDebug._print_field_compare(pipeline, orig_blocks, fields)
-        EncoderDebug._print_compare_summary(raw_bytes, reference_aligned)
-        EncoderDebug._print_final_hex(raw_bytes, reference_full)
+        EncoderDebug._print_pipeline(pipeline, orig_blocks, verbosity=verbosity)
+        EncoderDebug._print_field_compare(
+            pipeline,
+            orig_blocks,
+            fields,
+            verbosity=verbosity,
+        )
+        EncoderDebug._print_compare_summary(raw_bytes, reference_aligned, verbosity=verbosity)
+        EncoderDebug._print_final_hex(raw_bytes, reference_full, verbosity=verbosity)
 
         return raw_bytes

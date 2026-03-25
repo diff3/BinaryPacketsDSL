@@ -10,7 +10,6 @@ from typing import Any, Callable
 
 from DSL.modules.ModifierMapping import modifiers_operation_mapping
 from DSL.modules.bitsHandler import BitState
-from DSL.utils.DebugHelper import DebugHelper
 
 
 ProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]
@@ -99,7 +98,6 @@ def handle_bitmask(
     for child_template in field.children:
         child = child_template.copy()
         process_field(child, raw_data, child_state, endian, temporary_state)
-        DebugHelper.trace_field(field, bitstate, label_prefix=field.name)
 
     bitstate.advance_to(end_offset, end_bit)
 

@@ -14,7 +14,7 @@ import re
 from typing import Any
 
 from DSL.modules.Session import get_session
-from DSL.utils.DebugHelper import dsl_debug
+from shared.Logger import Logger
 
 
 def preprocess_condition(condition: str | None) -> str | None:
@@ -86,12 +86,13 @@ def resolve_variable(key: str, result: dict[str, Any] | None) -> Any:
 
         match = re.match(r"^(\w+)(?:\[(\w+)\])?(?:\.(\w+))?$", key)
         if not match:
-            dsl_debug(f"[resolve_variable] regex miss: {original_key}")
+            Logger.trace(f"[resolve_variable] regex miss: {original_key}", scope="dsl")
             return None
 
         base, index, subkey = match.groups()
-        dsl_debug(
-            f"[resolve_variable] key={original_key} → base={base}, index={index}, subkey={subkey}"
+        Logger.trace(
+            f"[resolve_variable] key={original_key} -> base={base}, index={index}, subkey={subkey}",
+            scope="dsl",
         )
 
         value = scope.get(base, result.get(base))
@@ -106,24 +107,36 @@ def resolve_variable(key: str, result: dict[str, Any] | None) -> Any:
             else:
                 index_value = scope.get(index, result.get(index))
 
-            dsl_debug(f"[resolve_variable] index={index!r} → {index_value!r}")
+            Logger.trace(
+                f"[resolve_variable] index={index!r} -> {index_value!r}",
+                scope="dsl",
+            )
             if not isinstance(index_value, int):
                 return None
 
             try:
                 value = value[index_value]
             except Exception:
-                dsl_debug(f"[resolve_variable] index error {base}[{index_value}]")
+                Logger.trace(
+                    f"[resolve_variable] index error {base}[{index_value}]",
+                    scope="dsl",
+                )
                 return None
 
         if subkey is not None:
             try:
                 value = value[subkey]
             except Exception:
-                dsl_debug(f"[resolve_variable] subkey error {base}.{subkey}")
+                Logger.trace(
+                    f"[resolve_variable] subkey error {base}.{subkey}",
+                    scope="dsl",
+                )
                 return None
 
-        dsl_debug(f"[resolve_variable] resolved {original_key!r} → {value!r}")
+        Logger.trace(
+            f"[resolve_variable] resolved {original_key!r} -> {value!r}",
+            scope="dsl",
+        )
         return value
 
     try:

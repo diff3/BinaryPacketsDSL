@@ -4,7 +4,6 @@
 import ast
 import re
 
-from DSL.utils.DebugHelper import dsl_debug
 from shared.Logger import Logger
 
 
@@ -138,16 +137,18 @@ def eval_print_expr(expr: str, context: dict):
 def log_print_message(level: str, msg: str):
     lvl = (level or "debug").strip().lower()
     if lvl in ("info", "i"):
-        Logger.info(msg)
+        Logger.info(msg, scope="dsl")
     elif lvl in ("warn", "warning", "w"):
-        Logger.warning(msg)
+        Logger.warning(msg, scope="dsl")
     elif lvl in ("error", "err", "e"):
-        Logger.error(msg)
+        Logger.error(msg, scope="dsl")
     elif lvl in ("success", "ok", "s"):
-        Logger.success(msg)
+        Logger.success(msg, scope="dsl")
     elif lvl in ("anticheat", "anti", "a"):
-        Logger.anticheat(msg)
+        Logger.anticheat(msg, scope="dsl")
     elif lvl in ("script", "sc"):
-        Logger.script(msg)
+        Logger.script(msg, scope="dsl")
+    elif lvl in ("trace", "t"):
+        Logger.trace(msg, scope="dsl")
     else:
-        dsl_debug(msg)
+        Logger.debug(msg, scope="dsl")

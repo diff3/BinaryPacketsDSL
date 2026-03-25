@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from shared.Logger import Logger
+
 
 class GlobalScope:
     """Manage global and local scope variables for the DSL runtime."""
@@ -59,11 +61,11 @@ class GlobalScope:
         self.loop_index.clear()
 
     def dump(self) -> None:
-        """Print the current scope state for debugging."""
-        print("GLOBAL:", self.global_vars)
+        """Log the current scope state for debugging."""
+        Logger.trace(f"GLOBAL: {self.global_vars}", scope="dsl")
         for idx, scope in enumerate(self.scope_stack):
-            print(f"LOCAL[{idx}]:", scope)
-        print("LOOP_INDEX:", self.loop_index)
+            Logger.trace(f"LOCAL[{idx}]: {scope}", scope="dsl")
+        Logger.trace(f"LOOP_INDEX: {self.loop_index}", scope="dsl")
 
     def get_all(self) -> dict[str, Any]:
         """Return a shallow copy of global variables."""

@@ -18,7 +18,6 @@ from typing import Any, Optional
 from DSL.modules.DecoderHandler import DecoderHandler
 from DSL.modules.NodeTreeParser import NodeTreeParser
 from DSL.modules.Session import BlockDefinition, get_session
-from DSL.utils.DebugHelper import dsl_debug
 from shared.FileUtils import FileHandler
 from shared.Logger import Logger
 from shared.PathUtils import get_def_root, get_json_root, get_project_root
@@ -257,7 +256,10 @@ class DslRuntime:
 
             self.cache[name] = compiled
             if log_cache:
-                dsl_debug(f"{log_prefix}Cached {name} ({len(compiled.fields)} fields)")
+                Logger.trace(
+                    f"{log_prefix}Cached {name} ({len(compiled.fields)} fields)",
+                    scope="dsl",
+                )
             return compiled
 
     def compile_file_runtime(
@@ -306,7 +308,10 @@ class DslRuntime:
 
             self.cache[name] = compiled
             if log_cache:
-                dsl_debug(f"{log_prefix}Runtime cached {name} ({len(compiled.fields)} fields)")
+                Logger.trace(
+                    f"{log_prefix}Runtime cached {name} ({len(compiled.fields)} fields)",
+                    scope="dsl",
+                )
             return compiled
 
     def drop(self, name: str) -> None:

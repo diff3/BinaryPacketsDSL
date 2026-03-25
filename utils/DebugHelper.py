@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from shared.ConfigLoader import ConfigLoader
 from shared.Logger import Logger
 import pprint
 
 
 def dsl_debug_enabled() -> bool:
-    """Return True when internal DSL debug output is enabled."""
-    try:
-        cfg = ConfigLoader.get_config()
-        return bool(cfg.get("dsl", {}).get("debug", False))
-    except Exception:
-        return False
+    """Compatibility helper for TRACE-level DSL logging."""
+    return Logger.is_enabled("TRACE", scope="dsl")
 
 
 def dsl_debug(message: str) -> None:
-    """Emit a debug message only when DSL debug is explicitly enabled."""
-    if dsl_debug_enabled():
-        Logger.debug(message)
+    """Compatibility wrapper that routes to the unified logger."""
+    Logger.trace(message, scope="dsl")
 
 
 class DebugHelper:
@@ -53,6 +47,9 @@ class DebugHelper:
         """
         Old behavior + new node debugging.
         """
+        if not dsl_debug_enabled():
+            return
+
         DebugHelper.trace_node_state(label_prefix, field)
 
         if bitstate:

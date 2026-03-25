@@ -17,6 +17,7 @@ from DSL.modules.encoder.utils import (
     eval_print_expr,
     log_print_message,
 )
+from shared.Logger import Logger
 
 
 class EncoderHandler:
@@ -49,7 +50,9 @@ class EncoderHandler:
 
         nodes = copy.deepcopy(session.fields)
         encode_fn = EncoderHandler._compile(nodes)
-        return encode_fn(fields)
+        raw_bytes = encode_fn(fields)
+        Logger.info(f"{def_name} encoded ({len(raw_bytes)} bytes)", scope="dsl")
+        return raw_bytes
 
     # ------------------------------------------------------------------
     # INTERNAL COMPILER
@@ -357,6 +360,8 @@ class EncoderHandler:
             else:
                 count = int(count_expr or 0)
 
+            Logger.trace(f"Loop {list_name} count={count}", scope="dsl")
+
             if len(items) < count:
                 raise ValueError(
                     f"Loop '{list_name}' expects {count} items, got {len(items)}"
@@ -518,6 +523,7 @@ class EncoderHandler:
                     continue
 
                 list_name = getattr(n, "target", None)
+                Logger.trace(f"Loop {list_name} count={count}", scope="dsl")
                 items = None
 
                 if isinstance(list_name, str) and list_name:
@@ -758,6 +764,11 @@ class EncoderHandler:
                 node, name, fmt, server_mods, encode_mods = entry
             else:
                 raise RuntimeError(f"Unexpected cleaned entry: {entry!r}")
+
+            Logger.trace(
+                f"ENCODE field={name} fmt={fmt} value={fields.get(name, getattr(node, 'value', None)) if name else getattr(node, 'value', None)}",
+                scope="dsl",
+            )
 
             # -----------------------------------------------------
             # BITFÄLT – skrivs via BitWriter

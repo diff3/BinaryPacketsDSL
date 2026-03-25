@@ -9,7 +9,6 @@ from typing import Any, Callable
 
 from DSL.modules.Session import get_session
 from DSL.modules.decoder.DecoderConditions import evaluate_condition
-from DSL.utils.DebugHelper import DebugHelper
 
 
 DecodeProcessField = Callable[[Any, bytes, Any, str, Any], tuple[Any, bool, str]]
@@ -59,7 +58,6 @@ def handle_if_block(
         for child_template in (branch or []):
             child = child_template.copy()
             process_field(child, raw_data, bitstate, endian, state)
-            DebugHelper.trace_field(child, bitstate)
     finally:
         scope.pop()
 

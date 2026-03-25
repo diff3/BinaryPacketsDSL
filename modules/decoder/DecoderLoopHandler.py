@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from DSL.modules.Session import get_session
-from DSL.utils.DebugHelper import dsl_debug
 from shared.Logger import Logger
 
 
@@ -90,8 +89,16 @@ def handle_loop_block(
 
     loop_count = resolve_variable(field.count_from, state.all)
     if not isinstance(loop_count, int) or loop_count < 0:
-        dsl_debug(f"[handle_loop] Invalid count '{field.count_from}' → using 0")
+        Logger.trace(
+            f"[handle_loop] Invalid count '{field.count_from}' -> using 0",
+            scope="dsl",
+        )
         loop_count = 0
+
+    Logger.trace(
+        f"Loop {getattr(field, 'target', field.name)} count={loop_count}",
+        scope="dsl",
+    )
 
     out_all = []
     out_public = []

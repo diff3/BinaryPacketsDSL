@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from DSL.utils.DebugHelper import dsl_debug
 from shared.Logger import Logger
 
 
@@ -87,16 +86,18 @@ def log_print_message(level: str, message: str) -> None:
     """
     normalized_level = (level or "debug").strip().lower()
     if normalized_level in ("info", "i"):
-        Logger.info(message)
+        Logger.info(message, scope="dsl")
     elif normalized_level in ("warn", "warning", "w"):
-        Logger.warning(message)
+        Logger.warning(message, scope="dsl")
     elif normalized_level in ("error", "err", "e"):
-        Logger.error(message)
+        Logger.error(message, scope="dsl")
     elif normalized_level in ("success", "ok", "s"):
-        Logger.success(message)
+        Logger.success(message, scope="dsl")
     elif normalized_level in ("anticheat", "anti", "a"):
-        Logger.anticheat(message)
+        Logger.anticheat(message, scope="dsl")
     elif normalized_level in ("script", "sc"):
-        Logger.script(message)
+        Logger.script(message, scope="dsl")
+    elif normalized_level in ("trace", "t"):
+        Logger.trace(message, scope="dsl")
     else:
-        dsl_debug(message)
+        Logger.debug(message, scope="dsl")

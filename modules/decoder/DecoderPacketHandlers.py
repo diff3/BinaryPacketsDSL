@@ -12,7 +12,6 @@ from typing import Any, Callable
 from DSL.modules.Session import BaseNode, get_session
 from DSL.modules.bitsHandler import BitState
 from DSL.modules.decoder.DecoderExpressions import eval_expr
-from DSL.utils.DebugHelper import DebugHelper
 from shared.Logger import Logger
 
 
@@ -188,7 +187,6 @@ def handle_uncompress(
     for child_template in field.children:
         child = child_template.copy()
         process_field(child, inflated, child_state, endian, state)
-        DebugHelper.trace_field(field, bitstate, label_prefix=field.name)
 
     field.raw_data = compressed
     field.value = inflated

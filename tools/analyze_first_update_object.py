@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from protocols.wow.mop.v18414.modules.handlers.worldLogin.packets import (
+from server.modules.handlers.worldLogin.packets import (
     format_first_login_update_object_capture,
     format_update_object_player_create_diff_with_expected,
 )
