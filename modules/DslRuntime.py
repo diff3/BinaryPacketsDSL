@@ -272,7 +272,7 @@ class DslRuntime:
         """Compile a .def file without loading expected JSON."""
         path = Path(path)
         if not path.exists():
-            Logger.warning(f"{log_prefix} Missing file {path.name}")
+            Logger.debug(f"{log_prefix} Missing file {path.name}")
             return None
 
         name = path.stem
